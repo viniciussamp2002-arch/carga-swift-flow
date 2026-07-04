@@ -7,32 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "@/components/StatusBadge";
-import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum } from "@/lib/format";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate } from "@/lib/format";
+import { diasRestantes, prazoBadge } from "@/lib/prazo";
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, Search, X } from "lucide-react";
-import { z } from "zod";
+import { Upload, Plus, PackagePlus, X } from "lucide-react";
 
-const searchSchema = z.object({ q: z.string().optional() }).optional();
-
-export const Route = createFileRoute("/_authenticated/notas")({
-  component: NotasPage,
-  validateSearch: searchSchema,
-});
+export const Route = createFileRoute("/_authenticated/notas")({ component: NotasPage });
 
 function NotasPage() {
   const { canWrite } = useAuth();
   const qc = useQueryClient();
-  const search = Route.useSearch();
-  const [q, setQ] = useState(search?.q ?? "");
-  const [statusF, setStatusF] = useState("all");
-  const [cidadeF, setCidadeF] = useState("");
-  const [fornF, setFornF] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
@@ -44,39 +35,28 @@ function NotasPage() {
         .from("notas_fiscais")
         .select("*, cargas:carga_id(numero)")
         .order("created_at", { ascending: false })
-        .limit(1000);
+        .limit(2000);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return notas.filter((n: any) => {
-      if (statusF !== "all" && n.status !== statusF) return false;
-      if (cidadeF && !n.cidade?.toLowerCase().includes(cidadeF.toLowerCase())) return false;
-      if (fornF && !n.fornecedor?.toLowerCase().includes(fornF.toLowerCase())) return false;
-      if (!term) return true;
-      return [n.numero, n.cliente, n.cidade, n.fornecedor].some((v) =>
-        String(v ?? "").toLowerCase().includes(term)
-      );
-    });
-  }, [notas, q, statusF, cidadeF, fornF]);
-
-  const selectedNotes = filtered.filter((n: any) => selected.has(n.id));
+  const selectedNotes = notas.filter((n: any) => selected.has(n.id));
   const totals = selectedNotes.reduce(
     (acc: any, n: any) => ({
       peso: acc.peso + Number(n.peso ?? 0),
       vol: acc.vol + Number(n.volumes ?? 0),
       clientes: acc.clientes.add(n.cliente),
     }),
-    { peso: 0, vol: 0, clientes: new Set() }
+    { peso: 0, vol: 0, clientes: new Set() },
   );
 
   function toggle(id: string) {
-    const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
-    setSelected(next);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   async function handleXmlUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -91,6 +71,7 @@ function NotasPage() {
       if (exists.data) { dup++; continue; }
       const { error } = await supabase.from("notas_fiscais").insert({
         ...p, regiao: null, agendamento: false, origem: "xml", status: "disponivel",
+        data_chegada: new Date().toISOString().slice(0, 10),
       });
       if (error) err++; else ok++;
     }
@@ -101,11 +82,49 @@ function NotasPage() {
     e.target.value = "";
   }
 
+  const columns: DataTableColumn<any>[] = useMemo(() => [
+    {
+      key: "sel", header: "", accessor: (n) => selected.has(n.id) ? "1" : "0",
+      filterable: false, sortable: false, width: "36px",
+      render: (n) => (
+        <input
+          type="checkbox"
+          checked={selected.has(n.id)}
+          disabled={n.status !== "disponivel" || !canWrite}
+          onChange={() => toggle(n.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
+    { key: "numero", header: "Nº NF", accessor: (n) => n.numero, render: (n) => <span className="font-mono font-medium">{n.numero}</span> },
+    { key: "fornecedor", header: "Fornecedor", accessor: (n) => n.fornecedor, render: (n) => <span className="max-w-[180px] truncate block" title={n.fornecedor}>{n.fornecedor}</span> },
+    { key: "cliente", header: "Cliente", accessor: (n) => n.cliente, render: (n) => <span className="max-w-[200px] truncate block" title={n.cliente}>{n.cliente}</span> },
+    { key: "cidade", header: "Cidade/UF", accessor: (n) => `${n.cidade ?? ""}${n.uf ? "/" + n.uf : ""}` },
+    { key: "peso", header: "Peso", accessor: (n) => Number(n.peso ?? 0), align: "right", render: (n) => fmtKg(n.peso), exportValue: (n) => Number(n.peso ?? 0) },
+    { key: "volumes", header: "Vol", accessor: (n) => Number(n.volumes ?? 0), align: "right" },
+    { key: "chegada", header: "Chegada", accessor: (n) => n.data_chegada, render: (n) => fmtDate(n.data_chegada) },
+    {
+      key: "prazo", header: "Prazo",
+      accessor: (n) => diasRestantes(n.data_limite) ?? 9999,
+      exportValue: (n) => diasRestantes(n.data_limite),
+      render: (n) => {
+        const d = diasRestantes(n.data_limite);
+        const b = prazoBadge(d);
+        return <StatusBadge className={b.className}>{b.label}</StatusBadge>;
+      },
+    },
+    { key: "carga", header: "Carga", accessor: (n) => n.cargas?.numero ?? "", render: (n) => n.cargas ? `#${n.cargas.numero}` : "—" },
+    {
+      key: "status", header: "Status", accessor: (n) => NOTA_STATUS_LABEL[n.status],
+      render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge>,
+    },
+  ], [selected, canWrite]);
+
   return (
     <div>
       <PageHeader
         title="Notas Fiscais"
-        subtitle={`${fmtNum(filtered.length)} de ${fmtNum(notas.length)} notas`}
+        subtitle={`${fmtNum(notas.length)} nota(s) no total`}
         actions={
           canWrite && (
             <>
@@ -123,88 +142,19 @@ function NotasPage() {
         }
       />
 
-      <div className="bg-card border rounded-md p-3 mb-3 flex gap-2 flex-wrap items-end">
-        <div className="flex-1 min-w-[200px]">
-          <Label className="text-[11px]">Buscar</Label>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} className="pl-7 h-8" placeholder="Nº NF, cliente, cidade..." />
-          </div>
-        </div>
-        <div>
-          <Label className="text-[11px]">Status</Label>
-          <Select value={statusF} onValueChange={setStatusF}>
-            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {Object.entries(NOTA_STATUS_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-[11px]">Cidade</Label>
-          <Input value={cidadeF} onChange={(e) => setCidadeF(e.target.value)} className="h-8 w-40" />
-        </div>
-        <div>
-          <Label className="text-[11px]">Fornecedor</Label>
-          <Input value={fornF} onChange={(e) => setFornF(e.target.value)} className="h-8 w-44" />
-        </div>
-      </div>
-
       <div className="flex gap-3">
-        <div className="flex-1 bg-card border rounded-md overflow-hidden">
-          <div className="max-h-[calc(100vh-280px)] overflow-auto">
-            <table className="table-erp">
-              <thead>
-                <tr>
-                  <th className="w-8"></th>
-                  <th>Nº NF</th>
-                  <th>Fornecedor</th>
-                  <th>Cliente</th>
-                  <th>Cidade/UF</th>
-                  <th className="text-right">Peso</th>
-                  <th className="text-right">Vol</th>
-                  <th>Agend</th>
-                  <th>Carga</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((n: any) => {
-                  const sel = selected.has(n.id);
-                  const canSelect = n.status === "disponivel";
-                  return (
-                    <tr key={n.id} className={sel ? "bg-primary/5" : ""}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={sel}
-                          disabled={!canSelect || !canWrite}
-                          onChange={() => toggle(n.id)}
-                        />
-                      </td>
-                      <td className="font-mono">{n.numero}</td>
-                      <td className="max-w-[180px] truncate">{n.fornecedor}</td>
-                      <td className="max-w-[180px] truncate">{n.cliente}</td>
-                      <td>{n.cidade}{n.uf && `/${n.uf}`}</td>
-                      <td className="text-right">{fmtKg(n.peso)}</td>
-                      <td className="text-right">{n.volumes}</td>
-                      <td>{n.agendamento ? "Sim" : "—"}</td>
-                      <td>{n.cargas ? `#${n.cargas.numero}` : "—"}</td>
-                      <td><StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge></td>
-                    </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma nota encontrada</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex-1 min-w-0">
+          <DataTable
+            data={notas}
+            columns={columns}
+            rowKey={(n: any) => n.id}
+            exportName="notas_fiscais"
+            rowClassName={(n: any) => selected.has(n.id) ? "bg-primary/5" : ""}
+          />
         </div>
 
         {selected.size > 0 && (
-          <aside className="w-72 bg-card border rounded-md p-4 h-fit sticky top-0">
+          <aside className="w-72 bg-card border rounded-md p-4 h-fit sticky top-0 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-sm font-semibold">Carga em formação</h3>
               <button onClick={() => setSelected(new Set())} className="text-muted-foreground hover:text-foreground">
@@ -236,9 +186,10 @@ function NotasPage() {
 
 function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
+  const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     numero: "", cliente: "", cidade: "", uf: "", regiao: "", peso: "", volumes: "",
-    fornecedor: "", agendamento: false, observacoes: "",
+    fornecedor: "", cnpj_emissor: "", agendamento: false, observacoes: "", data_chegada: today,
   });
   const mut = useMutation({
     mutationFn: async () => {
@@ -254,7 +205,7 @@ function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       toast.success("Nota cadastrada");
       qc.invalidateQueries({ queryKey: ["notas"] });
       onOpenChange(false);
-      setForm({ numero: "", cliente: "", cidade: "", uf: "", regiao: "", peso: "", volumes: "", fornecedor: "", agendamento: false, observacoes: "" });
+      setForm({ numero: "", cliente: "", cidade: "", uf: "", regiao: "", peso: "", volumes: "", fornecedor: "", cnpj_emissor: "", agendamento: false, observacoes: "", data_chegada: today });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -264,7 +215,9 @@ function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         <DialogHeader><DialogTitle>Cadastrar Nota Manual</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Número NF*"><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></Field>
+          <Field label="Data de Chegada"><Input type="date" value={form.data_chegada} onChange={(e) => setForm({ ...form, data_chegada: e.target.value })} /></Field>
           <Field label="Fornecedor"><Input value={form.fornecedor} onChange={(e) => setForm({ ...form, fornecedor: e.target.value })} /></Field>
+          <Field label="CNPJ Fornecedor"><Input value={form.cnpj_emissor} onChange={(e) => setForm({ ...form, cnpj_emissor: e.target.value })} /></Field>
           <Field label="Cliente" className="col-span-2"><Input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} /></Field>
           <Field label="Cidade"><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></Field>
           <Field label="UF"><Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value })} maxLength={2} /></Field>
@@ -325,10 +278,6 @@ function GerarCargaDialog({
         carga_id: carga.id, status: "separacao",
       }).in("id", notaIds);
       if (upd.error) throw upd.error;
-      await supabase.from("historico").insert(notaIds.map((nid) => ({
-        entidade: "nota", entidade_id: nid, acao: "vinculo_carga",
-        descricao: `Nota vinculada à carga #${carga.numero}`,
-      })));
       await supabase.from("historico").insert({
         entidade: "carga", entidade_id: carga.id, acao: "criada",
         descricao: `Carga #${carga.numero} criada com ${notaIds.length} nota(s)`,
