@@ -17,6 +17,8 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
+import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCargasRouteImport } from './routes/_authenticated/cargas'
@@ -61,6 +63,17 @@ const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
   path: '/historico',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFornecedoresRoute =
+  AuthenticatedFornecedoresRouteImport.update({
+    id: '/fornecedores',
+    path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedEntregasRoute = AuthenticatedEntregasRouteImport.update({
   id: '/entregas',
   path: '/entregas',
@@ -88,6 +101,8 @@ export interface FileRoutesByFullPath {
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
@@ -101,6 +116,8 @@ export interface FileRoutesByTo {
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
@@ -116,6 +133,8 @@ export interface FileRoutesById {
   '/_authenticated/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
+  '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
@@ -131,6 +150,8 @@ export interface FileRouteTypes {
     | '/cargas'
     | '/dashboard'
     | '/entregas'
+    | '/financeiro'
+    | '/fornecedores'
     | '/historico'
     | '/motoristas'
     | '/notas'
@@ -144,6 +165,8 @@ export interface FileRouteTypes {
     | '/cargas'
     | '/dashboard'
     | '/entregas'
+    | '/financeiro'
+    | '/fornecedores'
     | '/historico'
     | '/motoristas'
     | '/notas'
@@ -158,6 +181,8 @@ export interface FileRouteTypes {
     | '/_authenticated/cargas'
     | '/_authenticated/dashboard'
     | '/_authenticated/entregas'
+    | '/_authenticated/financeiro'
+    | '/_authenticated/fornecedores'
     | '/_authenticated/historico'
     | '/_authenticated/motoristas'
     | '/_authenticated/notas'
@@ -230,6 +255,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoricoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/fornecedores': {
+      id: '/_authenticated/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/entregas': {
       id: '/_authenticated/entregas'
       path: '/entregas'
@@ -276,6 +315,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCargasRoute: typeof AuthenticatedCargasRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
+  AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
+  AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
@@ -287,6 +328,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCargasRoute: AuthenticatedCargasRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
+  AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
+  AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
