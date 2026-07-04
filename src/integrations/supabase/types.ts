@@ -125,6 +125,123 @@ export type Database = {
           },
         ]
       }
+      financeiro: {
+        Row: {
+          created_at: string
+          data_entrega: string | null
+          fornecedor_id: string | null
+          id: string
+          nota_fiscal_id: string
+          observacoes: string | null
+          regiao: string | null
+          situacao: string
+          updated_at: string
+          valor_base: number
+          valor_desconto: number
+          valor_frete: number
+          valor_icms: number
+          valor_pedagio: number
+          valor_taxa_extra: number
+        }
+        Insert: {
+          created_at?: string
+          data_entrega?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          nota_fiscal_id: string
+          observacoes?: string | null
+          regiao?: string | null
+          situacao?: string
+          updated_at?: string
+          valor_base?: number
+          valor_desconto?: number
+          valor_frete?: number
+          valor_icms?: number
+          valor_pedagio?: number
+          valor_taxa_extra?: number
+        }
+        Update: {
+          created_at?: string
+          data_entrega?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          nota_fiscal_id?: string
+          observacoes?: string | null
+          regiao?: string | null
+          situacao?: string
+          updated_at?: string
+          valor_base?: number
+          valor_desconto?: number
+          valor_frete?: number
+          valor_icms?: number
+          valor_pedagio?: number
+          valor_taxa_extra?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: true
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedores: {
+        Row: {
+          cnpj: string
+          created_at: string
+          desconto_percent: number
+          icms_percent: number
+          id: string
+          nome: string
+          observacoes: string | null
+          pedagio: number
+          taxa_extra: number
+          tipo_calculo: string
+          updated_at: string
+          valor_base: number
+          valor_minimo: number
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          desconto_percent?: number
+          icms_percent?: number
+          id?: string
+          nome: string
+          observacoes?: string | null
+          pedagio?: number
+          taxa_extra?: number
+          tipo_calculo?: string
+          updated_at?: string
+          valor_base?: number
+          valor_minimo?: number
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          desconto_percent?: number
+          icms_percent?: number
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          pedagio?: number
+          taxa_extra?: number
+          tipo_calculo?: string
+          updated_at?: string
+          valor_base?: number
+          valor_minimo?: number
+        }
+        Relationships: []
+      }
       historico: {
         Row: {
           acao: string
@@ -208,7 +325,9 @@ export type Database = {
           cnpj_emissor: string | null
           created_at: string
           created_by: string | null
+          data_chegada: string
           data_emissao: string | null
+          data_limite: string | null
           fornecedor: string
           id: string
           numero: string
@@ -233,7 +352,9 @@ export type Database = {
           cnpj_emissor?: string | null
           created_at?: string
           created_by?: string | null
+          data_chegada?: string
           data_emissao?: string | null
+          data_limite?: string | null
           fornecedor?: string
           id?: string
           numero: string
@@ -258,7 +379,9 @@ export type Database = {
           cnpj_emissor?: string | null
           created_at?: string
           created_by?: string | null
+          data_chegada?: string
           data_emissao?: string | null
+          data_limite?: string | null
           fornecedor?: string
           id?: string
           numero?: string
