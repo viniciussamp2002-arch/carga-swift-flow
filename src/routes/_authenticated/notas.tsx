@@ -164,13 +164,13 @@ function NotasPage() {
         />
       ),
     },
+    { key: "chegada", header: "Chegada", accessor: (n) => n.data_chegada, render: (n) => fmtDate(n.data_chegada) },
     { key: "numero", header: "Nº NF", accessor: (n) => n.numero, render: (n) => <span className="font-mono font-medium">{n.numero}</span> },
     { key: "fornecedor", header: "Fornecedor", accessor: (n) => n.fornecedor, render: (n) => <span className="max-w-[180px] truncate block" title={n.fornecedor}>{n.fornecedor}</span> },
     { key: "cliente", header: "Cliente", accessor: (n) => n.cliente, render: (n) => <span className="max-w-[200px] truncate block" title={n.cliente}>{n.cliente}</span> },
     { key: "cidade", header: "Cidade/UF", accessor: (n) => `${n.cidade ?? ""}${n.uf ? "/" + n.uf : ""}` },
     { key: "peso", header: "Peso", accessor: (n) => Number(n.peso ?? 0), align: "right", render: (n) => fmtKg(n.peso), exportValue: (n) => Number(n.peso ?? 0) },
     { key: "volumes", header: "Vol", accessor: (n) => Number(n.volumes ?? 0), align: "right" },
-    { key: "chegada", header: "Chegada", accessor: (n) => n.data_chegada, render: (n) => fmtDate(n.data_chegada) },
     {
       key: "prazo", header: "Prazo",
       accessor: (n) => diasRestantes(n.data_limite) ?? 9999,
@@ -186,6 +186,23 @@ function NotasPage() {
       key: "status", header: "Status", accessor: (n) => NOTA_STATUS_LABEL[n.status],
       render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge>,
     },
+    ...(canWrite ? [{
+      key: "acoes", header: "Ações", accessor: () => "", filterable: false, sortable: false, width: "80px",
+      render: (n: any) => (
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditNota(n)} title="Editar">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm" variant="ghost"
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            onClick={() => setDeleteNota(n)} title="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ),
+    } as DataTableColumn<any>] : []),
   ], [selected, canWrite]);
 
   return (
