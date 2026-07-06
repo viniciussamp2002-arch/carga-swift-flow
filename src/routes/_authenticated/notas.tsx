@@ -190,14 +190,78 @@ function NotasPage() {
         }
       />
 
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-3">
+        {BUCKETS.map((b) => {
+          const Icon = b.icon;
+          const active = bucket === b.key;
+          return (
+            <button
+              key={b.key}
+              onClick={() => { setBucket(b.key); setCargaFilter(null); }}
+              className={cn(
+                "border rounded-md p-3 text-left transition-all hover:shadow-sm",
+                active ? `${b.color} ring-2 ring-offset-1 ring-current` : "bg-card hover:bg-accent/40",
+              )}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <Icon className="h-4 w-4 opacity-70" />
+                <span className="text-2xl font-bold leading-none">{counts[b.key] ?? 0}</span>
+              </div>
+              <div className="text-xs font-medium">{b.label}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {bucketDef.group && cargaGroups.length > 0 && (
+        <div className="mb-3 bg-card border rounded-md p-2">
+          <div className="text-xs text-muted-foreground px-1 pb-1.5 font-medium">Agrupado por carga · clique para filtrar</div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setCargaFilter(null)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded border transition-colors",
+                !cargaFilter ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+              )}
+            >
+              Todas ({notasBucket.length})
+            </button>
+            {cargaGroups.map((g) => (
+              <button
+                key={g.key}
+                onClick={() => setCargaFilter(g.key)}
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded border transition-colors flex items-center gap-1.5",
+                  cargaFilter === g.key ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+                )}
+              >
+                {g.numero !== null ? (
+                  <>
+                    <span className="font-mono font-semibold">#{g.numero}</span>
+                    <span className="opacity-70">·</span>
+                    <span className="font-mono">{g.placa}</span>
+                    <span className="opacity-70">·</span>
+                    <span className="truncate max-w-[120px]">{g.motorista}</span>
+                  </>
+                ) : (
+                  <span>Sem carga</span>
+                )}
+                <span className="opacity-80 ml-1">({g.count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           <DataTable
-            data={notas}
+            data={notasFiltered}
             columns={columns}
             rowKey={(n: any) => n.id}
-            exportName="notas_fiscais"
+            exportName={`notas_${bucket}`}
             rowClassName={(n: any) => selected.has(n.id) ? "bg-primary/5" : ""}
+            emptyMessage={`Nenhuma nota em "${bucketDef.label}"`}
           />
         </div>
 
