@@ -17,7 +17,8 @@ import { diasRestantes, prazoBadge } from "@/lib/prazo";
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, Package, Truck, PackageCheck, PackageOpen, CheckCircle2, Ban } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, Package, Truck, PackageCheck, PackageOpen, CheckCircle2, Ban, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 const BUCKETS: { key: string; label: string; icon: any; color: string; group?: boolean }[] = [
