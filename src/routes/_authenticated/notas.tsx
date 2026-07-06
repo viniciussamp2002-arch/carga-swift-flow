@@ -41,6 +41,25 @@ function NotasPage() {
   const [openCarga, setOpenCarga] = useState(false);
   const [bucket, setBucket] = useState<string>("disponivel");
   const [cargaFilter, setCargaFilter] = useState<string | null>(null);
+  const [editNota, setEditNota] = useState<any | null>(null);
+  const [deleteNota, setDeleteNota] = useState<any | null>(null);
+
+  const delMut = useMutation({
+    mutationFn: async (n: any) => {
+      const { error } = await supabase.from("notas_fiscais").delete().eq("id", n.id);
+      if (error) throw error;
+      await supabase.from("historico").insert({
+        entidade: "nota", entidade_id: n.id, acao: "excluida",
+        descricao: `Nota ${n.numero} excluída`,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Nota excluída");
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      setDeleteNota(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const { data: notas = [] } = useQuery({
     queryKey: ["notas"],
