@@ -38,12 +38,18 @@ function NotasPage() {
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [openManual, setOpenManual] = useState(false);
+  const [openCarga, setOpenCarga] = useState(false);
+  const [bucket, setBucket] = useState<string>("disponivel");
+  const [cargaFilter, setCargaFilter] = useState<string | null>(null);
+
   const { data: notas = [] } = useQuery({
     queryKey: ["notas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notas_fiscais")
-        .select("*, cargas:carga_id(numero)")
+        .select("*, cargas:carga_id(numero, veiculos:veiculo_id(placa), motoristas:motorista_id(nome))")
         .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;
@@ -51,7 +57,42 @@ function NotasPage() {
     },
   });
 
-  const selectedNotes = notas.filter((n: any) => selected.has(n.id));
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const n of notas as any[]) c[n.status] = (c[n.status] ?? 0) + 1;
+    return c;
+  }, [notas]);
+
+  const bucketDef = BUCKETS.find((b) => b.key === bucket)!;
+  const notasBucket = useMemo(
+    () => (notas as any[]).filter((n) => n.status === bucket),
+    [notas, bucket],
+  );
+
+  const cargaGroups = useMemo(() => {
+    if (!bucketDef.group) return [];
+    const map = new Map<string, { key: string; numero: number | null; placa: string; motorista: string; count: number }>();
+    for (const n of notasBucket) {
+      const key = n.carga_id ?? "__sem__";
+      const g = map.get(key) ?? {
+        key,
+        numero: n.cargas?.numero ?? null,
+        placa: n.cargas?.veiculos?.placa ?? "—",
+        motorista: n.cargas?.motoristas?.nome ?? "—",
+        count: 0,
+      };
+      g.count++;
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0));
+  }, [notasBucket, bucketDef.group]);
+
+  const notasFiltered = useMemo(() => {
+    if (!bucketDef.group || !cargaFilter) return notasBucket;
+    return notasBucket.filter((n) => (n.carga_id ?? "__sem__") === cargaFilter);
+  }, [notasBucket, cargaFilter, bucketDef.group]);
+
+  const selectedNotes = (notas as any[]).filter((n) => selected.has(n.id));
   const totals = selectedNotes.reduce(
     (acc: any, n: any) => ({
       peso: acc.peso + Number(n.peso ?? 0),
