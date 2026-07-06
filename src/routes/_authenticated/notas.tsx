@@ -369,8 +369,7 @@ function EditNotaDialog({ nota, onOpenChange }: { nota: any | null; onOpenChange
   const qc = useQueryClient();
   const [form, setForm] = useState<any>(null);
 
-  // sync form when nota changes
-  useMemo(() => {
+  useEffect(() => {
     if (nota) setForm({
       numero: nota.numero ?? "", cliente: nota.cliente ?? "", cidade: nota.cidade ?? "",
       uf: nota.uf ?? "", regiao: nota.regiao ?? "", peso: nota.peso ?? "",
