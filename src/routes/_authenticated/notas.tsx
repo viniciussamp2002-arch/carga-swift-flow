@@ -17,23 +17,36 @@ import { diasRestantes, prazoBadge } from "@/lib/prazo";
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, Package, Truck, PackageCheck, PackageOpen, CheckCircle2, Ban } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const BUCKETS: { key: string; label: string; icon: any; color: string; group?: boolean }[] = [
+  { key: "disponivel", label: "Disponíveis", icon: Package, color: "text-blue-600 border-blue-500/40 bg-blue-500/10" },
+  { key: "separacao", label: "Em Separação", icon: PackageOpen, color: "text-amber-700 border-amber-500/40 bg-amber-500/10", group: true },
+  { key: "carregamento", label: "Carregamento", icon: PackageCheck, color: "text-orange-700 border-orange-500/40 bg-orange-500/10", group: true },
+  { key: "em_rota", label: "Em Rota", icon: Truck, color: "text-purple-700 border-purple-500/40 bg-purple-500/10", group: true },
+  { key: "entregue", label: "Entregues", icon: CheckCircle2, color: "text-emerald-700 border-emerald-500/40 bg-emerald-500/10", group: true },
+  { key: "cancelada", label: "Canceladas", icon: Ban, color: "text-red-700 border-red-500/40 bg-red-500/10" },
+];
 
 export const Route = createFileRoute("/_authenticated/notas")({ component: NotasPage });
 
 function NotasPage() {
   const { canWrite } = useAuth();
   const qc = useQueryClient();
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
+  const [bucket, setBucket] = useState<string>("disponivel");
+  const [cargaFilter, setCargaFilter] = useState<string | null>(null);
 
   const { data: notas = [] } = useQuery({
     queryKey: ["notas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notas_fiscais")
-        .select("*, cargas:carga_id(numero)")
+        .select("*, cargas:carga_id(numero, veiculos:veiculo_id(placa), motoristas:motorista_id(nome))")
         .order("created_at", { ascending: false })
         .limit(2000);
       if (error) throw error;
@@ -41,7 +54,42 @@ function NotasPage() {
     },
   });
 
-  const selectedNotes = notas.filter((n: any) => selected.has(n.id));
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const n of notas as any[]) c[n.status] = (c[n.status] ?? 0) + 1;
+    return c;
+  }, [notas]);
+
+  const bucketDef = BUCKETS.find((b) => b.key === bucket)!;
+  const notasBucket = useMemo(
+    () => (notas as any[]).filter((n) => n.status === bucket),
+    [notas, bucket],
+  );
+
+  const cargaGroups = useMemo(() => {
+    if (!bucketDef.group) return [];
+    const map = new Map<string, { key: string; numero: number | null; placa: string; motorista: string; count: number }>();
+    for (const n of notasBucket) {
+      const key = n.carga_id ?? "__sem__";
+      const g = map.get(key) ?? {
+        key,
+        numero: n.cargas?.numero ?? null,
+        placa: n.cargas?.veiculos?.placa ?? "—",
+        motorista: n.cargas?.motoristas?.nome ?? "—",
+        count: 0,
+      };
+      g.count++;
+      map.set(key, g);
+    }
+    return Array.from(map.values()).sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0));
+  }, [notasBucket, bucketDef.group]);
+
+  const notasFiltered = useMemo(() => {
+    if (!bucketDef.group || !cargaFilter) return notasBucket;
+    return notasBucket.filter((n) => (n.carga_id ?? "__sem__") === cargaFilter);
+  }, [notasBucket, cargaFilter, bucketDef.group]);
+
+  const selectedNotes = (notas as any[]).filter((n) => selected.has(n.id));
   const totals = selectedNotes.reduce(
     (acc: any, n: any) => ({
       peso: acc.peso + Number(n.peso ?? 0),
@@ -142,14 +190,78 @@ function NotasPage() {
         }
       />
 
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-3">
+        {BUCKETS.map((b) => {
+          const Icon = b.icon;
+          const active = bucket === b.key;
+          return (
+            <button
+              key={b.key}
+              onClick={() => { setBucket(b.key); setCargaFilter(null); }}
+              className={cn(
+                "border rounded-md p-3 text-left transition-all hover:shadow-sm",
+                active ? `${b.color} ring-2 ring-offset-1 ring-current` : "bg-card hover:bg-accent/40",
+              )}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <Icon className="h-4 w-4 opacity-70" />
+                <span className="text-2xl font-bold leading-none">{counts[b.key] ?? 0}</span>
+              </div>
+              <div className="text-xs font-medium">{b.label}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {bucketDef.group && cargaGroups.length > 0 && (
+        <div className="mb-3 bg-card border rounded-md p-2">
+          <div className="text-xs text-muted-foreground px-1 pb-1.5 font-medium">Agrupado por carga · clique para filtrar</div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setCargaFilter(null)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded border transition-colors",
+                !cargaFilter ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+              )}
+            >
+              Todas ({notasBucket.length})
+            </button>
+            {cargaGroups.map((g) => (
+              <button
+                key={g.key}
+                onClick={() => setCargaFilter(g.key)}
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded border transition-colors flex items-center gap-1.5",
+                  cargaFilter === g.key ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent",
+                )}
+              >
+                {g.numero !== null ? (
+                  <>
+                    <span className="font-mono font-semibold">#{g.numero}</span>
+                    <span className="opacity-70">·</span>
+                    <span className="font-mono">{g.placa}</span>
+                    <span className="opacity-70">·</span>
+                    <span className="truncate max-w-[120px]">{g.motorista}</span>
+                  </>
+                ) : (
+                  <span>Sem carga</span>
+                )}
+                <span className="opacity-80 ml-1">({g.count})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           <DataTable
-            data={notas}
+            data={notasFiltered}
             columns={columns}
             rowKey={(n: any) => n.id}
-            exportName="notas_fiscais"
+            exportName={`notas_${bucket}`}
             rowClassName={(n: any) => selected.has(n.id) ? "bg-primary/5" : ""}
+            emptyMessage={`Nenhuma nota em "${bucketDef.label}"`}
           />
         </div>
 
