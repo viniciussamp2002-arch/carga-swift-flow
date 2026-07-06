@@ -324,12 +324,110 @@ function NotasPage() {
       </div>
 
       <ManualDialog open={openManual} onOpenChange={setOpenManual} />
+      <EditNotaDialog nota={editNota} onOpenChange={(o) => !o && setEditNota(null)} />
       <GerarCargaDialog
         open={openCarga}
         onOpenChange={(o) => { setOpenCarga(o); if (!o) setSelected(new Set()); }}
         notaIds={Array.from(selected)}
       />
+
+      <AlertDialog open={!!deleteNota} onOpenChange={(o) => !o && setDeleteNota(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir nota fiscal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteNota && (
+                <>
+                  Nota <strong>{deleteNota.numero}</strong> — {deleteNota.cliente ?? "sem cliente"}.
+                  {deleteNota.carga_id && (
+                    <span className="block mt-2 text-warning">
+                      ⚠ Esta nota está vinculada a uma carga. Remova-a da carga antes de excluir.
+                    </span>
+                  )}
+                  <span className="block mt-2">Esta ação não pode ser desfeita.</span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!deleteNota?.carga_id || delMut.isPending}
+              onClick={() => deleteNota && delMut.mutate(deleteNota)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function EditNotaDialog({ nota, onOpenChange }: { nota: any | null; onOpenChange: (o: boolean) => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState<any>(null);
+
+  // sync form when nota changes
+  useMemo(() => {
+    if (nota) setForm({
+      numero: nota.numero ?? "", cliente: nota.cliente ?? "", cidade: nota.cidade ?? "",
+      uf: nota.uf ?? "", regiao: nota.regiao ?? "", peso: nota.peso ?? "",
+      volumes: nota.volumes ?? "", fornecedor: nota.fornecedor ?? "",
+      cnpj_emissor: nota.cnpj_emissor ?? "", agendamento: !!nota.agendamento,
+      observacoes: nota.observacoes ?? "", data_chegada: nota.data_chegada ?? "",
+    });
+  }, [nota]);
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("notas_fiscais").update({
+        ...form,
+        peso: Number(form.peso) || 0,
+        volumes: parseInt(form.volumes) || 0,
+      }).eq("id", nota.id);
+      if (error) throw error;
+      await supabase.from("historico").insert({
+        entidade: "nota", entidade_id: nota.id, acao: "editada",
+        descricao: `Nota ${form.numero} editada`,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Nota atualizada");
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (!nota || !form) return null;
+  return (
+    <Dialog open={!!nota} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Editar Nota {nota.numero}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Número NF*"><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></Field>
+          <Field label="Data de Chegada"><Input type="date" value={form.data_chegada} onChange={(e) => setForm({ ...form, data_chegada: e.target.value })} /></Field>
+          <Field label="Fornecedor"><Input value={form.fornecedor} onChange={(e) => setForm({ ...form, fornecedor: e.target.value })} /></Field>
+          <Field label="CNPJ Fornecedor"><Input value={form.cnpj_emissor} onChange={(e) => setForm({ ...form, cnpj_emissor: e.target.value })} /></Field>
+          <Field label="Cliente" className="col-span-2"><Input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} /></Field>
+          <Field label="Cidade"><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} /></Field>
+          <Field label="UF"><Input value={form.uf} onChange={(e) => setForm({ ...form, uf: e.target.value })} maxLength={2} /></Field>
+          <Field label="Região"><Input value={form.regiao} onChange={(e) => setForm({ ...form, regiao: e.target.value })} /></Field>
+          <Field label="Peso (kg)"><Input type="number" step="0.001" value={form.peso} onChange={(e) => setForm({ ...form, peso: e.target.value })} /></Field>
+          <Field label="Volumes"><Input type="number" value={form.volumes} onChange={(e) => setForm({ ...form, volumes: e.target.value })} /></Field>
+          <Field label="Agendamento">
+            <div className="flex items-center h-9"><Switch checked={form.agendamento} onCheckedChange={(v: boolean) => setForm({ ...form, agendamento: v })} /></div>
+          </Field>
+          <Field label="Observações" className="col-span-2"><Textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} rows={2} /></Field>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !form.numero}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
