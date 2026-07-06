@@ -34,9 +34,6 @@ export const Route = createFileRoute("/_authenticated/notas")({ component: Notas
 function NotasPage() {
   const { canWrite } = useAuth();
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [openManual, setOpenManual] = useState(false);
-  const [openCarga, setOpenCarga] = useState(false);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
