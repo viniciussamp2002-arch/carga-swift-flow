@@ -17,7 +17,17 @@ import { diasRestantes, prazoBadge } from "@/lib/prazo";
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, Package, Truck, PackageCheck, PackageOpen, CheckCircle2, Ban } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const BUCKETS: { key: string; label: string; icon: any; color: string; group?: boolean }[] = [
+  { key: "disponivel", label: "Disponíveis", icon: Package, color: "text-blue-600 border-blue-500/40 bg-blue-500/10" },
+  { key: "separacao", label: "Em Separação", icon: PackageOpen, color: "text-amber-700 border-amber-500/40 bg-amber-500/10", group: true },
+  { key: "carregamento", label: "Carregamento", icon: PackageCheck, color: "text-orange-700 border-orange-500/40 bg-orange-500/10", group: true },
+  { key: "em_rota", label: "Em Rota", icon: Truck, color: "text-purple-700 border-purple-500/40 bg-purple-500/10", group: true },
+  { key: "entregue", label: "Entregues", icon: CheckCircle2, color: "text-emerald-700 border-emerald-500/40 bg-emerald-500/10", group: true },
+  { key: "cancelada", label: "Canceladas", icon: Ban, color: "text-red-700 border-red-500/40 bg-red-500/10" },
+];
 
 export const Route = createFileRoute("/_authenticated/notas")({ component: NotasPage });
 
