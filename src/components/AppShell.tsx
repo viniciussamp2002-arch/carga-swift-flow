@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, FileText, PackagePlus, Truck, Users, ClipboardCheck,
-  History, ShieldCheck, LogOut, DollarSign, Building2,
+  History, ShieldCheck, LogOut,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,8 @@ const nav = [
   { to: "/notas", label: "Notas Fiscais", icon: FileText },
   { to: "/cargas", label: "Cargas", icon: PackagePlus },
   { to: "/entregas", label: "Entregas", icon: ClipboardCheck },
-  { to: "/financeiro", label: "Financeiro", icon: DollarSign },
   { to: "/veiculos", label: "Veículos", icon: Truck },
   { to: "/motoristas", label: "Motoristas", icon: Users },
-  { to: "/fornecedores", label: "Fornecedores", icon: Building2 },
   { to: "/historico", label: "Histórico", icon: History },
 ];
 
