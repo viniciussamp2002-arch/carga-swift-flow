@@ -414,7 +414,6 @@ function NotasPage() {
               <tbody>
                 {filtered.map((n: any) => {
                   const sel = selected.has(n.id);
-                  const canSelect = n.status === "disponivel";
                   const numeroDisplay = n.numeros_agrupados?.length
                     ? n.numeros_agrupados.join(" + ")
                     : n.numero;
@@ -424,7 +423,7 @@ function NotasPage() {
                         <input
                           type="checkbox"
                           checked={sel}
-                          disabled={!canSelect || !canWrite}
+                          disabled={!canWrite}
                           onChange={() => toggle(n.id)}
                         />
                       </td>
