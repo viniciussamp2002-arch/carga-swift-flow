@@ -511,9 +511,15 @@ function NotasPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Peso total</span><span className="font-bold">{fmtKg(totals.peso)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Clientes</span><span className="font-bold">{totals.clientes.size}</span></div>
             </div>
-            <Button onClick={() => setOpenCarga(true)} className="w-full mt-4" size="sm">
-              <PackagePlus className="h-4 w-4 mr-2" />GERAR CARGA
-            </Button>
+            {selectedNotes.every((n: any) => n.status === "disponivel") ? (
+              <Button onClick={() => setOpenCarga(true)} className="w-full mt-4" size="sm">
+                <PackagePlus className="h-4 w-4 mr-2" />GERAR CARGA
+              </Button>
+            ) : (
+              <div className="mt-4 text-[11px] text-muted-foreground">
+                Para gerar carga, selecione apenas notas com status "Disponível".
+              </div>
+            )}
           </aside>
         )}
       </div>
@@ -524,6 +530,47 @@ function NotasPage() {
         onOpenChange={(o) => { setOpenCarga(o); if (!o) setSelected(new Set()); }}
         notaIds={Array.from(selected)}
       />
+
+      <Dialog open={openBulkDate} onOpenChange={setOpenBulkDate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar data de chegada ({selected.size})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-[11px]">Nova data</Label>
+            <Input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenBulkDate(false)}>Cancelar</Button>
+            <Button
+              disabled={!bulkDate || bulkUpdateDate.isPending}
+              onClick={() => bulkUpdateDate.mutate({ ids: Array.from(selected), data: bulkDate })}
+            >
+              Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={openBulkDelete} onOpenChange={setOpenBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} nota(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. As notas selecionadas serão removidas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDelete.mutate(Array.from(selected))}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
