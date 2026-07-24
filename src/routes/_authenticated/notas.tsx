@@ -381,7 +381,25 @@ function NotasPage() {
             <table className="table-erp">
               <thead>
                 <tr>
-                  <th className="w-8"></th>
+                  <th className="w-8">
+                    {canWrite && filtered.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={filtered.every((n: any) => selected.has(n.id))}
+                        ref={(el) => {
+                          if (el) {
+                            const some = filtered.some((n: any) => selected.has(n.id));
+                            const all = filtered.every((n: any) => selected.has(n.id));
+                            el.indeterminate = some && !all;
+                          }
+                        }}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelected(new Set(filtered.map((n: any) => n.id)));
+                          else setSelected(new Set());
+                        }}
+                      />
+                    )}
+                  </th>
                   <ColHeader colKey="data_chegada" label="Data Chegada" />
                   <ColHeader colKey="numero" label="Nº NF" />
                   <ColHeader colKey="fornecedor" label="Fornecedor" filterOptions={fornecedoresDistintos as string[]} />
