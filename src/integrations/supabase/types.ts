@@ -319,6 +319,7 @@ export type Database = {
           agendamento: boolean
           carga_id: string | null
           chave_nfe: string | null
+          chaves_agrupadas: string[]
           cidade: string
           cliente: string
           cnpj_destinatario: string | null
@@ -331,6 +332,7 @@ export type Database = {
           fornecedor: string
           id: string
           numero: string
+          numeros_agrupados: string[]
           observacoes: string | null
           origem: string
           peso: number
@@ -346,6 +348,7 @@ export type Database = {
           agendamento?: boolean
           carga_id?: string | null
           chave_nfe?: string | null
+          chaves_agrupadas?: string[]
           cidade?: string
           cliente?: string
           cnpj_destinatario?: string | null
@@ -358,6 +361,7 @@ export type Database = {
           fornecedor?: string
           id?: string
           numero: string
+          numeros_agrupados?: string[]
           observacoes?: string | null
           origem?: string
           peso?: number
@@ -373,6 +377,7 @@ export type Database = {
           agendamento?: boolean
           carga_id?: string | null
           chave_nfe?: string | null
+          chaves_agrupadas?: string[]
           cidade?: string
           cliente?: string
           cnpj_destinatario?: string | null
@@ -385,6 +390,7 @@ export type Database = {
           fornecedor?: string
           id?: string
           numero?: string
+          numeros_agrupados?: string[]
           observacoes?: string | null
           origem?: string
           peso?: number
