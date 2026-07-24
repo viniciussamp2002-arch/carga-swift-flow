@@ -375,6 +375,33 @@ function NotasPage() {
         }
       />
 
+      {canWrite && selected.size > 0 && (
+        <div className="mb-2 flex items-center gap-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
+          <span className="font-semibold">{selected.size} selecionada(s)</span>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8"
+              onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}
+            >
+              <CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8"
+              onClick={() => setOpenBulkDelete(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelected(new Set())}>
+              <X className="h-3.5 w-3.5 mr-1" /> Limpar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 bg-card border rounded-md overflow-hidden">
           <div className="max-h-[calc(100vh-220px)] overflow-auto">
