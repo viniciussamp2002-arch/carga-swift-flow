@@ -134,6 +134,35 @@ function NotasPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const bulkUpdateDate = useMutation({
+    mutationFn: async ({ ids, data }: { ids: string[]; data: string }) => {
+      const { error } = await supabase.from("notas_fiscais").update({ data_chegada: data }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(`Data atualizada em ${v.ids.length} nota(s)`);
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      setSelected(new Set());
+      setOpenBulkDate(false);
+      setBulkDate("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("notas_fiscais").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, ids) => {
+      toast.success(`${ids.length} nota(s) excluída(s)`);
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      setSelected(new Set());
+      setOpenBulkDelete(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   async function importXml(files: FileList, agrupado: boolean) {
     const parsed: any[] = [];
     const errors: string[] = [];
