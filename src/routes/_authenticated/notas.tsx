@@ -46,6 +46,9 @@ function NotasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
+  const [openBulkDate, setOpenBulkDate] = useState(false);
+  const [openBulkDelete, setOpenBulkDelete] = useState(false);
+  const [bulkDate, setBulkDate] = useState("");
   const [sortKey, setSortKey] = useState<ColKey | null>("data_chegada");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filters, setFilters] = useState<Record<string, string>>({});
