@@ -20,7 +20,11 @@ import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate } from "@/
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 
@@ -42,6 +46,9 @@ function NotasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
+  const [openBulkDate, setOpenBulkDate] = useState(false);
+  const [openBulkDelete, setOpenBulkDelete] = useState(false);
+  const [bulkDate, setBulkDate] = useState("");
   const [sortKey, setSortKey] = useState<ColKey | null>("data_chegada");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -124,6 +131,35 @@ function NotasPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notas"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkUpdateDate = useMutation({
+    mutationFn: async ({ ids, data }: { ids: string[]; data: string }) => {
+      const { error } = await supabase.from("notas_fiscais").update({ data_chegada: data }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(`Data atualizada em ${v.ids.length} nota(s)`);
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      setSelected(new Set());
+      setOpenBulkDate(false);
+      setBulkDate("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("notas_fiscais").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, ids) => {
+      toast.success(`${ids.length} nota(s) excluída(s)`);
+      qc.invalidateQueries({ queryKey: ["notas"] });
+      setSelected(new Set());
+      setOpenBulkDelete(false);
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -339,13 +375,58 @@ function NotasPage() {
         }
       />
 
+      {canWrite && selected.size > 0 && (
+        <div className="mb-2 flex items-center gap-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
+          <span className="font-semibold">{selected.size} selecionada(s)</span>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8"
+              onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}
+            >
+              <CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8"
+              onClick={() => setOpenBulkDelete(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelected(new Set())}>
+              <X className="h-3.5 w-3.5 mr-1" /> Limpar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <div className="flex-1 bg-card border rounded-md overflow-hidden">
           <div className="max-h-[calc(100vh-220px)] overflow-auto">
             <table className="table-erp">
               <thead>
                 <tr>
-                  <th className="w-8"></th>
+                  <th className="w-8">
+                    {canWrite && filtered.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={filtered.every((n: any) => selected.has(n.id))}
+                        ref={(el) => {
+                          if (el) {
+                            const some = filtered.some((n: any) => selected.has(n.id));
+                            const all = filtered.every((n: any) => selected.has(n.id));
+                            el.indeterminate = some && !all;
+                          }
+                        }}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelected(new Set(filtered.map((n: any) => n.id)));
+                          else setSelected(new Set());
+                        }}
+                      />
+                    )}
+                  </th>
                   <ColHeader colKey="data_chegada" label="Data Chegada" />
                   <ColHeader colKey="numero" label="Nº NF" />
                   <ColHeader colKey="fornecedor" label="Fornecedor" filterOptions={fornecedoresDistintos as string[]} />
@@ -360,7 +441,6 @@ function NotasPage() {
               <tbody>
                 {filtered.map((n: any) => {
                   const sel = selected.has(n.id);
-                  const canSelect = n.status === "disponivel";
                   const numeroDisplay = n.numeros_agrupados?.length
                     ? n.numeros_agrupados.join(" + ")
                     : n.numero;
@@ -370,7 +450,7 @@ function NotasPage() {
                         <input
                           type="checkbox"
                           checked={sel}
-                          disabled={!canSelect || !canWrite}
+                          disabled={!canWrite}
                           onChange={() => toggle(n.id)}
                         />
                       </td>
@@ -431,9 +511,15 @@ function NotasPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Peso total</span><span className="font-bold">{fmtKg(totals.peso)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Clientes</span><span className="font-bold">{totals.clientes.size}</span></div>
             </div>
-            <Button onClick={() => setOpenCarga(true)} className="w-full mt-4" size="sm">
-              <PackagePlus className="h-4 w-4 mr-2" />GERAR CARGA
-            </Button>
+            {selectedNotes.every((n: any) => n.status === "disponivel") ? (
+              <Button onClick={() => setOpenCarga(true)} className="w-full mt-4" size="sm">
+                <PackagePlus className="h-4 w-4 mr-2" />GERAR CARGA
+              </Button>
+            ) : (
+              <div className="mt-4 text-[11px] text-muted-foreground">
+                Para gerar carga, selecione apenas notas com status "Disponível".
+              </div>
+            )}
           </aside>
         )}
       </div>
@@ -444,6 +530,47 @@ function NotasPage() {
         onOpenChange={(o) => { setOpenCarga(o); if (!o) setSelected(new Set()); }}
         notaIds={Array.from(selected)}
       />
+
+      <Dialog open={openBulkDate} onOpenChange={setOpenBulkDate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar data de chegada ({selected.size})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-[11px]">Nova data</Label>
+            <Input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenBulkDate(false)}>Cancelar</Button>
+            <Button
+              disabled={!bulkDate || bulkUpdateDate.isPending}
+              onClick={() => bulkUpdateDate.mutate({ ids: Array.from(selected), data: bulkDate })}
+            >
+              Aplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={openBulkDelete} onOpenChange={setOpenBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} nota(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. As notas selecionadas serão removidas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDelete.mutate(Array.from(selected))}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
