@@ -20,7 +20,11 @@ import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate } from "@/
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 
