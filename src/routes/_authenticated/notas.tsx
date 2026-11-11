@@ -174,7 +174,7 @@ function NotasPage() {
       if (e.field === "uf") value = String(value).toUpperCase().slice(0, 2);
       const old = n[e.field];
       if (String(old ?? "") === String(value ?? "")) return false;
-      const { error } = await supabase.from("notas_fiscais").update({ [e.field]: value }).eq("id", n.id);
+      const { error } = await supabase.from("notas_fiscais").update({ [e.field]: value } as any).eq("id", n.id);
       if (error) throw error;
       await supabase.from("historico").insert({
         entidade: "nota", entidade_id: n.id, acao: "edicao", user_id: user?.id,
@@ -354,8 +354,8 @@ function NotasPage() {
   }
 
   function Cell({ n, col }: { n: any; col: ColDef }) {
-    const isEdit = editing?.id === n.id && editing.key === col.key;
-    const isActive = active?.id === n.id && active.key === col.key;
+    const isEdit = editing?.id === n.id && editing?.key === col.key;
+    const isActive = active?.id === n.id && active?.key === col.key;
     const editable = canWrite && !!col.edit;
     const commit = (raw: string | boolean) => { setEditing(null); updateCell.mutate({ n, col, raw }); };
     let content: React.ReactNode;
