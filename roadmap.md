@@ -1,6 +1,8 @@
 - [x] Etapa 1 Transmerida: visual do print, início com cartões, menu recolhível, páginas dos módulos
 - [x] Notas estilo Excel: edição na célula, colunas (ocultar/arrastar/largura), visualização salva, busca geral, totais, importar planilha, adicionar à carga
-- [ ] Recebimento → estoque automático
+- [x] Cargas de entrada + confirmação de chegada → depósito
+- [x] Clientes com agendamento obrigatório (CNPJ) + aba Agendamentos integrada
+- [ ] Estoque (saldos por fornecedor)
 - [ ] Montagem de cargas: adicionar à carga pela tabela, sequência, romaneio A4, conferência, saída
 - [ ] Agendamentos com histórico
 - [ ] Entregas e ocorrências (comprovantes, replanejamento)
