@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,15 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { StatusBadge } from "@/components/StatusBadge";
-import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate } from "@/lib/format";
+import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } from "@/lib/format";
 import { parseNFeXml } from "@/lib/xml-parser";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -36,12 +36,40 @@ export const Route = createFileRoute("/_authenticated/notas")({
 });
 
 type SortDir = "asc" | "desc" | null;
-type ColKey =
-  | "data_chegada" | "numero" | "fornecedor" | "cliente" | "cidade"
-  | "peso" | "agendamento" | "carga" | "status";
+type EditType = "date" | "text" | "number" | "int" | "bool";
+interface ColDef {
+  key: string; label: string; width: number; align?: "right";
+  get: (n: any) => string | number;
+  render?: (n: any) => React.ReactNode;
+  edit?: { field: string; type: EditType };
+  options?: boolean;
+}
+
+const COLS: ColDef[] = [
+  { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null), edit: { field: "data_chegada", type: "date" } },
+  { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
+  { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
+  { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
+  { key: "cidade", label: "Cidade", width: 140, get: (n) => n.cidade ?? "", options: true, edit: { field: "cidade", type: "text" } },
+  { key: "uf", label: "UF", width: 50, get: (n) => n.uf ?? "", edit: { field: "uf", type: "text" } },
+  { key: "peso", label: "Peso (kg)", width: 110, align: "right", get: (n) => Number(n.peso ?? 0), render: (n) => fmtNum(n.peso, 3), edit: { field: "peso", type: "number" } },
+  { key: "volumes", label: "Volumes", width: 80, align: "right", get: (n) => Number(n.volumes ?? 0), edit: { field: "volumes", type: "int" } },
+  { key: "valor", label: "Valor NF", width: 120, align: "right", get: (n) => Number(n.valor ?? 0), render: (n) => fmtBRL(n.valor) },
+  { key: "transporte", label: "Transporte", width: 100, get: (n) => (n.cargas ? `Carga #${n.cargas.numero}` : "") },
+  { key: "data_limite", label: "Previsão entrega", width: 130, get: (n) => n.data_limite ?? "", render: (n) => fmtDate(n.data_limite ? n.data_limite + "T12:00:00" : null), edit: { field: "data_limite", type: "date" } },
+  { key: "status", label: "Status", width: 110, get: (n) => NOTA_STATUS_LABEL[n.status] ?? n.status, options: true, render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge> },
+  { key: "agendamento", label: "Agend.", width: 70, get: (n) => (n.agendamento ? "Sim" : "Não"), edit: { field: "agendamento", type: "bool" } },
+  { key: "motorista", label: "Motorista", width: 140, get: (n) => n.cargas?.motoristas?.nome ?? "", options: true },
+  { key: "observacoes", label: "Observações", width: 200, get: (n) => n.observacoes ?? "", edit: { field: "observacoes", type: "text" } },
+];
+const COL_MAP = Object.fromEntries(COLS.map((c) => [c.key, c]));
+const PAGE = 100;
+interface View { order: string[]; hidden: string[]; widths: Record<string, number> }
+const DEFAULT_VIEW: View = { order: COLS.map((c) => c.key), hidden: [], widths: {} };
 
 function NotasPage() {
-  const { canWrite } = useAuth();
+  const { canWrite, user } = useAuth();
+  const { q } = Route.useSearch() ?? {};
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
@@ -49,75 +77,85 @@ function NotasPage() {
   const [openBulkDate, setOpenBulkDate] = useState(false);
   const [openBulkDelete, setOpenBulkDelete] = useState(false);
   const [bulkDate, setBulkDate] = useState("");
-  const [sortKey, setSortKey] = useState<ColKey | null>("data_chegada");
+  const [sortKey, setSortKey] = useState<string | null>("data_chegada");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [busca, setBusca] = useState(q ?? "");
+  const [page, setPage] = useState(0);
+  const [view, setView] = useState<View>(DEFAULT_VIEW);
+  const [editing, setEditing] = useState<{ id: string; key: string } | null>(null);
+  const [active, setActive] = useState<{ id: string; key: string } | null>(null);
+  const dragCol = useRef<string | null>(null);
+  const viewKey = `notas-view-${user?.id ?? "anon"}`;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(viewKey);
+      if (raw) {
+        const v = JSON.parse(raw) as View;
+        const order = [...v.order.filter((k) => COL_MAP[k]), ...COLS.map((c) => c.key).filter((k) => !v.order.includes(k))];
+        setView({ order, hidden: v.hidden ?? [], widths: v.widths ?? {} });
+      }
+    } catch { /* ignore */ }
+  }, [viewKey]);
+  const saveView = (v: View) => { setView(v); localStorage.setItem(viewKey, JSON.stringify(v)); };
+  const cols = view.order.filter((k) => !view.hidden.includes(k)).map((k) => COL_MAP[k]);
 
   const { data: notas = [] } = useQuery({
     queryKey: ["notas"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notas_fiscais")
-        .select("*, cargas:carga_id(numero)")
-        .order("created_at", { ascending: false })
-        .limit(2000);
-      if (error) throw error;
-      return data ?? [];
+      const all: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("notas_fiscais")
+          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome))")
+          .order("created_at", { ascending: false })
+          .range(from, from + 999);
+        if (error) throw error;
+        all.push(...(data ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      return all;
     },
   });
 
-  const fornecedoresDistintos = useMemo(
-    () => Array.from(new Set(notas.map((n: any) => n.fornecedor).filter(Boolean))).sort(),
-    [notas]
-  );
-  const cidadesDistintas = useMemo(
-    () => Array.from(new Set(notas.map((n: any) => (n.cidade ? `${n.cidade}${n.uf ? "/" + n.uf : ""}` : "")).filter(Boolean))).sort(),
-    [notas]
-  );
-
-  const getVal = (n: any, k: ColKey) => {
-    switch (k) {
-      case "data_chegada": return n.data_chegada ?? "";
-      case "numero": return n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero;
-      case "fornecedor": return n.fornecedor ?? "";
-      case "cliente": return n.cliente ?? "";
-      case "cidade": return `${n.cidade ?? ""}${n.uf ? "/" + n.uf : ""}`;
-      case "peso": return Number(n.peso ?? 0);
-      case "agendamento": return n.agendamento ? "Sim" : "";
-      case "carga": return n.cargas ? `#${n.cargas.numero}` : "";
-      case "status": return NOTA_STATUS_LABEL[n.status] ?? n.status;
-    }
-  };
+  const optionsFor = (k: string) =>
+    Array.from(new Set(notas.map((n: any) => String(COL_MAP[k].get(n))).filter(Boolean))).sort();
 
   const filtered = useMemo(() => {
+    const term = busca.trim().toLowerCase();
     let rows = notas.filter((n: any) => {
+      if (term && !COLS.some((c) => String(c.get(n)).toLowerCase().includes(term))) return false;
       for (const [k, v] of Object.entries(filters)) {
         if (!v) continue;
-        const cell = String(getVal(n, k as ColKey) ?? "").toLowerCase();
-        if (!cell.includes(v.toLowerCase())) return false;
+        const cell = String(COL_MAP[k].get(n) ?? "").toLowerCase();
+        if (COL_MAP[k].options ? cell !== v.toLowerCase() : !cell.includes(v.toLowerCase())) return false;
       }
       return true;
     });
     if (sortKey && sortDir) {
       const dir = sortDir === "asc" ? 1 : -1;
+      const g = COL_MAP[sortKey].get;
       rows = [...rows].sort((a, b) => {
-        const va = getVal(a, sortKey);
-        const vb = getVal(b, sortKey);
+        const va = g(a), vb = g(b);
         if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
         return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
       });
     }
     return rows;
-  }, [notas, filters, sortKey, sortDir]);
+  }, [notas, filters, sortKey, sortDir, busca]);
 
-  const selectedNotes = filtered.filter((n: any) => selected.has(n.id));
-  const totals = selectedNotes.reduce(
-    (acc: any, n: any) => ({
-      peso: acc.peso + Number(n.peso ?? 0),
-      clientes: acc.clientes.add(n.cliente),
-    }),
-    { peso: 0, clientes: new Set() }
-  );
+  useEffect(() => { setPage(0); }, [filters, busca, sortKey, sortDir]);
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+  const pageRows = filtered.slice(page * PAGE, page * PAGE + PAGE);
+
+  const sum = (rows: any[]) => rows.reduce(
+    (a, n) => ({ peso: a.peso + Number(n.peso ?? 0), volumes: a.volumes + Number(n.volumes ?? 0), valor: a.valor + Number(n.valor ?? 0) }),
+    { peso: 0, volumes: 0, valor: 0 });
+  const totFiltro = useMemo(() => sum(filtered), [filtered]);
+  const selectedNotes = notas.filter((n: any) => selected.has(n.id));
+  const totSel = sum(selectedNotes);
+  const cidadesSel = Array.from(new Set(selectedNotes.map((n: any) => `${n.cidade}${n.uf ? "/" + n.uf : ""}`).filter(Boolean)));
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -125,12 +163,26 @@ function NotasPage() {
     setSelected(next);
   }
 
-  const updateChegada = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: string }) => {
-      const { error } = await supabase.from("notas_fiscais").update({ data_chegada: data }).eq("id", id);
+  const updateCell = useMutation({
+    mutationFn: async ({ n, col, raw }: { n: any; col: ColDef; raw: string | boolean }) => {
+      const e = col.edit!;
+      let value: any = raw;
+      if (e.type === "number") { value = Number(String(raw).replace(/\./g, "").replace(",", ".")); if (isNaN(value) || value < 0) throw new Error("Valor numérico inválido"); }
+      if (e.type === "int") { value = parseInt(String(raw), 10); if (isNaN(value) || value < 0) throw new Error("Quantidade inválida"); }
+      if (e.type === "date") { if (raw && !/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) throw new Error("Data inválida"); value = raw || null; if (e.field === "data_chegada" && !value) throw new Error("Data de recebimento é obrigatória"); }
+      if (e.type === "text") value = String(raw).trim();
+      if (e.field === "uf") value = String(value).toUpperCase().slice(0, 2);
+      const old = n[e.field];
+      if (String(old ?? "") === String(value ?? "")) return false;
+      const { error } = await supabase.from("notas_fiscais").update({ [e.field]: value }).eq("id", n.id);
       if (error) throw error;
+      await supabase.from("historico").insert({
+        entidade: "nota", entidade_id: n.id, acao: "edicao", user_id: user?.id,
+        descricao: `NF ${n.numero} — ${col.label}: "${old ?? ""}" → "${value ?? ""}"`,
+      });
+      return true;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notas"] }),
+    onSuccess: (changed) => { if (changed) qc.invalidateQueries({ queryKey: ["notas"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -138,13 +190,12 @@ function NotasPage() {
     mutationFn: async ({ ids, data }: { ids: string[]; data: string }) => {
       const { error } = await supabase.from("notas_fiscais").update({ data_chegada: data }).in("id", ids);
       if (error) throw error;
+      await supabase.from("historico").insert(ids.map((id) => ({ entidade: "nota", entidade_id: id, acao: "edicao", user_id: user?.id, descricao: `Recebimento alterado em lote para ${data}` })));
     },
     onSuccess: (_d, v) => {
       toast.success(`Data atualizada em ${v.ids.length} nota(s)`);
       qc.invalidateQueries({ queryKey: ["notas"] });
-      setSelected(new Set());
-      setOpenBulkDate(false);
-      setBulkDate("");
+      setSelected(new Set()); setOpenBulkDate(false); setBulkDate("");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -157,8 +208,7 @@ function NotasPage() {
     onSuccess: (_d, ids) => {
       toast.success(`${ids.length} nota(s) excluída(s)`);
       qc.invalidateQueries({ queryKey: ["notas"] });
-      setSelected(new Set());
-      setOpenBulkDelete(false);
+      setSelected(new Set()); setOpenBulkDelete(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -167,172 +217,240 @@ function NotasPage() {
     const parsed: any[] = [];
     const errors: string[] = [];
     for (const f of Array.from(files)) {
-      const text = await f.text();
-      const p = parseNFeXml(text);
+      const p = parseNFeXml(await f.text());
       if ("error" in p) errors.push(`${f.name}: XML inválido`);
       else parsed.push(p);
     }
-    if (parsed.length === 0) {
-      errors.forEach((e) => toast.error(e));
-      return;
-    }
-
-    // check duplicates already in DB
+    if (parsed.length === 0) { errors.forEach((e) => toast.error(e)); return; }
     const chaves = parsed.map((p) => p.chave_nfe).filter(Boolean);
+    if (new Set(chaves).size !== chaves.length) { toast.error("Há XMLs repetidos na seleção."); return; }
     if (chaves.length) {
       const { data: dup } = await supabase
         .from("notas_fiscais")
         .select("chave_nfe, chaves_agrupadas, numero")
         .or(`chave_nfe.in.(${chaves.map((c) => `"${c}"`).join(",")}),chaves_agrupadas.ov.{${chaves.join(",")}}`);
-      if (dup && dup.length > 0) {
-        toast.error(`Nota(s) já importada(s): ${dup.map((d: any) => d.numero).join(", ")}`);
-        return;
-      }
+      if (dup && dup.length > 0) { toast.error(`Nota(s) já importada(s): ${dup.map((d: any) => d.numero).join(", ")}`); return; }
     }
-
     if (agrupado) {
-      if (parsed.length < 2) {
-        toast.error("Selecione pelo menos 2 XMLs para importação agrupada.");
-        return;
-      }
+      if (parsed.length < 2) { toast.error("Selecione pelo menos 2 XMLs para importação agrupada."); return; }
       const first = parsed[0];
-      const mismatch = parsed.find(
-        (p) => p.fornecedor !== first.fornecedor || p.cliente !== first.cliente
-      );
-      if (mismatch) {
-        toast.error("Erro: XMLs com fornecedor ou cliente diferentes não podem ser agrupados.");
-        return;
+      if (parsed.find((p) => p.fornecedor !== first.fornecedor || p.cliente !== first.cliente)) {
+        toast.error("Erro: XMLs com fornecedor ou cliente diferentes não podem ser agrupados."); return;
       }
-      const somaPeso = parsed.reduce((s, p) => s + Number(p.peso ?? 0), 0);
-      const somaValor = parsed.reduce((s, p) => s + Number(p.valor ?? 0), 0);
       const { error } = await supabase.from("notas_fiscais").insert({
-        chave_nfe: first.chave_nfe,
-        numero: first.numero,
-        serie: first.serie,
-        data_emissao: first.data_emissao,
-        cnpj_emissor: first.cnpj_emissor,
-        fornecedor: first.fornecedor,
-        cnpj_destinatario: first.cnpj_destinatario,
-        cliente: first.cliente,
-        cidade: first.cidade,
-        uf: first.uf,
-        peso: somaPeso,
-        volumes: 0,
-        valor: somaValor,
-        chaves_agrupadas: parsed.map((p) => p.chave_nfe),
-        numeros_agrupados: parsed.map((p) => p.numero),
-        origem: "xml",
-        status: "disponivel",
+        chave_nfe: first.chave_nfe, numero: first.numero, serie: first.serie, data_emissao: first.data_emissao,
+        cnpj_emissor: first.cnpj_emissor, fornecedor: first.fornecedor, cnpj_destinatario: first.cnpj_destinatario,
+        cliente: first.cliente, cidade: first.cidade, uf: first.uf,
+        peso: parsed.reduce((s, p) => s + Number(p.peso ?? 0), 0),
+        volumes: parsed.reduce((s, p) => s + Number(p.volumes ?? 0), 0),
+        valor: parsed.reduce((s, p) => s + Number(p.valor ?? 0), 0),
+        chaves_agrupadas: parsed.map((p) => p.chave_nfe), numeros_agrupados: parsed.map((p) => p.numero),
+        origem: "xml", status: "disponivel",
       });
-      if (error) toast.error(error.message);
-      else toast.success(`Importação agrupada: ${parsed.length} notas em 1 linha`);
+      if (error) toast.error(error.message); else toast.success(`Importação agrupada: ${parsed.length} notas em 1 linha`);
     } else {
-      let ok = 0, err = 0;
-      for (const p of parsed) {
-        const { error } = await supabase.from("notas_fiscais").insert({
-          ...p, volumes: 0, agendamento: false, origem: "xml", status: "disponivel",
-        });
-        if (error) err++;
-        else ok++;
-      }
-      if (ok) toast.success(`${ok} nota(s) importada(s)`);
-      if (err) toast.error(`${err} erro(s) na importação`);
+      const { error } = await supabase.from("notas_fiscais").insert(
+        parsed.map((p) => ({ ...p, volumes: Number(p.volumes ?? 0), agendamento: false, origem: "xml", status: "disponivel" })));
+      if (error) toast.error(error.message); else toast.success(`${parsed.length} nota(s) importada(s)`);
     }
     errors.forEach((e) => toast.error(e));
     qc.invalidateQueries({ queryKey: ["notas"] });
   }
 
+  async function importExcel(file: File) {
+    const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+    const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "");
+    const pick = (r: any, ...names: string[]) => {
+      for (const k of Object.keys(r)) if (names.includes(norm(k))) return r[k];
+      return "";
+    };
+    const toDate = (v: any) => v instanceof Date ? v.toISOString().slice(0, 10)
+      : /^\d{2}\/\d{2}\/\d{4}$/.test(String(v)) ? String(v).split("/").reverse().join("-")
+      : /^\d{4}-\d{2}-\d{2}/.test(String(v)) ? String(v).slice(0, 10) : null;
+    const toNum = (v: any) => typeof v === "number" ? v : Number(String(v).replace(/\./g, "").replace(",", ".")) || 0;
+    const existentes = new Set(notas.map((n: any) => `${n.numero}|${n.fornecedor}`));
+    const ins: any[] = []; let dup = 0, semNumero = 0;
+    for (const r of rows) {
+      const numero = String(pick(r, "nnf", "nf", "numero", "notafiscal", "nota")).trim();
+      if (!numero) { semNumero++; continue; }
+      const fornecedor = String(pick(r, "fornecedor", "emitente")).trim();
+      if (existentes.has(`${numero}|${fornecedor}`)) { dup++; continue; }
+      existentes.add(`${numero}|${fornecedor}`);
+      ins.push({
+        numero, fornecedor, cliente: String(pick(r, "cliente", "destinatario")).trim(),
+        cidade: String(pick(r, "cidade")).trim(), uf: String(pick(r, "uf")).trim().toUpperCase().slice(0, 2) || null,
+        peso: toNum(pick(r, "pesokg", "peso")), volumes: Math.round(toNum(pick(r, "volumes", "volume"))),
+        valor: toNum(pick(r, "valornf", "valor", "valordanota")),
+        data_chegada: toDate(pick(r, "datachegada", "recebimento", "datarecebimento")) ?? new Date().toISOString().slice(0, 10),
+        data_limite: toDate(pick(r, "previsaoentrega", "previsao")),
+        observacoes: String(pick(r, "observacoes", "obs")).trim() || null,
+        origem: "planilha", status: "disponivel",
+      });
+    }
+    if (ins.length) {
+      const { error } = await supabase.from("notas_fiscais").insert(ins);
+      if (error) { toast.error(error.message); return; }
+    }
+    toast.success(`${ins.length} nota(s) importada(s)${dup ? ` • ${dup} já existiam` : ""}${semNumero ? ` • ${semNumero} sem número ignorada(s)` : ""}`);
+    qc.invalidateQueries({ queryKey: ["notas"] });
+  }
+
   const indivRef = useRef<HTMLInputElement>(null);
   const grupRef = useRef<HTMLInputElement>(null);
+  const xlsRef = useRef<HTMLInputElement>(null);
 
   function exportExcel() {
-    const rows = filtered.map((n: any) => ({
-      "Data Chegada": n.data_chegada,
-      "Nº NF": n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero,
-      "Fornecedor": n.fornecedor,
-      "Cliente": n.cliente,
-      "Cidade": n.cidade,
-      "UF": n.uf,
-      "Peso (kg)": Number(n.peso ?? 0),
-      "Agendamento": n.agendamento ? "Sim" : "Não",
-      "Carga": n.cargas ? `#${n.cargas.numero}` : "",
-      "Status": NOTA_STATUS_LABEL[n.status] ?? n.status,
-    }));
+    const rows = filtered.map((n: any) => Object.fromEntries(cols.map((c) => [c.label, c.get(n)])));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Notas");
     XLSX.writeFile(wb, `notas-fiscais-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  function ColHeader({ colKey, label, align = "left", filterOptions }: {
-    colKey: ColKey; label: string; align?: "left" | "right"; filterOptions?: string[];
-  }) {
-    const active = filters[colKey];
-    const isSorted = sortKey === colKey;
+  function startResize(e: React.MouseEvent, key: string) {
+    e.preventDefault(); e.stopPropagation();
+    const startX = e.clientX;
+    const startW = view.widths[key] ?? COL_MAP[key].width;
+    let w = startW;
+    const move = (ev: MouseEvent) => {
+      w = Math.max(50, startW + ev.clientX - startX);
+      setView((v) => ({ ...v, widths: { ...v.widths, [key]: w } }));
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up);
+      setView((v) => { localStorage.setItem(viewKey, JSON.stringify(v)); return v; });
+    };
+    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+  }
+
+  function dropCol(target: string) {
+    const from = dragCol.current; dragCol.current = null;
+    if (!from || from === target) return;
+    const order = view.order.filter((k) => k !== from);
+    order.splice(order.indexOf(target), 0, from);
+    saveView({ ...view, order });
+  }
+
+  async function onKey(e: React.KeyboardEvent) {
+    if (editing || !active) return;
+    const n = notas.find((x: any) => x.id === active.id);
+    const col = COL_MAP[active.key];
+    if (!n || !col) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+      await navigator.clipboard.writeText(String(col.get(n)));
+      toast.success("Copiado");
+    } else if ((e.ctrlKey || e.metaKey) && e.key === "v" && canWrite && col.edit) {
+      const txt = (await navigator.clipboard.readText()).trim();
+      const raw = col.edit.type === "bool" ? /^(sim|s|true|1)$/i.test(txt)
+        : col.edit.type === "date" && /^\d{2}\/\d{2}\/\d{4}$/.test(txt) ? txt.split("/").reverse().join("-") : txt;
+      if (selected.has(n.id) && selected.size > 1) {
+        for (const sn of notas.filter((x: any) => selected.has(x.id))) await updateCell.mutateAsync({ n: sn, col, raw }).catch(() => {});
+        toast.success(`Colado em ${selected.size} nota(s)`);
+      } else updateCell.mutate({ n, col, raw });
+    } else if ((e.key === "Enter" || e.key === "F2") && canWrite && col.edit) {
+      e.preventDefault(); setEditing(active);
+    }
+  }
+
+  function Cell({ n, col }: { n: any; col: ColDef }) {
+    const isEdit = editing?.id === n.id && editing.key === col.key;
+    const isActive = active?.id === n.id && active.key === col.key;
+    const editable = canWrite && !!col.edit;
+    const commit = (raw: string | boolean) => { setEditing(null); updateCell.mutate({ n, col, raw }); };
+    let content: React.ReactNode;
+    if (isEdit && col.edit) {
+      const cur = n[col.edit.field];
+      content = col.edit.type === "bool" ? (
+        <select autoFocus defaultValue={cur ? "1" : "0"} className="h-7 w-full border rounded bg-background"
+          onChange={(e) => commit(e.target.value === "1")} onBlur={() => setEditing(null)}>
+          <option value="1">Sim</option><option value="0">Não</option>
+        </select>
+      ) : (
+        <input autoFocus type={col.edit.type === "date" ? "date" : "text"}
+          defaultValue={cur ?? ""} className="h-7 w-full border border-primary rounded px-1 bg-background"
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") setEditing(null);
+          }} />
+      );
+    } else if (col.key === "numero" && n.numeros_agrupados?.length > 1) {
+      content = (
+        <Popover>
+          <PopoverTrigger className="underline decoration-dotted font-mono">{n.numeros_agrupados.length} notas</PopoverTrigger>
+          <PopoverContent className="text-xs"><div className="font-semibold mb-1">Notas agrupadas</div>
+            {n.numeros_agrupados.map((num: string) => <div key={num}>{num}</div>)}</PopoverContent>
+        </Popover>
+      );
+    } else content = col.render ? col.render(n) : (String(col.get(n)) || "—");
     return (
-      <th className={align === "right" ? "text-right" : ""}>
-        <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : ""}`}>
-          <span>{label}</span>
+      <td
+        className={`${col.align === "right" ? "text-right" : ""} ${col.key === "numero" ? "font-mono" : ""} overflow-hidden text-ellipsis ${isActive && !isEdit ? "outline outline-2 -outline-offset-2 outline-primary" : ""} ${editable ? "cursor-cell" : ""}`}
+        style={{ maxWidth: view.widths[col.key] ?? col.width }}
+        title={editable ? "Duplo clique para editar" : undefined}
+        onClick={() => setActive({ id: n.id, key: col.key })}
+        onDoubleClick={() => editable && setEditing({ id: n.id, key: col.key })}
+      >{content}</td>
+    );
+  }
+
+  function ColHeader({ col }: { col: ColDef }) {
+    const activeF = filters[col.key];
+    const isSorted = sortKey === col.key;
+    const w = view.widths[col.key] ?? col.width;
+    return (
+      <th className={`relative select-none ${col.align === "right" ? "text-right" : ""}`} style={{ width: w, minWidth: w }}
+        draggable onDragStart={() => (dragCol.current = col.key)} onDragOver={(e) => e.preventDefault()} onDrop={() => dropCol(col.key)}>
+        <div className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}>
+          <span className="truncate cursor-grab">{col.label}</span>
+          {isSorted && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={`p-0.5 rounded hover:bg-accent ${active || isSorted ? "text-primary" : "text-muted-foreground"}`}>
+              <button className={`p-0.5 rounded hover:bg-accent ${activeF || isSorted ? "text-primary" : "text-muted-foreground"}`}>
                 <Filter className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuItem onClick={() => { setSortKey(colKey); setSortDir("asc"); }}>
-                <ArrowUp className="h-3.5 w-3.5 mr-2" /> Ordem crescente
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setSortKey(colKey); setSortDir("desc"); }}>
-                <ArrowDown className="h-3.5 w-3.5 mr-2" /> Ordem decrescente
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortKey(col.key); setSortDir("asc"); }}><ArrowUp className="h-3.5 w-3.5 mr-2" /> Ordem crescente</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSortKey(col.key); setSortDir("desc"); }}><ArrowDown className="h-3.5 w-3.5 mr-2" /> Ordem decrescente</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[11px]">Filtrar</DropdownMenuLabel>
-              <div className="p-2 pt-1">
-                {filterOptions ? (
-                  <Select
-                    value={filters[colKey] ?? "__all__"}
-                    onValueChange={(v) => setFilters({ ...filters, [colKey]: v === "__all__" ? "" : v })}
-                  >
+              <div className="p-2 pt-1" onKeyDown={(e) => e.stopPropagation()}>
+                {col.options ? (
+                  <Select value={filters[col.key] || "__all__"} onValueChange={(v) => setFilters({ ...filters, [col.key]: v === "__all__" ? "" : v })}>
                     <SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all__">Todos</SelectItem>
-                      {filterOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      {optionsFor(col.key).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input
-                    value={filters[colKey] ?? ""}
-                    onChange={(e) => setFilters({ ...filters, [colKey]: e.target.value })}
-                    className="h-8"
-                    placeholder="Contém..."
-                  />
+                  <Input value={filters[col.key] ?? ""} onChange={(e) => setFilters({ ...filters, [col.key]: e.target.value })} className="h-8" placeholder="Contém..." />
                 )}
               </div>
-              {(active || isSorted) && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      const f = { ...filters }; delete f[colKey]; setFilters(f);
-                      if (isSorted) { setSortKey(null); setSortDir(null); }
-                    }}
-                  >
-                    <X className="h-3.5 w-3.5 mr-2" /> Limpar
-                  </DropdownMenuItem>
-                </>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => saveView({ ...view, hidden: [...view.hidden, col.key] })}><EyeOff className="h-3.5 w-3.5 mr-2" /> Ocultar coluna</DropdownMenuItem>
+              {(activeF || isSorted) && (
+                <DropdownMenuItem onClick={() => {
+                  const f = { ...filters }; delete f[col.key]; setFilters(f);
+                  if (isSorted) { setSortKey(null); setSortDir(null); }
+                }}><X className="h-3.5 w-3.5 mr-2" /> Limpar</DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <span onMouseDown={(e) => startResize(e, col.key)} className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/40" />
       </th>
     );
   }
 
+  const hasFilters = busca || Object.values(filters).some(Boolean);
+
   return (
     <div>
       <PageHeader
-        title="Notas Fiscais"
+        title="Notas Fiscais / Depósito"
         subtitle={`${fmtNum(filtered.length)} de ${fmtNum(notas.length)} notas`}
         actions={
           <>
@@ -342,212 +460,133 @@ function NotasPage() {
                   onChange={(e) => { if (e.target.files) importXml(e.target.files, false); e.target.value = ""; }} />
                 <input ref={grupRef} type="file" accept=".xml" multiple className="hidden"
                   onChange={(e) => { if (e.target.files) importXml(e.target.files, true); e.target.value = ""; }} />
+                <input ref={xlsRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importExcel(f); e.target.value = ""; }} />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9">
-                      <Upload className="h-4 w-4 mr-1" /> Importar XML <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                    </Button>
+                    <Button variant="outline" size="sm" className="h-9"><Upload className="h-4 w-4 mr-1" /> Importar <ChevronDown className="h-3.5 w-3.5 ml-1" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-72">
                     <DropdownMenuItem onClick={() => indivRef.current?.click()}>
-                      <div>
-                        <div className="font-medium">Individual</div>
-                        <div className="text-[11px] text-muted-foreground">Uma linha por XML</div>
-                      </div>
+                      <div><div className="font-medium">XML individual</div><div className="text-[11px] text-muted-foreground">Uma linha por XML</div></div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => grupRef.current?.click()}>
-                      <div>
-                        <div className="font-medium">Agrupado</div>
-                        <div className="text-[11px] text-muted-foreground">Vários XMLs em uma linha (mesmo fornecedor e cliente)</div>
-                      </div>
+                      <div><div className="font-medium">XML agrupado</div><div className="text-[11px] text-muted-foreground">Vários XMLs em uma linha (mesmo fornecedor e cliente)</div></div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => xlsRef.current?.click()}>
+                      <div><div className="font-medium">Planilha Excel</div><div className="text-[11px] text-muted-foreground">Colunas: Nº NF, Fornecedor, Cliente, Cidade, UF, Peso, Volumes, Valor, Recebimento</div></div>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button onClick={() => setOpenManual(true)} variant="outline" size="sm" className="h-9">
-                  <Plus className="h-4 w-4 mr-1" />Manual
-                </Button>
+                <Button onClick={() => setOpenManual(true)} variant="outline" size="sm" className="h-9"><Plus className="h-4 w-4 mr-1" />Manual</Button>
               </>
             )}
-            <Button onClick={exportExcel} variant="outline" size="sm" className="h-9">
-              <FileDown className="h-4 w-4 mr-1" /> Exportar Excel
-            </Button>
+            <Button onClick={exportExcel} variant="outline" size="sm" className="h-9"><FileDown className="h-4 w-4 mr-1" /> Exportar Excel</Button>
           </>
         }
       />
 
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 border rounded-md px-2 h-9 bg-card flex-1 min-w-[220px] max-w-md">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar em todas as colunas..." className="bg-transparent outline-none text-sm flex-1" />
+        </div>
+        {hasFilters && <Button size="sm" variant="ghost" className="h-9" onClick={() => { setFilters({}); setBusca(""); }}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="h-9 ml-auto"><Columns3 className="h-4 w-4 mr-1" />Colunas</Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-[11px]">Arraste os títulos para reordenar</DropdownMenuLabel>
+            {view.order.map((k) => (
+              <DropdownMenuCheckboxItem key={k} checked={!view.hidden.includes(k)} onSelect={(e) => e.preventDefault()}
+                onCheckedChange={(c) => saveView({ ...view, hidden: c ? view.hidden.filter((h) => h !== k) : [...view.hidden, k] })}>
+                {COL_MAP[k].label}
+              </DropdownMenuCheckboxItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => saveView(DEFAULT_VIEW)}>Restaurar visualização padrão</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {canWrite && selected.size > 0 && (
-        <div className="mb-2 flex items-center gap-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
+        <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
           <span className="font-semibold">{selected.size} selecionada(s)</span>
+          <span>Peso <b>{fmtKg(totSel.peso)}</b></span>
+          <span>Volumes <b>{fmtNum(totSel.volumes)}</b></span>
+          <span>Valor <b>{fmtBRL(totSel.valor)}</b></span>
+          <span className="truncate max-w-[320px]" title={cidadesSel.join(", ")}>Cidades <b>{cidadesSel.length}</b>: {cidadesSel.slice(0, 4).join(", ")}{cidadesSel.length > 4 ? "…" : ""}</span>
           <div className="ml-auto flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8"
-              onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}
-            >
-              <CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data
+            <Button size="sm" className="h-8" disabled={!selectedNotes.every((n: any) => n.status === "disponivel" && !n.carga_id)}
+              title="Somente notas disponíveis e sem carga" onClick={() => setOpenCarga(true)}>
+              <PackagePlus className="h-3.5 w-3.5 mr-1" /> Adicionar à carga
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="h-8"
-              onClick={() => setOpenBulkDelete(true)}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelected(new Set())}>
-              <X className="h-3.5 w-3.5 mr-1" /> Limpar
-            </Button>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}><CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data</Button>
+            <Button size="sm" variant="destructive" className="h-8" onClick={() => setOpenBulkDelete(true)}><Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir</Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelected(new Set())}><X className="h-3.5 w-3.5 mr-1" /> Limpar</Button>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3">
-        <div className="flex-1 bg-card border rounded-md overflow-hidden">
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
-            <table className="table-erp">
-              <thead>
-                <tr>
-                  <th className="w-8">
-                    {canWrite && filtered.length > 0 && (
-                      <input
-                        type="checkbox"
-                        checked={filtered.every((n: any) => selected.has(n.id))}
-                        ref={(el) => {
-                          if (el) {
-                            const some = filtered.some((n: any) => selected.has(n.id));
-                            const all = filtered.every((n: any) => selected.has(n.id));
-                            el.indeterminate = some && !all;
-                          }
-                        }}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelected(new Set(filtered.map((n: any) => n.id)));
-                          else setSelected(new Set());
-                        }}
-                      />
-                    )}
-                  </th>
-                  <ColHeader colKey="data_chegada" label="Data Chegada" />
-                  <ColHeader colKey="numero" label="Nº NF" />
-                  <ColHeader colKey="fornecedor" label="Fornecedor" filterOptions={fornecedoresDistintos as string[]} />
-                  <ColHeader colKey="cliente" label="Cliente" />
-                  <ColHeader colKey="cidade" label="Cidade/UF" filterOptions={cidadesDistintas as string[]} />
-                  <ColHeader colKey="peso" label="Peso" align="right" />
-                  <ColHeader colKey="agendamento" label="Agend" />
-                  <ColHeader colKey="carga" label="Carga" />
-                  <ColHeader colKey="status" label="Status" />
+      <div className="bg-card border rounded-md overflow-hidden">
+        <div className="max-h-[calc(100vh-280px)] overflow-auto outline-none" tabIndex={0} onKeyDown={onKey}>
+          <table className="table-erp" style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+            <thead>
+              <tr>
+                <th style={{ width: 36 }}>
+                  {canWrite && filtered.length > 0 && (
+                    <input type="checkbox"
+                      checked={filtered.every((n: any) => selected.has(n.id))}
+                      ref={(el) => {
+                        if (el) {
+                          const some = filtered.some((n: any) => selected.has(n.id));
+                          el.indeterminate = some && !filtered.every((n: any) => selected.has(n.id));
+                        }
+                      }}
+                      onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((n: any) => n.id)) : new Set())} />
+                  )}
+                </th>
+                {cols.map((c) => <ColHeader key={c.key} col={c} />)}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((n: any) => (
+                <tr key={n.id} className={selected.has(n.id) ? "!bg-primary/10" : ""}>
+                  <td><input type="checkbox" checked={selected.has(n.id)} disabled={!canWrite} onChange={() => toggle(n.id)} /></td>
+                  {cols.map((c) => <Cell key={c.key} n={n} col={c} />)}
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((n: any) => {
-                  const sel = selected.has(n.id);
-                  const numeroDisplay = n.numeros_agrupados?.length
-                    ? n.numeros_agrupados.join(" + ")
-                    : n.numero;
-                  return (
-                    <tr key={n.id} className={sel ? "bg-primary/5" : ""}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={sel}
-                          disabled={!canWrite}
-                          onChange={() => toggle(n.id)}
-                        />
-                      </td>
-                      <td>
-                        {canWrite ? (
-                          <Input
-                            type="date"
-                            defaultValue={n.data_chegada ?? ""}
-                            onBlur={(e) => {
-                              const v = e.target.value;
-                              if (v && v !== n.data_chegada) updateChegada.mutate({ id: n.id, data: v });
-                            }}
-                            className="h-8 w-36"
-                          />
-                        ) : fmtDate(n.data_chegada)}
-                      </td>
-                      <td className="font-mono">
-                        {n.numeros_agrupados?.length > 1 ? (
-                          <Popover>
-                            <PopoverTrigger className="underline decoration-dotted">
-                              {n.numeros_agrupados.length} notas
-                            </PopoverTrigger>
-                            <PopoverContent className="text-xs">
-                              <div className="font-semibold mb-1">Notas agrupadas</div>
-                              {n.numeros_agrupados.map((num: string) => <div key={num}>{num}</div>)}
-                            </PopoverContent>
-                          </Popover>
-                        ) : numeroDisplay}
-                      </td>
-                      <td className="max-w-[200px] truncate">{n.fornecedor}</td>
-                      <td className="max-w-[200px] truncate">{n.cliente}</td>
-                      <td>{n.cidade}{n.uf && `/${n.uf}`}</td>
-                      <td className="text-right">{fmtKg(n.peso)}</td>
-                      <td>{n.agendamento ? "Sim" : "—"}</td>
-                      <td>{n.cargas ? `#${n.cargas.numero}` : "—"}</td>
-                      <td><StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge></td>
-                    </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma nota encontrada</td></tr>
-                )}
-              </tbody>
-            </table>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={cols.length + 1} className="text-center text-muted-foreground py-8">Nenhuma nota encontrada</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t px-3 py-2 text-[13px] bg-muted">
+          <span>Total {hasFilters ? "filtrado" : ""}: <b>{fmtNum(filtered.length)}</b> notas</span>
+          <span>Peso <b>{fmtKg(totFiltro.peso)}</b></span>
+          <span>Volumes <b>{fmtNum(totFiltro.volumes)}</b></span>
+          <span>Valor <b>{fmtBRL(totFiltro.valor)}</b></span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-7" disabled={page === 0} onClick={() => setPage(page - 1)}>‹</Button>
+            <span>Página {page + 1} de {pages}</span>
+            <Button size="sm" variant="outline" className="h-7" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>›</Button>
           </div>
         </div>
-
-        {selected.size > 0 && (
-          <aside className="w-72 bg-card border rounded-md p-4 h-fit sticky top-0">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold">Carga em formação</h3>
-              <button onClick={() => setSelected(new Set())} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Notas</span><span className="font-bold">{selected.size}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Peso total</span><span className="font-bold">{fmtKg(totals.peso)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Clientes</span><span className="font-bold">{totals.clientes.size}</span></div>
-            </div>
-            {selectedNotes.every((n: any) => n.status === "disponivel") ? (
-              <Button onClick={() => setOpenCarga(true)} className="w-full mt-4" size="sm">
-                <PackagePlus className="h-4 w-4 mr-2" />GERAR CARGA
-              </Button>
-            ) : (
-              <div className="mt-4 text-[11px] text-muted-foreground">
-                Para gerar carga, selecione apenas notas com status "Disponível".
-              </div>
-            )}
-          </aside>
-        )}
       </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">Clique numa célula e use Ctrl+C / Ctrl+V. Duplo clique ou Enter para editar. Nº NF, fornecedor e valor vêm do XML e não são editáveis aqui.</p>
 
       <ManualDialog open={openManual} onOpenChange={setOpenManual} />
-      <GerarCargaDialog
-        open={openCarga}
+      <GerarCargaDialog open={openCarga}
         onOpenChange={(o) => { setOpenCarga(o); if (!o) setSelected(new Set()); }}
-        notaIds={Array.from(selected)}
-      />
+        notaIds={Array.from(selected)} />
 
       <Dialog open={openBulkDate} onOpenChange={setOpenBulkDate}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Editar data de chegada ({selected.size})</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-[11px]">Nova data</Label>
-            <Input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
-          </div>
+          <DialogHeader><DialogTitle>Editar data de recebimento ({selected.size})</DialogTitle></DialogHeader>
+          <div className="space-y-2"><Label className="text-[11px]">Nova data</Label><Input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenBulkDate(false)}>Cancelar</Button>
-            <Button
-              disabled={!bulkDate || bulkUpdateDate.isPending}
-              onClick={() => bulkUpdateDate.mutate({ ids: Array.from(selected), data: bulkDate })}
-            >
-              Aplicar
-            </Button>
+            <Button disabled={!bulkDate || bulkUpdateDate.isPending} onClick={() => bulkUpdateDate.mutate({ ids: Array.from(selected), data: bulkDate })}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -556,24 +595,18 @@ function NotasPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir {selected.size} nota(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. As notas selecionadas serão removidas permanentemente.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. As notas selecionadas serão removidas permanentemente.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => bulkDelete.mutate(Array.from(selected))}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => bulkDelete.mutate(Array.from(selected))} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
+
 
 function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
