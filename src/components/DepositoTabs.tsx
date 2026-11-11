@@ -13,7 +13,7 @@ export function DepositoTabs() {
       {TABS.map((t) => (
         <Link key={t.to} to={t.to}
           className="px-3 py-2 text-sm font-semibold whitespace-nowrap border-b-2 border-transparent text-muted-foreground hover:text-foreground"
-          activeProps={{ className: "!border-accent-foreground !text-primary !border-b-[color:var(--color-primary)]" }}>
+          activeProps={{ className: "!border-brand-accent !text-primary" }}>
           {t.label}
         </Link>
       ))}

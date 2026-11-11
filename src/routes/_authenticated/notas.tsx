@@ -15,6 +15,8 @@ import {
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { DepositoTabs } from "@/components/DepositoTabs";
+import { AG_STATUS_LABEL } from "@/lib/agenda";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } from "@/lib/format";
 import { parseNFeXml } from "@/lib/xml-parser";
@@ -58,7 +60,15 @@ const COLS: ColDef[] = [
   { key: "transporte", label: "Transporte", width: 100, get: (n) => (n.cargas ? `Carga #${n.cargas.numero}` : "") },
   { key: "data_limite", label: "Previsão entrega", width: 130, get: (n) => n.data_limite ?? "", render: (n) => fmtDate(n.data_limite ? n.data_limite + "T12:00:00" : null), edit: { field: "data_limite", type: "date" } },
   { key: "status", label: "Status", width: 110, get: (n) => NOTA_STATUS_LABEL[n.status] ?? n.status, options: true, render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge> },
-  { key: "agendamento", label: "Agend.", width: 70, get: (n) => (n.agendamento ? "Sim" : "Não"), edit: { field: "agendamento", type: "bool" } },
+  { key: "agendamento", label: "Agendamento", width: 150, options: true,
+    get: (n) => { const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
+      return a ? `${AG_STATUS_LABEL[a.status]}${a.data_agendada ? " " + a.data_agendada.split("-").reverse().join("/") : ""}` : n.agendamento ? "Sim" : "Não"; },
+    render: (n) => { const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
+      if (!a) return n.agendamento ? "Sim" : "—";
+      const pend = a.status === "nao_solicitado" || a.status === "solicitado" || a.status === "aguardando_confirmacao";
+      return <StatusBadge className={pend ? "bg-warning/15 text-warning-foreground border-warning/40" : "bg-info/15 text-info border-info/30"}>
+        {AG_STATUS_LABEL[a.status]}{a.data_agendada ? ` ${a.data_agendada.split("-").reverse().join("/")}` : ""}</StatusBadge>; } },
+  { key: "cfops", label: "CFOP", width: 90, get: (n) => (n.cfops ?? []).join(", ") },
   { key: "motorista", label: "Motorista", width: 140, get: (n) => n.cargas?.motoristas?.nome ?? "", options: true },
   { key: "observacoes", label: "Observações", width: 200, get: (n) => n.observacoes ?? "", edit: { field: "observacoes", type: "text" } },
 ];
@@ -108,7 +118,8 @@ function NotasPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("notas_fiscais")
-          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome))")
+          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada)")
+          .eq("recebida", true)
           .order("created_at", { ascending: false })
           .range(from, from + 999);
         if (error) throw error;
@@ -245,12 +256,13 @@ function NotasPage() {
         volumes: parsed.reduce((s, p) => s + Number(p.volumes ?? 0), 0),
         valor: parsed.reduce((s, p) => s + Number(p.valor ?? 0), 0),
         chaves_agrupadas: parsed.map((p) => p.chave_nfe), numeros_agrupados: parsed.map((p) => p.numero),
-        origem: "xml", status: "disponivel",
+        cfops: Array.from(new Set(parsed.flatMap((p) => p.cfops ?? []))),
+        origem: "xml", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id,
       });
       if (error) toast.error(error.message); else toast.success(`Importação agrupada: ${parsed.length} notas em 1 linha`);
     } else {
       const { error } = await supabase.from("notas_fiscais").insert(
-        parsed.map((p) => ({ ...p, volumes: Number(p.volumes ?? 0), agendamento: false, origem: "xml", status: "disponivel" })));
+        parsed.map((p) => ({ ...p, volumes: Number(p.volumes ?? 0), agendamento: false, origem: "xml", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id })));
       if (error) toast.error(error.message); else toast.success(`${parsed.length} nota(s) importada(s)`);
     }
     errors.forEach((e) => toast.error(e));
@@ -285,7 +297,7 @@ function NotasPage() {
         data_chegada: toDate(pick(r, "datachegada", "recebimento", "datarecebimento")) ?? new Date().toISOString().slice(0, 10),
         data_limite: toDate(pick(r, "previsaoentrega", "previsao")),
         observacoes: String(pick(r, "observacoes", "obs")).trim() || null,
-        origem: "planilha", status: "disponivel",
+        origem: "planilha", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id,
       });
     }
     if (ins.length) {
@@ -449,6 +461,7 @@ function NotasPage() {
 
   return (
     <div>
+      <DepositoTabs />
       <PageHeader
         title="Notas Fiscais / Depósito"
         subtitle={`${fmtNum(filtered.length)} de ${fmtNum(notas.length)} notas`}
