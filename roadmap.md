@@ -1,5 +1,5 @@
 - [x] Etapa 1 Transmerida: visual do print, início com cartões, menu recolhível, páginas dos módulos
-- [ ] Notas estilo Excel: edição na célula, ocultar/reordenar/redimensionar colunas, visualização salva, totais por filtro, painel de seleção (em andamento)
+- [x] Notas estilo Excel: edição na célula, colunas (ocultar/arrastar/largura), visualização salva, busca geral, totais, importar planilha, adicionar à carga
 - [ ] Recebimento → estoque automático
 - [ ] Montagem de cargas: adicionar à carga pela tabela, sequência, romaneio A4, conferência, saída
 - [ ] Agendamentos com histórico
