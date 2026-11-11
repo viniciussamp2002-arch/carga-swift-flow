@@ -675,6 +675,12 @@ function GerarCargaDialog({
   const [veiculo, setVeiculo] = useState("");
   const [data, setData] = useState("");
   const [obs, setObs] = useState("");
+  const [existente, setExistente] = useState("__nova__");
+  const { data: cargasAbertas = [] } = useQuery({
+    queryKey: ["cargas-abertas"],
+    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").in("status", ["separacao", "carregamento"]).order("numero")).data ?? [],
+    enabled: open,
+  });
 
   const { data: motoristas = [] } = useQuery({
     queryKey: ["motoristas-disp"],
@@ -689,27 +695,35 @@ function GerarCargaDialog({
 
   const mut = useMutation({
     mutationFn: async () => {
-      const { data: carga, error } = await supabase.from("cargas").insert({
-        motorista_id: motorista || null, veiculo_id: veiculo || null,
-        data_prevista_saida: data || null, observacoes: obs, status: "separacao",
-      }).select().single();
-      if (error) throw error;
+      let carga: any;
+      if (existente !== "__nova__") {
+        carga = cargasAbertas.find((c: any) => c.id === existente);
+      } else {
+        const r = await supabase.from("cargas").insert({
+          motorista_id: motorista || null, veiculo_id: veiculo || null,
+          data_prevista_saida: data || null, observacoes: obs, status: "separacao",
+        }).select().single();
+        if (r.error) throw r.error;
+        carga = r.data;
+      }
+      // só vincula notas ainda livres (impede nota em duas cargas ativas)
       const upd = await supabase.from("notas_fiscais").update({
         carga_id: carga.id, status: "separacao",
-      }).in("id", notaIds);
+      }).in("id", notaIds).is("carga_id", null).select("id");
       if (upd.error) throw upd.error;
+      if ((upd.data?.length ?? 0) < notaIds.length) toast.warning(`${notaIds.length - (upd.data?.length ?? 0)} nota(s) já estavam em outra carga e foram ignoradas`);
       await supabase.from("historico").insert(notaIds.map((nid) => ({
         entidade: "nota", entidade_id: nid, acao: "vinculo_carga",
         descricao: `Nota vinculada à carga #${carga.numero}`,
       })));
       await supabase.from("historico").insert({
         entidade: "carga", entidade_id: carga.id, acao: "criada",
-        descricao: `Carga #${carga.numero} criada com ${notaIds.length} nota(s)`,
+        descricao: existente !== "__nova__" ? `${notaIds.length} nota(s) adicionada(s) à carga #${carga.numero}` : `Carga #${carga.numero} criada com ${notaIds.length} nota(s)`,
       });
       return carga;
     },
     onSuccess: (c: any) => {
-      toast.success(`Carga #${c.numero} criada!`);
+      toast.success(existente !== "__nova__" ? `Notas adicionadas à carga #${c.numero}` : `Carga #${c.numero} criada!`); setExistente("__nova__");
       qc.invalidateQueries();
       onOpenChange(false);
       setMotorista(""); setVeiculo(""); setData(""); setObs("");
@@ -720,8 +734,18 @@ function GerarCargaDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Gerar Carga ({notaIds.length} nota(s))</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Adicionar à carga ({notaIds.length} nota(s))</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <Field label="Carga">
+            <Select value={existente} onValueChange={setExistente}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__nova__">Nova carga</SelectItem>
+                {cargasAbertas.map((c: any) => <SelectItem key={c.id} value={c.id}>Carga #{String(c.numero).padStart(2, "0")} (em aberto)</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          {existente === "__nova__" && <>
           <Field label="Motorista">
             <Select value={motorista} onValueChange={setMotorista}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -736,10 +760,11 @@ function GerarCargaDialog({
           </Field>
           <Field label="Data prevista"><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></Field>
           <Field label="Observações"><Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} /></Field>
+          </>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => mut.mutate()} disabled={mut.isPending}>Criar Carga</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending}>{existente === "__nova__" ? "Criar carga" : "Adicionar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
