@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos: {
+        Row: {
+          created_at: string
+          data_agendada: string | null
+          data_entrada: string | null
+          data_solicitacao: string | null
+          horario: string | null
+          id: string
+          nota_id: string
+          observacoes: string | null
+          protocolo: string | null
+          solicitante: string | null
+          status: Database["public"]["Enums"]["agendamento_status"]
+          status_recebimento: Database["public"]["Enums"]["recebimento_cliente_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_agendada?: string | null
+          data_entrada?: string | null
+          data_solicitacao?: string | null
+          horario?: string | null
+          id?: string
+          nota_id: string
+          observacoes?: string | null
+          protocolo?: string | null
+          solicitante?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"]
+          status_recebimento?: Database["public"]["Enums"]["recebimento_cliente_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_agendada?: string | null
+          data_entrada?: string | null
+          data_solicitacao?: string | null
+          horario?: string | null
+          id?: string
+          nota_id?: string
+          observacoes?: string | null
+          protocolo?: string | null
+          solicitante?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"]
+          status_recebimento?: Database["public"]["Enums"]["recebimento_cliente_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: true
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           created_at: string
@@ -73,6 +129,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cargas_entrada: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_carregamento: string | null
+          data_chegada: string | null
+          fornecedor: string
+          id: string
+          motorista: string | null
+          numero_transporte: string
+          obs_recebimento: string | null
+          observacoes: string | null
+          placa: string | null
+          previsao_chegada: string | null
+          recebido_por: string | null
+          recebido_por_nome: string | null
+          status: Database["public"]["Enums"]["entrada_status"]
+          transportadora: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_carregamento?: string | null
+          data_chegada?: string | null
+          fornecedor?: string
+          id?: string
+          motorista?: string | null
+          numero_transporte?: string
+          obs_recebimento?: string | null
+          observacoes?: string | null
+          placa?: string | null
+          previsao_chegada?: string | null
+          recebido_por?: string | null
+          recebido_por_nome?: string | null
+          status?: Database["public"]["Enums"]["entrada_status"]
+          transportadora?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_carregamento?: string | null
+          data_chegada?: string | null
+          fornecedor?: string
+          id?: string
+          motorista?: string | null
+          numero_transporte?: string
+          obs_recebimento?: string | null
+          observacoes?: string | null
+          placa?: string | null
+          previsao_chegada?: string | null
+          recebido_por?: string | null
+          recebido_por_nome?: string | null
+          status?: Database["public"]["Enums"]["entrada_status"]
+          transportadora?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clientes_agendamento: {
+        Row: {
+          ativo: boolean
+          cnpj: string
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj: string
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+        }
+        Relationships: []
       }
       entregas: {
         Row: {
@@ -317,7 +460,9 @@ export type Database = {
       notas_fiscais: {
         Row: {
           agendamento: boolean
+          carga_entrada_id: string | null
           carga_id: string | null
+          cfops: string[]
           chave_nfe: string | null
           chaves_agrupadas: string[]
           cidade: string
@@ -336,6 +481,10 @@ export type Database = {
           observacoes: string | null
           origem: string
           peso: number
+          recebida: boolean
+          recebida_em: string | null
+          recebida_por: string | null
+          recebida_por_nome: string | null
           regiao: string | null
           serie: string | null
           status: Database["public"]["Enums"]["nota_status"]
@@ -346,7 +495,9 @@ export type Database = {
         }
         Insert: {
           agendamento?: boolean
+          carga_entrada_id?: string | null
           carga_id?: string | null
+          cfops?: string[]
           chave_nfe?: string | null
           chaves_agrupadas?: string[]
           cidade?: string
@@ -365,6 +516,10 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           peso?: number
+          recebida?: boolean
+          recebida_em?: string | null
+          recebida_por?: string | null
+          recebida_por_nome?: string | null
           regiao?: string | null
           serie?: string | null
           status?: Database["public"]["Enums"]["nota_status"]
@@ -375,7 +530,9 @@ export type Database = {
         }
         Update: {
           agendamento?: boolean
+          carga_entrada_id?: string | null
           carga_id?: string | null
+          cfops?: string[]
           chave_nfe?: string | null
           chaves_agrupadas?: string[]
           cidade?: string
@@ -394,6 +551,10 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           peso?: number
+          recebida?: boolean
+          recebida_em?: string | null
+          recebida_por?: string | null
+          recebida_por_nome?: string | null
           regiao?: string | null
           serie?: string | null
           status?: Database["public"]["Enums"]["nota_status"]
@@ -403,6 +564,13 @@ export type Database = {
           volumes?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notas_fiscais_carga_id_fkey"
             columns: ["carga_id"]
@@ -504,11 +672,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      confirmar_chegada: {
+        Args: {
+          _carga: string
+          _notas: string[]
+          _obs: string
+          _quando: string
+        }
+        Returns: Database["public"]["Enums"]["entrada_status"]
+      }
     }
     Enums: {
+      agendamento_status:
+        | "nao_solicitado"
+        | "solicitado"
+        | "aguardando_confirmacao"
+        | "confirmado"
+        | "reagendado"
+        | "cancelado"
       app_role: "administrador" | "operacional" | "consulta"
       carga_status: "separacao" | "carregamento" | "em_rota" | "finalizada"
+      entrada_status:
+        | "prevista"
+        | "em_transito"
+        | "recebida_parcial"
+        | "recebida"
+        | "cancelada"
       entrega_resultado: "entregue" | "nao_entregue" | "devolvida"
       motorista_situacao: "disponivel" | "em_viagem" | "ferias" | "afastado"
       nota_status:
@@ -519,6 +708,10 @@ export type Database = {
         | "entregue"
         | "nao_entregue"
         | "devolvida"
+      recebimento_cliente_status:
+        | "aguardando_entrada"
+        | "entrada_realizada"
+        | "entrada_recusada"
       veiculo_situacao: "disponivel" | "em_rota" | "manutencao" | "inativo"
     }
     CompositeTypes: {
@@ -647,8 +840,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agendamento_status: [
+        "nao_solicitado",
+        "solicitado",
+        "aguardando_confirmacao",
+        "confirmado",
+        "reagendado",
+        "cancelado",
+      ],
       app_role: ["administrador", "operacional", "consulta"],
       carga_status: ["separacao", "carregamento", "em_rota", "finalizada"],
+      entrada_status: [
+        "prevista",
+        "em_transito",
+        "recebida_parcial",
+        "recebida",
+        "cancelada",
+      ],
       entrega_resultado: ["entregue", "nao_entregue", "devolvida"],
       motorista_situacao: ["disponivel", "em_viagem", "ferias", "afastado"],
       nota_status: [
@@ -659,6 +867,11 @@ export const Constants = {
         "entregue",
         "nao_entregue",
         "devolvida",
+      ],
+      recebimento_cliente_status: [
+        "aguardando_entrada",
+        "entrada_realizada",
+        "entrada_recusada",
       ],
       veiculo_situacao: ["disponivel", "em_rota", "manutencao", "inativo"],
     },

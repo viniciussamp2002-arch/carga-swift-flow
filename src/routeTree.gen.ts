@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedCargasRouteImport } from './routes/_authenticated/cargas'
 import { Route as AuthenticatedCargasPrevistasRouteImport } from './routes/_authenticated/cargas-previstas'
+import { Route as AuthenticatedClientesAgendamentoRouteImport } from './routes/_authenticated/clientes-agendamento'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
@@ -57,6 +58,12 @@ const AuthenticatedCargasPrevistasRoute =
   AuthenticatedCargasPrevistasRouteImport.update({
     id: '/cargas-previstas',
     path: '/cargas-previstas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClientesAgendamentoRoute =
+  AuthenticatedClientesAgendamentoRouteImport.update({
+    id: '/clientes-agendamento',
+    path: '/clientes-agendamento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
+  '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
+  '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/_authenticated/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
+  '/_authenticated/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/cargas'
     | '/cargas-previstas'
+    | '/clientes-agendamento'
     | '/dashboard'
     | '/entregas'
     | '/estoque'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/cargas'
     | '/cargas-previstas'
+    | '/clientes-agendamento'
     | '/dashboard'
     | '/entregas'
     | '/estoque'
@@ -227,6 +239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agendamentos'
     | '/_authenticated/cargas'
     | '/_authenticated/cargas-previstas'
+    | '/_authenticated/clientes-agendamento'
     | '/_authenticated/dashboard'
     | '/_authenticated/entregas'
     | '/_authenticated/estoque'
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/cargas-previstas'
       fullPath: '/cargas-previstas'
       preLoaderRoute: typeof AuthenticatedCargasPrevistasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes-agendamento': {
+      id: '/_authenticated/clientes-agendamento'
+      path: '/clientes-agendamento'
+      fullPath: '/clientes-agendamento'
+      preLoaderRoute: typeof AuthenticatedClientesAgendamentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -393,6 +413,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedCargasRoute: typeof AuthenticatedCargasRouteWithChildren
   AuthenticatedCargasPrevistasRoute: typeof AuthenticatedCargasPrevistasRoute
+  AuthenticatedClientesAgendamentoRoute: typeof AuthenticatedClientesAgendamentoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
@@ -410,6 +431,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedCargasRoute: AuthenticatedCargasRouteWithChildren,
   AuthenticatedCargasPrevistasRoute: AuthenticatedCargasPrevistasRoute,
+  AuthenticatedClientesAgendamentoRoute: AuthenticatedClientesAgendamentoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,

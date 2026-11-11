@@ -1,0 +1,2 @@
+- Notes with `recebida=false` belong to an inbound load (`cargas_entrada`) and are hidden from the depot; only the `confirmar_chegada` RPC flips them, so receipt is idempotent.
+- Scheduling links (`agendamentos`, unique per nota) are created by a DB trigger matching `cnpj_destinatario` against `clientes_agendamento`; never insert them from the client.
