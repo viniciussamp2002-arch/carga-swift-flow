@@ -13,6 +13,7 @@ export interface ParsedNFe {
   peso: number;
   volumes: number;
   valor: number;
+  cfops: string[];
 }
 
 const txt = (el: Element | null | undefined, tag: string) => {
@@ -56,5 +57,6 @@ export function parseNFeXml(xmlString: string): ParsedNFe | { error: string } {
     peso: num(txt(vol, "pesoB") || txt(vol, "pesoL") || "0"),
     volumes: parseInt(txt(vol, "qVol") || "0", 10) || 0,
     valor: num(txt(icmsTot, "vNF") || "0"),
+    cfops: Array.from(new Set(Array.from(infNFe.getElementsByTagName("CFOP")).map((e) => e.textContent?.trim() ?? "").filter(Boolean))),
   };
 }

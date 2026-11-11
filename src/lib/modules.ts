@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 
 export const MODULES = [
-  { to: "/cargas-previstas", label: "Cargas Previstas", icon: CalendarClock },
+  { to: "/cargas-previstas", label: "Cargas de Entrada", icon: CalendarClock },
   { to: "/notas", label: "Notas / Depósito", icon: LayoutGrid },
   { to: "/agendamentos", label: "Agendamentos", icon: CalendarCheck },
   { to: "/estoque", label: "Estoque", icon: Package },
