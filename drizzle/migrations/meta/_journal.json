@@ -8,6 +8,13 @@
       "when": 1794439614625,
       "tag": "0000_cargas_entrada_agendamentos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794498963944,
+      "tag": "0001_restrict_historico_select",
+      "breakpoints": true
     }
   ]
 }

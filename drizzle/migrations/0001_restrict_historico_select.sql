@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS historico_select_auth ON public.historico;
+CREATE POLICY historico_select_privileged_or_self ON public.historico FOR SELECT TO authenticated USING (private.can_write(auth.uid()) OR user_id = auth.uid());
