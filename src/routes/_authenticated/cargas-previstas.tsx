@@ -16,7 +16,8 @@ import { fmtBRL, fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { lerXmls } from "@/lib/nfe-import";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Upload, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Upload, CheckCircle2, Trash2, ChevronRight, ChevronDown, AlertTriangle } from "lucide-react";
+import { OcorrenciaBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   head: () => ({ meta: [{ title: "Cargas de Entrada — Transmerida" }, { name: "description", content: "Transportes vindos dos fornecedores, antes do recebimento" }] }),
@@ -147,6 +148,9 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   const qc = useQueryClient();
   const xmlRef = useRef<HTMLInputElement>(null);
   const [confirmar, setConfirmar] = useState(false);
+  const [modo, setModo] = useState<"individual" | "agrupada">("individual");
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
+  const [ocNota, setOcNota] = useState<any>(null);
   const { data } = useQuery({
     queryKey: ["carga-entrada", id],
     queryFn: async () => {
@@ -157,6 +161,11 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   });
   const notas: any[] = data?.notas_fiscais ?? [];
   const t = useMemo(() => sum(notas), [notas]);
+  const grupos = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const n of notas) { const k = n.cnpj_destinatario || `__${n.cliente}`; m.set(k, [...(m.get(k) ?? []), n]); }
+    return Array.from(m.entries()).map(([k, ns]) => ({ k, ns, t: sum(ns) })).sort((a, b) => String(a.ns[0].cliente).localeCompare(String(b.ns[0].cliente)));
+  }, [notas]);
   const fechada = data && ["recebida", "cancelada"].includes(data.status);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["carga-entrada", id] }); qc.invalidateQueries({ queryKey: ["cargas-entrada"] }); qc.invalidateQueries({ queryKey: ["notas"] }); };
 
@@ -178,9 +187,14 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
     if (error) toast.error(error.message); else refresh();
   }
 
+  const acoes = (n: any) => canWrite && <div className="flex items-center gap-2 justify-end">
+    <button title="Registrar Ocorrência" onClick={() => setOcNota(n)} className="text-warning-foreground hover:text-destructive inline-flex items-center gap-1 text-xs"><AlertTriangle className="h-3.5 w-3.5" />Ocorrência</button>
+    {!n.recebida && <button title="Remover da carga" onClick={() => remover(n.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>}
+  </div>;
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
         <DialogHeader><DialogTitle>Carga de entrada {data?.numero_transporte || ""} {data && <StatusBadge className={STATUS_COLOR[data.status]}>{ENTRADA_STATUS_LABEL[data.status]}</StatusBadge>}</DialogTitle></DialogHeader>
         {data && <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
@@ -201,21 +215,46 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             <Button size="sm" variant="outline" onClick={() => onEdit(data)}>Editar dados</Button>
             {!fechada && notas.some((n) => !n.recebida) && <Button size="sm" className="ml-auto" onClick={() => setConfirmar(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Confirmar Chegada</Button>}
           </div>}
+          <div className="flex gap-1">
+            <Button size="sm" variant={modo === "individual" ? "default" : "outline"} className="h-8" onClick={() => setModo("individual")}>Visualização Individual</Button>
+            <Button size="sm" variant={modo === "agrupada" ? "default" : "outline"} className="h-8" onClick={() => setModo("agrupada")}>Visualização Agrupada por Cliente</Button>
+          </div>
           <div className="border rounded-md overflow-auto">
-            <table className="table-erp">
+            {modo === "individual" ? <table className="table-erp">
               <thead><tr><th>Nº NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade/UF</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th><th>Recebida</th><th></th></tr></thead>
               <tbody>
                 {notas.map((n) => <tr key={n.id}>
-                  <td className="font-mono">{n.numero}</td><td>{n.fornecedor}</td><td>{n.cliente}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
+                  <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td><td>{n.fornecedor}</td><td>{n.cliente}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                   <td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td>
                   <td>{n.recebida ? "Sim" : "Não"}</td>
-                  <td>{canWrite && !n.recebida && <button title="Remover da carga" onClick={() => remover(n.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>}</td>
+                  <td>{acoes(n)}</td>
                 </tr>)}
                 {notas.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-6">Importe os XMLs das notas desta carga</td></tr>}
               </tbody>
-            </table>
+            </table> : <table className="table-erp">
+              <thead><tr><th></th><th>Cliente / destinatário</th><th>CNPJ</th><th>Cidade/UF</th><th className="text-right">Notas</th><th>Nº das NFs</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th></tr></thead>
+              <tbody>
+                {grupos.map((g) => { const aberto = abertos.has(g.k); const f = g.ns[0]; return [
+                  <tr key={g.k} className="cursor-pointer" onClick={() => { const s = new Set(abertos); aberto ? s.delete(g.k) : s.add(g.k); setAbertos(s); }}>
+                    <td>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</td>
+                    <td className="font-semibold">{f.cliente}</td><td className="font-mono">{f.cnpj_destinatario || "—"}</td><td>{f.cidade}{f.uf && `/${f.uf}`}</td>
+                    <td className="text-right">{g.t.notas}</td><td className="font-mono text-xs">{g.ns.map((n) => n.numero).join(", ")}</td>
+                    <td className="text-right">{fmtNum(g.t.peso, 3)}</td><td className="text-right">{fmtNum(g.t.volumes)}</td><td className="text-right">{fmtBRL(g.t.valor)}</td>
+                  </tr>,
+                  aberto && <tr key={g.k + "-x"}><td></td><td colSpan={8} className="p-0">
+                    <table className="table-erp"><thead><tr><th>Nº NF</th><th>Chave de acesso</th><th>Fornecedor</th><th>Cliente</th><th>Cidade</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th><th></th></tr></thead>
+                      <tbody>{g.ns.map((n) => <tr key={n.id}>
+                        <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td><td className="font-mono text-[10px]">{n.chave_nfe || "—"}</td><td>{n.fornecedor}</td><td>{n.cliente}</td>
+                        <td>{n.cidade}</td><td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td><td>{acoes(n)}</td>
+                      </tr>)}</tbody></table>
+                  </td></tr>,
+                ]; })}
+                {notas.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-6">Importe os XMLs das notas desta carga</td></tr>}
+              </tbody>
+            </table>}
           </div>
         </>}
+        {ocNota && <RegistrarOcorrencia nota={ocNota} transporte={data?.numero_transporte} cargaEntradaId={id} onClose={() => setOcNota(null)} />}
         {confirmar && data && <ConfirmarChegada carga={data} onClose={() => setConfirmar(false)} onDone={refresh} />}
       </DialogContent>
     </Dialog>

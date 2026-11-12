@@ -1,3 +1,4 @@
+import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -396,6 +397,7 @@ function NotasPage() {
         </Popover>
       );
     } else content = col.render ? col.render(n) : (String(col.get(n)) || "—");
+    if (col.key === "numero") content = <>{content}<OcorrenciaBadge nota={n} /></>;
     return (
       <td
         className={`${col.align === "right" ? "text-right" : ""} ${col.key === "numero" ? "font-mono" : ""} overflow-hidden text-ellipsis ${isActive && !isEdit ? "outline outline-2 -outline-offset-2 outline-primary" : ""} ${editable ? "cursor-cell" : ""}`}

@@ -1,3 +1,4 @@
+import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +62,7 @@ function CargaDetail() {
           <tbody>
             {notas.map((n: any) => (
               <tr key={n.id}>
-                <td className="font-mono">{n.numero}</td>
+                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td>
                 <td>{n.cliente}</td>
                 <td>{n.cidade}/{n.uf}</td>
                 <td className="text-right">{fmtKg(n.peso)}</td>

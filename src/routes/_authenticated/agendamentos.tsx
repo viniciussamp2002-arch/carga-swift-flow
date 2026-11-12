@@ -1,3 +1,4 @@
+import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -113,7 +114,7 @@ function AgendamentosPage() {
           <tbody>
             {filtered.map((r: any) => { const n = r.nota; return (
               <tr key={r.id}>
-                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}</td>
+                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}<OcorrenciaBadge nota={n} /></td>
                 <td>{n.fornecedor}</td><td title={(n.cfops ?? []).join(", ")}>{(n.cfops ?? []).join(", ") || "—"}</td>
                 <td>{n.cliente}</td><td className="font-mono">{n.cnpj_destinatario}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                 <td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td>

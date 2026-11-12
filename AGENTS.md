@@ -1,2 +1,3 @@
 - Notes with `recebida=false` belong to an inbound load (`cargas_entrada`) and are hidden from the depot; only the `confirmar_chegada` RPC flips them, so receipt is idempotent.
 - Scheduling links (`agendamentos`, unique per nota) are created by a DB trigger matching `cnpj_destinatario` against `clientes_agendamento`; never insert them from the client.
+- Ocorrências live in one `ocorrencias` table (origem recebimento|entrega) linked by nota_id; every module shows them via `OcorrenciaBadge` from src/components/Ocorrencias.tsx — never copy them per module. Grouping by client in Cargas de Entrada is UI-only.

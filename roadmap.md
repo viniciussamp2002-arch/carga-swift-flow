@@ -8,4 +8,4 @@
 - [ ] Entregas e ocorrências (comprovantes, replanejamento)
 - [ ] Financeiro: tabelas de cobrança por cliente com memória de cálculo
 - [ ] Relatórios e revisão geral
-- [ ] Atualização do módulo Cargas de Entrada (documento enviado)
+- [x] Atualização do módulo Cargas de Entrada (agrupamento + ocorrências de recebimento)
