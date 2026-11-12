@@ -1,3 +1,4 @@
+import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +70,7 @@ function EntregasPage() {
             {notas.map((n: any) => (
               <tr key={n.id}>
                 <td>#{n.cargas?.numero}</td>
-                <td className="font-mono">{n.numero}</td>
+                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td>
                 <td>{n.cliente}</td>
                 <td>{n.cidade}/{n.uf}</td>
                 <td className="text-right">{fmtKg(n.peso)}</td>
