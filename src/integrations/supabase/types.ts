@@ -580,6 +580,78 @@ export type Database = {
           },
         ]
       }
+      ocorrencias: {
+        Row: {
+          anexo_path: string | null
+          carga_entrada_id: string | null
+          chave_nfe: string | null
+          created_at: string
+          data_ocorrencia: string
+          descricao: string
+          id: string
+          nota_id: string
+          origem: string
+          quantidade: number | null
+          registrado_por: string | null
+          registrado_por_nome: string | null
+          status: Database["public"]["Enums"]["ocorrencia_status"]
+          tipo: Database["public"]["Enums"]["ocorrencia_tipo"]
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          anexo_path?: string | null
+          carga_entrada_id?: string | null
+          chave_nfe?: string | null
+          created_at?: string
+          data_ocorrencia?: string
+          descricao?: string
+          id?: string
+          nota_id: string
+          origem?: string
+          quantidade?: number | null
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          status?: Database["public"]["Enums"]["ocorrencia_status"]
+          tipo: Database["public"]["Enums"]["ocorrencia_tipo"]
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anexo_path?: string | null
+          carga_entrada_id?: string | null
+          chave_nfe?: string | null
+          created_at?: string
+          data_ocorrencia?: string
+          descricao?: string
+          id?: string
+          nota_id?: string
+          origem?: string
+          quantidade?: number | null
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          status?: Database["public"]["Enums"]["ocorrencia_status"]
+          tipo?: Database["public"]["Enums"]["ocorrencia_tipo"]
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocorrencias_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -708,6 +780,13 @@ export type Database = {
         | "entregue"
         | "nao_entregue"
         | "devolvida"
+      ocorrencia_status: "aberta" | "em_analise" | "resolvida"
+      ocorrencia_tipo:
+        | "falta"
+        | "avaria"
+        | "sobra"
+        | "divergencia_volumes"
+        | "outros"
       recebimento_cliente_status:
         | "aguardando_entrada"
         | "entrada_realizada"
@@ -867,6 +946,14 @@ export const Constants = {
         "entregue",
         "nao_entregue",
         "devolvida",
+      ],
+      ocorrencia_status: ["aberta", "em_analise", "resolvida"],
+      ocorrencia_tipo: [
+        "falta",
+        "avaria",
+        "sobra",
+        "divergencia_volumes",
+        "outros",
       ],
       recebimento_cliente_status: [
         "aguardando_entrada",
