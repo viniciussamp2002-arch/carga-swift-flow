@@ -101,6 +101,8 @@ function OcorrenciasDetalhe({ nota, list, onClose }: { nota: any; list: any[]; o
   );
 }
 
+const L = ({ l, c }: { l: string; c: React.ReactNode }) => <div className="space-y-1"><Label className="text-[11px]">{l}</Label>{c}</div>;
+
 export function RegistrarOcorrencia({ nota, transporte, cargaEntradaId, onClose }: { nota: any; transporte?: string; cargaEntradaId?: string; onClose: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -129,7 +131,6 @@ export function RegistrarOcorrencia({ nota, transporte, cargaEntradaId, onClose 
     onSuccess: () => { toast.success("Ocorrência registrada"); qc.invalidateQueries({ queryKey: ["ocorrencias"] }); onClose(); },
     onError: (e: any) => toast.error(e.message),
   });
-  const L = ({ l, c }: { l: string; c: React.ReactNode }) => <div className="space-y-1"><Label className="text-[11px]">{l}</Label>{c}</div>;
   return (
     <Dialog open onOpenChange={(o) => !o && !mut.isPending && onClose()}>
       <DialogContent className="max-w-lg">
