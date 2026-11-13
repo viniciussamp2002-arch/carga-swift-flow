@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
            {!isDriver && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Mais opções"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to="/notas-entregues"><FileCheck className="h-4 w-4 mr-2" />Notas Entregues</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/arquivos-complementares"><FolderOpen className="h-4 w-4 mr-2" />Arquivos Complementares</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel>Cadastros</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/motoristas"><Users className="h-4 w-4 mr-2" />Motoristas</Link></DropdownMenuItem>{isAdmin && <DropdownMenuItem asChild><Link to="/usuarios"><ShieldCheck className="h-4 w-4 mr-2" />Usuários</Link></DropdownMenuItem>}<DropdownMenuItem asChild><Link to="/fornecedores"><Building2 className="h-4 w-4 mr-2" />Fornecedores</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/veiculos"><Truck className="h-4 w-4 mr-2" />Veículos</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
            <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
-            <UserCircle className="h-4 w-4" />{user?.email}
+            <UserCircle className="h-4 w-4" />{isDriver ? "Motorista" : user?.email}
           </div>
         </div>
       </header>
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <div className="border-t p-3 mt-2">
-            <div className="truncate text-xs text-muted-foreground mb-2">{user?.email}</div>
+            <div className="truncate text-xs text-muted-foreground mb-2">{isDriver ? "Motorista" : user?.email}</div>
             <Button size="sm" variant="outline" className="w-full justify-start" onClick={signOut}>
               <LogOut className="h-3.5 w-3.5 mr-2" />Sair
             </Button>

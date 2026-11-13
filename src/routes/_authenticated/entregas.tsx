@@ -83,10 +83,6 @@ function EntregasPage() {
                 <td>
                   {canWrite && (
                     <div className="flex gap-1.5">
-                      <Button size="sm" className="h-7 text-xs bg-success hover:bg-success/90 text-success-foreground"
-                        onClick={() => setDlg({ open: true, tipo: "entregue", nota: n })}>
-                        <Check className="h-3 w-3 mr-1" />Entregue
-                      </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs"
                         onClick={() => setDlg({ open: true, tipo: "nao_entregue", nota: n })}>
                         <X className="h-3 w-3 mr-1" />Não entregue
@@ -180,6 +176,8 @@ function EntregaDialog({ state, onClose }: any) {
 }
 
 function EntregasConcluidas() {
+  const {isAdmin}=useAuth();
+  const qc=useQueryClient();
   const canhotos = useCanhotosAprovados();
   const { data = [] } = useQuery({
     queryKey: ["entregas-concluidas"],
@@ -191,7 +189,7 @@ function EntregasConcluidas() {
       <h2 className="text-base font-bold mb-2">Entregas concluídas <span className="text-muted-foreground font-normal text-sm">(últimas {data.length})</span></h2>
       <div className="bg-card border rounded-md overflow-x-auto">
         <table className="table-erp">
-          <thead><tr><th>Canhoto</th><th>NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade</th><th>Carga</th><th>Entregue em</th></tr></thead>
+          <thead><tr><th>Canhoto</th><th>NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade</th><th>Carga</th><th>Entregue em</th><th/></tr></thead>
           <tbody>
             {data.map((e: any) => (
               <tr key={e.id}>
@@ -199,6 +197,7 @@ function EntregasConcluidas() {
                 <td className="font-mono">{e.notas_fiscais?.numero}</td><td>{e.notas_fiscais?.fornecedor}</td>
                 <td>{e.notas_fiscais?.cliente}</td><td>{e.notas_fiscais?.cidade}/{e.notas_fiscais?.uf}</td>
                 <td>{e.cargas?.numero ? `#${e.cargas.numero}` : "—"}</td><td>{fmtDate(e.data_evento)}</td>
+                <td>{isAdmin&&canhotos.has(e.nota_id)&&<Button size="sm" variant="outline" onClick={async()=>{const motivo=window.prompt("Justificativa para reverter a aprovação");if(!motivo)return;const r=await supabase.rpc("reverter_aprovacao",{_id:canhotos.get(e.nota_id).id,_motivo:motivo});if(r.error)toast.error(r.error.message);else{toast.success("Aprovação revertida");qc.invalidateQueries();}}}>Reverter aprovação</Button>}</td>
               </tr>
             ))}
             {data.length === 0 && <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma entrega concluída</td></tr>}

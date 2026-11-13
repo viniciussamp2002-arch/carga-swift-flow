@@ -77,8 +77,8 @@ function AuthPage() {
         <form onSubmit={submit} className="space-y-3">
           {mode === "signup" && (
             <div className="space-y-1">
-              <Label className="text-xs">Nome</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} required />
+              <Label htmlFor="full-name" className="text-xs">Nome</Label>
+              <Input id="full-name" value={nome} onChange={(e) => setNome(e.target.value)} required />
             </div>
           )}
           <div className="space-y-1">
@@ -86,8 +86,8 @@ function AuthPage() {
             <Input id="login-id" type={tipo === "motorista" ? "text" : "email"} value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Senha</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={tipo === "motorista" || mode === "signup" ? 8 : 6} />
+            <Label htmlFor="password" className="text-xs">Senha</Label>
+            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={tipo === "motorista" || mode === "signup" ? 8 : 6} />
           </div>
           {mode === "signup" && <><Label htmlFor="confirm-password">Confirmar senha</Label><Input id="confirm-password" type="password" required value={confirm} onChange={e => setConfirm(e.target.value)} />{tipo === "motorista" && <><Label htmlFor="phone">Telefone</Label><Input id="phone" required value={telefone} onChange={e => setTelefone(e.target.value)} /></>}</>}
           <Button type="submit" disabled={busy} className="w-full">

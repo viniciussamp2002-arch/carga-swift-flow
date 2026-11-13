@@ -10,3 +10,5 @@
 - Archiving or cancelling an already received inbound load preserves downstream depot operations; lock its inbound link and receipt identity without freezing unrelated delivery fields.
 
 - Driver receipt photos queue in IndexedDB per account and are removed locally only after the server row exists; only office RPCs (aprovar/rejeitar_comprovante) finalize proofs and create deliveries, so AI and drivers can never approve.
+- CPF sign-in resolves a private random identifier on the server and approvals use a transactional administrator RPC; browser metadata must never grant access.
+- Freight rules and per-note calculations are immutable version snapshots; only approved proofs enter the financial workflow, and closure blocks recalculation to preserve billed amounts.

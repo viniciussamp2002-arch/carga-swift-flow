@@ -21,10 +21,10 @@ function UsersPage() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const reset = useServerFn(resetDriverPassword);
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const { data: users = [] } = useQuery({
     queryKey: ["users-all"],
+    enabled: isAdmin,
     queryFn: async () => {
       const { data: profiles } = await supabase.from("profiles").select("*").order("created_at");
       const { data: roles } = await supabase.from("user_roles").select("*");
@@ -46,18 +46,20 @@ function UsersPage() {
 
   const { data: motoristas = [] } = useQuery({
     queryKey: ["motoristas-link"],
+    enabled: isAdmin,
     queryFn: async () => (await supabase.from("motoristas").select("id,nome,user_id").order("nome")).data ?? [],
   });
   const link = useMutation({
     mutationFn: async ({ userId, motoristaId }: { userId: string; motoristaId: string }) => {
-      const { error: e1 } = await supabase.from("motoristas").update({ user_id: null }).eq("user_id", userId);
-      if (e1) throw e1;
-      if (motoristaId !== "none") { const { error } = await supabase.from("motoristas").update({ user_id: userId }).eq("id", motoristaId); if (error) throw error; }
+      if (motoristaId === "none") throw new Error("Escolha um motorista para manter o vínculo seguro");
+      const {error}=await supabase.rpc("gerenciar_acesso",{_user:userId,_status:"ativo",_role:"motorista",_motorista:motoristaId});
+      if(error)throw error;
     },
     onSuccess: () => { toast.success("Vínculo atualizado"); qc.invalidateQueries({ queryKey: ["motoristas-link"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return (
     <div>
       <PageHeader title="Usuários" subtitle="Gestão de acessos e perfis" />

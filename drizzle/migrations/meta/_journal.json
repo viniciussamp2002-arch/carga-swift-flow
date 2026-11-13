@@ -134,6 +134,20 @@
       "when": 1794610102051,
       "tag": "0018_tighten_review_and_receiving_capabilities",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794610819372,
+      "tag": "0019_guard_freight_closure_and_receiving_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794610849439,
+      "tag": "0020_resolve_contracts_without_invented_values",
+      "breakpoints": true
     }
   ]
 }

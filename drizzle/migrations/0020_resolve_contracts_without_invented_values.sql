@@ -1,0 +1,27 @@
+CREATE OR REPLACE FUNCTION private.prepare_freight(_nota uuid,_motivo text DEFAULT '') RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE n notas_fiscais; f uuid; t tabelas_frete; km numeric; mem jsonb; calc uuid; st text; regras jsonb; candidates int; city text; uf text; peso numeric;
+BEGIN
+SELECT * INTO n FROM notas_fiscais WHERE id=_nota FOR UPDATE;
+IF EXISTS(SELECT 1 FROM financeiro WHERE nota_fiscal_id=_nota AND estado_frete IN ('conferido','pronto_faturamento','faturado')) THEN RAISE EXCEPTION 'Frete fechado: recálculo bloqueado'; END IF;
+SELECT id INTO f FROM fornecedores WHERE cnpj=regexp_replace(coalesce(n.cnpj_emissor,''),'\D','','g');
+city:=coalesce(nullif(n.destino_entrega_cidade,''),n.cidade);uf:=coalesce(nullif(n.destino_entrega_uf,''),n.uf);peso:=coalesce(n.peso_frete,n.peso);
+IF n.tabela_frete_id IS NOT NULL THEN SELECT * INTO t FROM tabelas_frete WHERE id=n.tabela_frete_id AND fornecedor_id=f AND ativo AND inicio<=coalesce(n.data_emissao,current_date) AND (fim IS NULL OR fim>=coalesce(n.data_emissao,current_date));
+ELSE
+SELECT count(*) INTO candidates FROM (SELECT DISTINCT ON (nome) * FROM tabelas_frete WHERE fornecedor_id=f AND inicio<=coalesce(n.data_emissao,current_date) AND (fim IS NULL OR fim>=coalesce(n.data_emissao,current_date)) ORDER BY nome,versao DESC,created_at DESC) x WHERE ativo;
+IF candidates=1 THEN SELECT x.* INTO t FROM (SELECT DISTINCT ON (nome) * FROM tabelas_frete WHERE fornecedor_id=f AND inicio<=coalesce(n.data_emissao,current_date) AND (fim IS NULL OR fim>=coalesce(n.data_emissao,current_date)) ORDER BY nome,versao DESC,created_at DESC) x WHERE ativo LIMIT 1;END IF;
+END IF;
+SELECT d.km INTO km FROM distancias d WHERE lower(trim(d.cidade))=lower(trim(city)) AND upper(d.uf)=upper(uf);
+IF t.id IS NULL THEN st:=CASE WHEN candidates>1 THEN 'calculo_pendente' ELSE 'sem_tabela' END;mem:=jsonb_build_object('situacao',st,'total',NULL,'erro',CASE WHEN candidates>1 THEN 'Selecione o contrato aplicável' ELSE 'Sem tabela ativa aplicável' END);
+ELSE regras:=jsonb_set(t.regras,'{operacoes}',coalesce((SELECT jsonb_agg(op-'uf'-'cidade') FROM jsonb_array_elements(coalesce(t.regras->'operacoes','[]')) op WHERE (nullif(op->>'uf','') IS NULL OR upper(op->>'uf')=upper(uf)) AND (nullif(op->>'cidade','') IS NULL OR lower(op->>'cidade')=lower(city))),'[]'));mem:=public.simular_frete(regras,peso,n.valor,km);st:=mem->>'situacao'; END IF;
+mem:=mem||jsonb_build_object('peso',peso,'valor_nf',n.valor,'origem','Teresina / PI','destino',city||' / '||coalesce(uf,''),'fornecedor',n.fornecedor,'tabela',t.nome,'versao',t.versao,'data_referencia',coalesce(n.data_emissao,current_date),'distancia',km);
+INSERT INTO calculos_frete(nota_id,tabela_id,situacao,total,memoria,motivo) VALUES(_nota,t.id,st,(mem->>'total')::numeric,mem,_motivo) RETURNING id INTO calc;
+UPDATE financeiro SET fornecedor_id=f,calculo_id=calc,estado_frete=CASE WHEN st='pre_calculado' THEN 'aguardando_conferencia' ELSE st END,valor_base=coalesce((mem->>'base')::numeric,0),valor_ad_valorem=coalesce((mem->>'ad_valorem')::numeric,0),valor_tributos=coalesce((mem->>'tributos')::numeric,0),valor_taxa_extra=coalesce((mem->>'adicionais')::numeric,0),valor_frete=coalesce((mem->>'total')::numeric,0),distancia=km WHERE nota_fiscal_id=_nota; RETURN calc;
+END $$;
+CREATE OR REPLACE FUNCTION public.tg_require_freight_values() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ DECLARE op jsonb;b jsonb;BEGIN
+IF NEW.regras->>'metodo'<>'faixas' AND (NEW.regras->>'tarifa' IS NULL OR (NEW.regras->>'tarifa')::numeric<=0) THEN RAISE EXCEPTION 'Informe a tarifa contratual'; END IF;
+IF NEW.regras->>'base_percentual'='contratual' AND NEW.regras->>'metodo'='percentual' AND ((NEW.regras->>'base_contratual') IS NULL OR (NEW.regras->>'base_contratual')::numeric<=0) THEN RAISE EXCEPTION 'Informe a base contratual';END IF;
+FOR b IN SELECT value FROM jsonb_array_elements(coalesce(NEW.regras->'faixas','[]')) LOOP IF b->>'inicio' IS NULL OR b->>'fim' IS NULL OR b->>'tarifa' IS NULL OR (b->>'tarifa')::numeric<=0 THEN RAISE EXCEPTION 'Complete as faixas e tarifas';END IF;END LOOP;
+FOR op IN SELECT value FROM jsonb_array_elements(coalesce(NEW.regras->'operacoes','[]')) LOOP IF nullif(op->>'nome','') IS NULL OR op->>'tipo' IS NULL OR op->>'base' IS NULL OR op->>'valor' IS NULL OR (op->>'valor')::numeric<=0 THEN RAISE EXCEPTION 'Complete os adicionais e tributos';END IF;END LOOP;RETURN NEW;END $$;
+CREATE TRIGGER require_freight_values BEFORE INSERT ON public.tabelas_frete FOR EACH ROW EXECUTE FUNCTION public.tg_require_freight_values();
+CREATE OR REPLACE FUNCTION public.ajustar_parametros_frete(_nota uuid,_peso numeric,_cidade text,_uf text,_tabela uuid,_motivo text) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ BEGIN IF NOT private.can_finance(auth.uid()) OR length(trim(_motivo))<3 THEN RAISE EXCEPTION 'Informe justificativa e acesso autorizado';END IF; UPDATE notas_fiscais SET peso_frete=_peso,destino_entrega_cidade=nullif(trim(_cidade),''),destino_entrega_uf=nullif(upper(trim(_uf)),''),tabela_frete_id=_tabela WHERE id=_nota;INSERT INTO historico(entidade,entidade_id,acao,descricao,user_id) VALUES('nota',_nota,'ajuste_frete',_motivo,auth.uid());RETURN private.prepare_freight(_nota,_motivo);END $$;
+REVOKE ALL ON FUNCTION public.ajustar_parametros_frete(uuid,numeric,text,text,uuid,text) FROM PUBLIC,anon;GRANT EXECUTE ON FUNCTION public.ajustar_parametros_frete(uuid,numeric,text,text,uuid,text) TO authenticated;
