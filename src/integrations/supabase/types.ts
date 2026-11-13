@@ -936,6 +936,8 @@ export type Database = {
           data_chegada: string
           data_emissao: string | null
           data_limite: string | null
+          destino_entrega_cidade: string | null
+          destino_entrega_uf: string | null
           fornecedor: string
           grupo_importacao: string | null
           id: string
@@ -944,6 +946,7 @@ export type Database = {
           observacoes: string | null
           origem: string
           peso: number
+          peso_frete: number | null
           recebida: boolean
           recebida_em: string | null
           recebida_por: string | null
@@ -951,6 +954,7 @@ export type Database = {
           regiao: string | null
           serie: string | null
           status: Database["public"]["Enums"]["nota_status"]
+          tabela_frete_id: string | null
           uf: string | null
           updated_at: string
           valor: number
@@ -972,6 +976,8 @@ export type Database = {
           data_chegada?: string
           data_emissao?: string | null
           data_limite?: string | null
+          destino_entrega_cidade?: string | null
+          destino_entrega_uf?: string | null
           fornecedor?: string
           grupo_importacao?: string | null
           id?: string
@@ -980,6 +986,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           peso?: number
+          peso_frete?: number | null
           recebida?: boolean
           recebida_em?: string | null
           recebida_por?: string | null
@@ -987,6 +994,7 @@ export type Database = {
           regiao?: string | null
           serie?: string | null
           status?: Database["public"]["Enums"]["nota_status"]
+          tabela_frete_id?: string | null
           uf?: string | null
           updated_at?: string
           valor?: number
@@ -1008,6 +1016,8 @@ export type Database = {
           data_chegada?: string
           data_emissao?: string | null
           data_limite?: string | null
+          destino_entrega_cidade?: string | null
+          destino_entrega_uf?: string | null
           fornecedor?: string
           grupo_importacao?: string | null
           id?: string
@@ -1016,6 +1026,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string
           peso?: number
+          peso_frete?: number | null
           recebida?: boolean
           recebida_em?: string | null
           recebida_por?: string | null
@@ -1023,6 +1034,7 @@ export type Database = {
           regiao?: string | null
           serie?: string | null
           status?: Database["public"]["Enums"]["nota_status"]
+          tabela_frete_id?: string | null
           uf?: string | null
           updated_at?: string
           valor?: number
@@ -1041,6 +1053,13 @@ export type Database = {
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_tabela_frete_id_fkey"
+            columns: ["tabela_frete_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_frete"
             referencedColumns: ["id"]
           },
         ]
