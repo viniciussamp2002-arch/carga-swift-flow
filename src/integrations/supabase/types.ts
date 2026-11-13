@@ -475,6 +475,7 @@ export type Database = {
           data_emissao: string | null
           data_limite: string | null
           fornecedor: string
+          grupo_importacao: string | null
           id: string
           numero: string
           numeros_agrupados: string[]
@@ -510,6 +511,7 @@ export type Database = {
           data_emissao?: string | null
           data_limite?: string | null
           fornecedor?: string
+          grupo_importacao?: string | null
           id?: string
           numero: string
           numeros_agrupados?: string[]
@@ -545,6 +547,7 @@ export type Database = {
           data_emissao?: string | null
           data_limite?: string | null
           fornecedor?: string
+          grupo_importacao?: string | null
           id?: string
           numero?: string
           numeros_agrupados?: string[]
