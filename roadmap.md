@@ -23,5 +23,7 @@
   - Exclusão é não destrutiva: carga sai da operação e continua consultável em Excluídas, com todas as notas e histórico. Cancelamento/arquivamento não desfaz recebimento; entrada recebida arquivada mantém a NF no depósito e suas operações posteriores.
   - Preservados 51 registros fiscais, nove entradas, seis saídas, seis ocorrências, uma entrega e um financeiro anteriores. Fixtures VALIDACAO identificáveis mantidas com peso/valor zero e histórico; não apagadas. Checklist completo de teste continuou gerando prévia após cancelamento; visualização do PDF na impressora não retestada.
   - Sem publicação. Próxima melhoria: portal do motorista e aprovação de comprovantes.
-- [ ] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
+- [x] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
+  - Feito: perfil motorista vinculado em Usuários, tela de celular com fila de fotos no aparelho, leitura automática, conferência/aprovação/rejeição em Entregas.
+  - Não testado ponta a ponta com conta real de motorista nem em Android/iPhone; instalação como aplicativo (PWA) ainda não feita.
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
