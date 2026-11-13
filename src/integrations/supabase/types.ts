@@ -1371,6 +1371,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ajustar_parametros_frete: {
+        Args: {
+          _cidade: string
+          _motivo: string
+          _nota: string
+          _peso: number
+          _tabela: string
+          _uf: string
+        }
+        Returns: string
+      }
       alterar_situacao_carga: {
         Args: { _acao: string; _id: string; _motivo: string; _tipo: string }
         Returns: Json
