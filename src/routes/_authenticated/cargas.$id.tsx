@@ -11,6 +11,8 @@ import {
 } from "@/lib/format";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadLifecycleActions, LoadStateInfo } from "@/components/LoadLifecycle";
+import { ReceivingHistory } from "@/components/ReceivingDocuments";
 
 export const Route = createFileRoute("/_authenticated/cargas/$id")({
   head: () => pageHead("Detalhes da Carga", "Notas, motorista e veículo da carga de saída."), component: CargaDetail });
@@ -44,7 +46,9 @@ function CargaDetail() {
       <PageHeader
         title={`Carga #${carga.numero}`}
         subtitle={`Criada em ${fmtDateTime(carga.created_at)} • ${CARGA_STATUS_LABEL[carga.status]}`}
+        actions={<LoadLifecycleActions id={id} kind="saida" state={carga.situacao} />}
       />
+      <LoadStateInfo load={carga} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <Info label="Motorista" value={carga.motoristas?.nome ?? "—"} sub={carga.motoristas?.telefone} />
         <Info label="Veículo" value={carga.veiculos?.placa ?? "—"} sub={`${carga.veiculos?.marca ?? ""} ${carga.veiculos?.modelo ?? ""}`} />
@@ -64,7 +68,7 @@ function CargaDetail() {
           <tbody>
             {notas.map((n: any) => (
               <tr key={n.id}>
-                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} allowCreate etapa="transporte" /></td>
+                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} allowCreate={carga.situacao === "ativa"} etapa="transporte" /></td>
                 <td>{n.cliente}</td>
                 <td>{n.cidade}/{n.uf}</td>
                 <td className="text-right">{fmtKg(n.peso)}</td>
@@ -80,6 +84,7 @@ function CargaDetail() {
           </tbody>
         </table>
       </div>
+      <div className="mt-4"><ReceivingHistory loadId={id} notes={notas} /></div>
     </div>
   );
 }

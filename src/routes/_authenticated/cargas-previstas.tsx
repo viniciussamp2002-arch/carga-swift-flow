@@ -25,6 +25,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ReceivingDocuments, ReceivingOccurrences, ReceivingHistory, useReceivingChecklist } from "@/components/ReceivingDocuments";
 import { hasReceivingDivergence, type ReceivingData } from "@/lib/receiving-rules";
 import { useOcorrencias } from "@/components/Ocorrencias";
+import { LoadLifecycleActions, LoadStateFilter, LoadStateInfo } from "@/components/LoadLifecycle";
+import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   head: () => pageHead("Cargas de Entrada", "Transportes vindos dos fornecedores, antes do recebimento"),
@@ -47,6 +49,7 @@ function CargasEntradaPage() {
   const [form, setForm] = useState<any>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [statusF, setStatusF] = useState("__all__");
+  const [stateF, setStateF] = useState("ativa");
   const qc = useQueryClient();
 
   const { data: cargas = [] } = useQuery({
@@ -58,12 +61,11 @@ function CargasEntradaPage() {
       return data ?? [];
     },
   });
-  const rows = statusF === "__all__" ? cargas : cargas.filter((c: any) => c.status === statusF);
+  const rows = cargas.filter(c => (statusF === "__all__" || c.status === statusF) && (stateF === "todas" || c.situacao === stateF));
 
   const salvar = useMutation({
     mutationFn: async (f: any) => {
-      const payload = { ...f, data_carregamento: f.data_carregamento || null, previsao_chegada: f.previsao_chegada || null };
-      delete payload.id;
+      const payload = { numero_transporte: f.numero_transporte, transportadora: f.transportadora, fornecedor: f.fornecedor, motorista: f.motorista, placa: f.placa, data_carregamento: f.data_carregamento || null, previsao_chegada: f.previsao_chegada || null, status: f.status, observacoes: f.observacoes };
       const r = f.id ? await supabase.from("cargas_entrada").update(payload).eq("id", f.id)
         : await supabase.from("cargas_entrada").insert(payload);
       if (r.error) throw r.error;
@@ -77,6 +79,7 @@ function CargasEntradaPage() {
       <DepositoTabs />
       <PageHeader title="Cargas de Entrada" subtitle="Transportes vindos dos fornecedores — notas só entram no depósito após confirmar a chegada"
         actions={<>
+          <LoadStateFilter value={stateF} onChange={setStateF} />
           <Select value={statusF} onValueChange={setStatusF}>
             <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="__all__">Todos os status</SelectItem>
@@ -89,7 +92,7 @@ function CargasEntradaPage() {
           <thead><tr>
             <th>Transporte</th><th>Transportadora</th><th>Fornecedor</th><th>Motorista / Placa</th><th>Carregamento</th>
             <th>Previsão</th><th>Chegada</th><th className="text-right">Notas</th><th className="text-right">Peso (kg)</th>
-            <th className="text-right">Volumes</th><th className="text-right">Valor</th><th>Status</th>
+            <th className="text-right">Volumes</th><th className="text-right">Valor</th><th>Status</th><th>Situação</th><th>Ações</th>
           </tr></thead>
           <tbody>
             {rows.map((c: any) => { const t = sum(c.notas_fiscais ?? []); return (
@@ -101,8 +104,10 @@ function CargasEntradaPage() {
                 <td className="text-right">{t.notas}</td><td className="text-right">{fmtNum(t.peso, 3)}</td><td className="text-right">{fmtNum(t.volumes)}</td>
                 <td className="text-right">{fmtBRL(t.valor)}</td>
                 <td><StatusBadge className={STATUS_COLOR[c.status]}>{ENTRADA_STATUS_LABEL[c.status]}</StatusBadge></td>
+                <td>{LOAD_STATE_LABEL[c.situacao]}</td>
+                <td onClick={e => e.stopPropagation()}><LoadLifecycleActions id={c.id} kind="entrada" state={c.situacao} /></td>
               </tr>); })}
-            {rows.length === 0 && <tr><td colSpan={12} className="text-center text-muted-foreground py-8">Nenhuma carga de entrada cadastrada</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={14} className="text-center text-muted-foreground py-8">Nenhuma carga nesta situação</td></tr>}
           </tbody>
         </table>
       </div>
@@ -141,7 +146,7 @@ function CargaForm({ form, setForm }: { form: any; setForm: (f: any) => void }) 
       <F label="Status">
         <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{["prevista", "em_transito", "cancelada"].map((k) => <SelectItem key={k} value={k}>{ENTRADA_STATUS_LABEL[k]}</SelectItem>)}</SelectContent>
+          <SelectContent>{["prevista", "em_transito", ...(form.id && ["recebida", "recebida_parcial"].includes(form.status) ? [form.status] : [])].map((k) => <SelectItem key={k} value={k}>{ENTRADA_STATUS_LABEL[k]}</SelectItem>)}</SelectContent>
         </Select>
       </F>
       <F label="Observações" className="col-span-2"><Textarea rows={2} value={form.observacoes ?? ""} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></F>
@@ -176,7 +181,9 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
     for (const n of notas) { const k = recipientGroupKey(n); m.set(k, [...(m.get(k) ?? []), n]); }
     return Array.from(m.entries()).map(([k, ns]) => ({ k, ns, t: sum(ns) })).sort((a, b) => String(a.ns[0].cliente).localeCompare(String(b.ns[0].cliente)));
   }, [notas]);
-  const fechada = data && ["recebida", "cancelada"].includes(data.status);
+  const inativa = data && data.situacao !== "ativa";
+  const fechada = data && (inativa || ["recebida", "cancelada"].includes(data.status));
+  const [removeId, setRemoveId] = useState<string | null>(null);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["carga-entrada", id] }); qc.invalidateQueries({ queryKey: ["cargas-entrada"] }); qc.invalidateQueries({ queryKey: ["notas"] }); };
 
   async function importar(files: FileList) {
@@ -204,12 +211,12 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
 
   async function remover(nid: string) {
     const { error } = await supabase.from("notas_fiscais").delete().eq("id", nid).eq("recebida", false);
-    if (error) toast.error(error.message); else refresh();
+    if (error) toast.error(error.message); else { setRemoveId(null); refresh(); }
   }
 
-  const acoes = (n: any) => canWrite && <div className="flex items-center gap-2 justify-end">
-    <button title="Registrar Ocorrência" onClick={() => setOcNota(n)} className="text-warning-foreground hover:text-destructive inline-flex items-center gap-1 text-xs"><AlertTriangle className="h-3.5 w-3.5" />Ocorrência</button>
-    {!n.recebida && <button title="Remover da carga" onClick={() => remover(n.id)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>}
+  const acoes = (n: any) => canWrite && !inativa && <div className="flex items-center gap-2 justify-end">
+    <Button variant="ghost" size="sm" title="Registrar Ocorrência" onClick={() => setOcNota(n)} className="text-warning-foreground"><AlertTriangle className="h-3.5 w-3.5" />Ocorrência</Button>
+    {!n.recebida && <Button variant="ghost" size="icon" title="Excluir nota" aria-label={`Excluir nota ${n.numero}`} onClick={() => setRemoveId(n.id)} className="text-destructive h-8 w-8"><Trash2 className="h-4 w-4" /></Button>}
   </div>;
 
   return (
@@ -217,6 +224,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
         <DialogHeader><DialogTitle>Carga de entrada {data?.numero_transporte || ""} {data && <StatusBadge className={STATUS_COLOR[data.status]}>{ENTRADA_STATUS_LABEL[data.status]}</StatusBadge>}</DialogTitle></DialogHeader>
         {data && <>
+          <LoadStateInfo load={data} />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
             <div><span className="text-muted-foreground">Transportadora:</span> {data.transportadora || "—"}</div>
             <div><span className="text-muted-foreground">Fornecedor:</span> {data.fornecedor || "—"}</div>
@@ -238,7 +246,8 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
               <Button size="sm" variant="outline" disabled={importando} onClick={() => { importMode.current = "agrupada"; xmlRef.current?.click(); }}><Upload className="h-4 w-4 mr-1" />Importar Agrupado</Button>
               <Button size="sm" variant="outline" disabled={importando} onClick={() => { importMode.current = "individual"; xmlRef.current?.click(); }}><Upload className="h-4 w-4 mr-1" />Importar Individual</Button>
             </>}
-            <Button size="sm" variant="outline" onClick={() => onEdit(data)}>Editar dados</Button>
+            {!inativa && <Button size="sm" variant="outline" onClick={() => onEdit(data)}>Editar dados</Button>}
+            <LoadLifecycleActions id={id} kind="entrada" state={data.situacao} onDone={refresh} />
             {!fechada && notas.some((n) => !n.recebida) && <Button size="sm" className="ml-auto" onClick={() => setConfirmar(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Confirmar Chegada</Button>}
           </div>}
           {resultado && <div role="status" className="border rounded-md p-3 text-sm">
@@ -284,14 +293,15 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             </table>}
           </div>
           </TabsContent>
-          <TabsContent value="checklist"><ReceivingDocuments load={data} notes={notas} kind="checklist" /></TabsContent>
+          <TabsContent value="checklist"><ReceivingDocuments load={data} notes={notas} kind="checklist" readOnly={!!inativa} /></TabsContent>
           <TabsContent value="ocorrencias"><ReceivingOccurrences notes={notas} /></TabsContent>
-          <TabsContent value="recibo"><ReceivingDocuments load={data} notes={notas} kind="recibo" /></TabsContent>
+          <TabsContent value="recibo"><ReceivingDocuments load={data} notes={notas} kind="recibo" readOnly={!!inativa} /></TabsContent>
           <TabsContent value="historico"><ReceivingHistory loadId={id} notes={notas} /></TabsContent>
           </Tabs>
         </>}
         {ocNota && <RegistrarOcorrencia nota={ocNota} transporte={data?.numero_transporte} cargaEntradaId={id} onClose={() => setOcNota(null)} />}
         {confirmar && data && <ConfirmarChegada carga={data} onClose={() => setConfirmar(false)} onDone={refresh} />}
+        {removeId && <Dialog open onOpenChange={o => !o && setRemoveId(null)}><DialogContent><DialogHeader><DialogTitle>Excluir nota {notas.find(n => n.id === removeId)?.numero}</DialogTitle></DialogHeader><p className="text-sm">Carga {data?.numero_transporte}. A nota será apagada somente se não houver movimentação ou vínculos. Esta ação não pode ser desfeita.</p><DialogFooter><Button variant="outline" onClick={() => setRemoveId(null)}>Voltar</Button><Button variant="destructive" onClick={() => remover(removeId)}>Excluir nota</Button></DialogFooter></DialogContent></Dialog>}
       </DialogContent>
     </Dialog>
   );

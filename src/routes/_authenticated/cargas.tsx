@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { LoadLifecycleActions, LoadStateFilter } from "@/components/LoadLifecycle";
+import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
 
 export const Route = createFileRoute("/_authenticated/cargas")({
   head: () => pageHead("Montagem de Cargas", "Organização de notas para expedição e entrega."), component: CargasPage });
@@ -24,6 +27,7 @@ function CargasPage() {
   const nested = useRouterState({ select: state => state.location.pathname.startsWith("/cargas/") });
   const { canWrite } = useAuth();
   const qc = useQueryClient();
+  const [stateF, setStateF] = useState("ativa");
   const { data: cargas = [] } = useQuery({
     queryKey: ["cargas"],
     queryFn: async () => {
@@ -60,9 +64,10 @@ function CargasPage() {
   });
 
   if (nested) return <Outlet />;
+  const rows = cargas.filter(c => stateF === "todas" || c.situacao === stateF);
   return (
     <div>
-      <PageHeader title="Cargas" subtitle={`${cargas.length} carga(s)`} />
+      <PageHeader title="Cargas" subtitle={`${rows.length} carga(s)`} actions={<LoadStateFilter value={stateF} onChange={setStateF} />} />
       <div className="bg-card border rounded-md overflow-hidden">
         <div className="max-h-[calc(100vh-180px)] overflow-auto">
           <table className="table-erp">
@@ -73,11 +78,12 @@ function CargasPage() {
                 <th className="text-right">Peso</th>
                 <th className="text-right">Volumes</th>
                 <th>Status</th>
+                <th>Situação</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {cargas.map((c: any) => {
+              {rows.map((c: any) => {
                 const totPeso = c.notas_fiscais?.reduce((s: number, n: any) => s + Number(n.peso || 0), 0) ?? 0;
                 const totVol = c.notas_fiscais?.reduce((s: number, n: any) => s + Number(n.volumes || 0), 0) ?? 0;
                 return (
@@ -90,11 +96,13 @@ function CargasPage() {
                     <td className="text-right">{fmtKg(totPeso)}</td>
                     <td className="text-right">{fmtNum(totVol)}</td>
                     <td><StatusBadge className={STATUS_COLOR[c.status]}>{CARGA_STATUS_LABEL[c.status]}</StatusBadge></td>
+                    <td>{LOAD_STATE_LABEL[c.situacao]}</td>
                     <td className="flex gap-1.5">
                       <Link to="/cargas/$id" params={{ id: c.id }}>
                         <Button size="sm" variant="outline" className="h-7 text-xs">Abrir</Button>
                       </Link>
-                      {canWrite && c.status !== "finalizada" && (
+                      <LoadLifecycleActions id={c.id} kind="saida" state={c.situacao} />
+                      {canWrite && c.situacao === "ativa" && c.status !== "finalizada" && (
                         <Select onValueChange={(v) => updStatus.mutate({ id: c.id, status: v, numero: c.numero })}>
                           <SelectTrigger className="h-7 text-xs w-32">
                             <SelectValue placeholder="Avançar..." />
@@ -110,8 +118,8 @@ function CargasPage() {
                   </tr>
                 );
               })}
-              {cargas.length === 0 && (
-                <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma carga gerada ainda</td></tr>
+              {rows.length === 0 && (
+                <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma carga nesta situação</td></tr>
               )}
             </tbody>
           </table>

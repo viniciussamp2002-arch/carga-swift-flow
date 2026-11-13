@@ -711,7 +711,7 @@ function GerarCargaDialog({
   const [existente, setExistente] = useState("__nova__");
   const { data: cargasAbertas = [] } = useQuery({
     queryKey: ["cargas-abertas"],
-    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").in("status", ["separacao", "carregamento"]).order("numero")).data ?? [],
+    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").eq("situacao", "ativa").in("status", ["separacao", "carregamento"]).order("numero")).data ?? [],
     enabled: open,
   });
 

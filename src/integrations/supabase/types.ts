@@ -81,6 +81,10 @@ export type Database = {
           motorista_id: string | null
           numero: number
           observacoes: string | null
+          situacao: string
+          situacao_em: string | null
+          situacao_motivo: string | null
+          situacao_por: string | null
           status: Database["public"]["Enums"]["carga_status"]
           updated_at: string
           veiculo_id: string | null
@@ -95,6 +99,10 @@ export type Database = {
           motorista_id?: string | null
           numero?: number
           observacoes?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          situacao_motivo?: string | null
+          situacao_por?: string | null
           status?: Database["public"]["Enums"]["carga_status"]
           updated_at?: string
           veiculo_id?: string | null
@@ -109,6 +117,10 @@ export type Database = {
           motorista_id?: string | null
           numero?: number
           observacoes?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          situacao_motivo?: string | null
+          situacao_por?: string | null
           status?: Database["public"]["Enums"]["carga_status"]
           updated_at?: string
           veiculo_id?: string | null
@@ -146,6 +158,10 @@ export type Database = {
           previsao_chegada: string | null
           recebido_por: string | null
           recebido_por_nome: string | null
+          situacao: string
+          situacao_em: string | null
+          situacao_motivo: string | null
+          situacao_por: string | null
           status: Database["public"]["Enums"]["entrada_status"]
           transportadora: string
           updated_at: string
@@ -165,6 +181,10 @@ export type Database = {
           previsao_chegada?: string | null
           recebido_por?: string | null
           recebido_por_nome?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          situacao_motivo?: string | null
+          situacao_por?: string | null
           status?: Database["public"]["Enums"]["entrada_status"]
           transportadora?: string
           updated_at?: string
@@ -184,6 +204,10 @@ export type Database = {
           previsao_chegada?: string | null
           recebido_por?: string | null
           recebido_por_nome?: string | null
+          situacao?: string
+          situacao_em?: string | null
+          situacao_motivo?: string | null
+          situacao_por?: string | null
           status?: Database["public"]["Enums"]["entrada_status"]
           transportadora?: string
           updated_at?: string
@@ -905,6 +929,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alterar_situacao_carga: {
+        Args: { _acao: string; _id: string; _motivo: string; _tipo: string }
+        Returns: Json
+      }
       confirmar_chegada: {
         Args: {
           _carga: string
@@ -914,6 +942,7 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["entrada_status"]
       }
+      inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
     }
     Enums: {
       agendamento_status:
