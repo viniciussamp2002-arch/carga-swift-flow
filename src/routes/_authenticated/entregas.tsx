@@ -17,6 +17,7 @@ import { Check, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
+import { ComprovantesPendentes } from "@/components/ComprovantesPendentes";
 
 const searchSchema = z.object({ carga: z.string().optional() }).optional();
 export const Route = createFileRoute("/_authenticated/entregas")({
@@ -101,6 +102,7 @@ function EntregasPage() {
           </tbody>
         </table>
       </div>
+      {canWrite && <ComprovantesPendentes />}
       <EntregaDialog state={dlg} onClose={() => setDlg({ ...dlg, open: false })} />
     </div>
   );
