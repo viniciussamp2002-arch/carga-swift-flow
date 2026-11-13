@@ -92,6 +92,13 @@
       "when": 1794585568650,
       "tag": "0012_driver_portal_proofs",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794606222478,
+      "tag": "0013_auto_register_suppliers",
+      "breakpoints": true
     }
   ]
 }
