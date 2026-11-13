@@ -1369,6 +1369,15 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["entrada_status"]
       }
+      fechar_frete: {
+        Args: {
+          _ajuste?: number
+          _estado: string
+          _ids: string[]
+          _motivo: string
+        }
+        Returns: undefined
+      }
       gerenciar_acesso: {
         Args: {
           _motorista?: string
@@ -1380,6 +1389,10 @@ export type Database = {
       }
       inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
       limitar_acesso: { Args: { _chave: string }; Returns: boolean }
+      recalcular_frete: {
+        Args: { _motivo: string; _nota: string }
+        Returns: string
+      }
       rejeitar_comprovante: {
         Args: { _id: string; _motivo: string }
         Returns: undefined
@@ -1387,6 +1400,18 @@ export type Database = {
       simular_frete: {
         Args: { _km?: number; _peso: number; _regras: Json; _valor: number }
         Returns: Json
+      }
+      triar_documento: {
+        Args: {
+          _carga?: string
+          _entrega?: string
+          _id: string
+          _nota?: string
+          _obs: string
+          _situacao: string
+          _tipo: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
