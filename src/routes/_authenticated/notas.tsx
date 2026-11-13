@@ -131,6 +131,7 @@ function NotasPage() {
           .from("notas_fiscais")
           .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada)")
           .eq("recebida", true)
+          .neq("status", "entregue")
           .order("created_at", { ascending: false })
           .range(from, from + 999);
         if (error) throw error;
