@@ -1,5 +1,5 @@
 import { pageHead } from "@/lib/page-head";
-import { OcorrenciaBadge } from "@/components/Ocorrencias";
+import { OcorrenciaBadge, OcorrenciaGrupoBadge, useOcorrencias } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { AG_STATUS_LABEL } from "@/lib/agenda";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } from "@/lib/format";
 import { lerXmls } from "@/lib/nfe-import";
+import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ interface ColDef {
 const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null), edit: { field: "data_chegada", type: "date" } },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
+  { key: "ocorrencias", label: "Ocorrências", width: 170, options: true, get: n => n.ocorrencia_estado ?? "Sem ocorrência", render: n => <OcorrenciaBadge nota={n} allowCreate etapa="deposito" /> },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
   { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
   { key: "cidade", label: "Cidade", width: 140, get: (n) => n.cidade ?? "", options: true, edit: { field: "cidade", type: "text" } },
@@ -119,7 +121,8 @@ function NotasPage() {
   const saveView = (v: View) => { setView(v); localStorage.setItem(viewKey, JSON.stringify(v)); };
   const cols = view.order.filter((k) => !view.hidden.includes(k)).map((k) => COL_MAP[k]);
 
-  const { data: notas = [] } = useQuery({
+  const occurrenceMap = useOcorrencias();
+  const { data: fiscalNotes = [] } = useQuery({
     queryKey: ["notas"],
     queryFn: async () => {
       const all: any[] = [];
@@ -138,6 +141,8 @@ function NotasPage() {
     },
   });
 
+  const notas = useMemo(() => fiscalNotes.map(n => ({ ...n, ocorrencia_estado: occurrenceState(occurrenceMap.get(n.id)) })), [fiscalNotes, occurrenceMap]);
+
   const optionsFor = (k: string) =>
     Array.from(new Set(notas.map((n: any) => String(COL_MAP[k].get(n))).filter(Boolean))).sort();
 
@@ -147,6 +152,7 @@ function NotasPage() {
       if (term && !COLS.some((c) => String(c.get(n)).toLowerCase().includes(term))) return false;
       for (const [k, v] of Object.entries(filters)) {
         if (!v) continue;
+        if (k === "ocorrencias" && v === "Histórico de ocorrência") { if (n.ocorrencia_estado === "Sem ocorrência") return false; continue; }
         const cell = String(COL_MAP[k].get(n) ?? "").toLowerCase();
         if (COL_MAP[k].options ? cell !== v.toLowerCase() : !cell.includes(v.toLowerCase())) return false;
       }
@@ -422,7 +428,7 @@ function NotasPage() {
                     <SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all__">Todos</SelectItem>
-                      {optionsFor(col.key).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      {(col.key === "ocorrencias" ? ["Sem ocorrência", "Ocorrência aberta", "Ocorrência resolvida", "Histórico de ocorrência"] : optionsFor(col.key)).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 ) : (
@@ -577,7 +583,7 @@ function NotasPage() {
                   <td colSpan={cols.length}>
                     <Button variant="ghost" size="sm" onClick={() => { const next = new Set(expandedGroups); expanded ? next.delete(key) : next.add(key); setExpandedGroups(next); }}>
                       <ChevronDown className={`h-4 w-4 mr-2 ${expanded ? "" : "-rotate-90"}`} />{ns[0].cliente} · {ns.length} NFs · {fmtKg(totals.peso)} · {fmtNum(totals.volumes)} volumes · {fmtBRL(totals.valor)}
-                    </Button>
+                    </Button><OcorrenciaGrupoBadge notas={ns} />
                   </td>
                 </tr>, ...(expanded ? individualRows : [])];
               })}

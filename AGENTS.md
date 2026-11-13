@@ -2,3 +2,5 @@
 - Scheduling links (`agendamentos`, unique per nota) are created by a DB trigger matching `cnpj_destinatario` against `clientes_agendamento`; never insert them from the client.
 - Ocorrências live in one `ocorrencias` table (origem recebimento|entrega) linked by nota_id; every module shows them via `OcorrenciaBadge` from src/components/Ocorrencias.tsx — never copy them per module. Grouping by client in Cargas de Entrada is UI-only.
 - All XML entry points use the shared import validator and persist one row per fiscal note; import-group IDs and recipient/load keys organize presentation without merging fiscal records, while the database trigger protects current and legacy access keys under concurrent writes.
+
+- Occurrence identity, resolution timestamps and append-only audit events are recorded by database triggers; browser updates cannot omit or spoof operational history.

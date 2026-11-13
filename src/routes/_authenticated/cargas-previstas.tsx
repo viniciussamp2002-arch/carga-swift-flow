@@ -19,7 +19,7 @@ import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Upload, CheckCircle2, Trash2, ChevronRight, ChevronDown, AlertTriangle } from "lucide-react";
-import { OcorrenciaBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
+import { OcorrenciaBadge, OcorrenciaGrupoBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   head: () => pageHead("Cargas de Entrada", "Transportes vindos dos fornecedores, antes do recebimento"),
@@ -259,7 +259,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
                 {grupos.map((g) => { const aberto = abertos.has(g.k); const f = g.ns[0]; return [
                   <tr key={g.k} className="cursor-pointer" onClick={() => { const s = new Set(abertos); aberto ? s.delete(g.k) : s.add(g.k); setAbertos(s); }}>
                     <td>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</td>
-                    <td className="font-semibold">{f.cliente}</td><td className="font-mono">{f.cnpj_destinatario || "—"}</td><td>{f.cidade}{f.uf && `/${f.uf}`}</td>
+                    <td className="font-semibold">{f.cliente}<OcorrenciaGrupoBadge notas={g.ns} /></td><td className="font-mono">{f.cnpj_destinatario || "—"}</td><td>{f.cidade}{f.uf && `/${f.uf}`}</td>
                     <td className="text-right">{g.t.notas}</td><td className="font-mono text-xs">{g.ns.map((n) => n.numero).join(", ")}</td>
                     <td className="text-right">{fmtNum(g.t.peso, 3)}</td><td className="text-right">{fmtNum(g.t.volumes)}</td><td className="text-right">{fmtBRL(g.t.valor)}</td>
                   </tr>,
