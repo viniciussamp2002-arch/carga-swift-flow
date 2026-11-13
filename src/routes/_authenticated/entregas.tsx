@@ -72,7 +72,7 @@ function EntregasPage() {
             {notas.map((n: any) => (
               <tr key={n.id}>
                 <td>#{n.cargas?.numero}</td>
-                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td>
+                <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} allowCreate etapa="tentativa_entrega" /></td>
                 <td>{n.cliente}</td>
                 <td>{n.cidade}/{n.uf}</td>
                 <td className="text-right">{fmtKg(n.peso)}</td>
