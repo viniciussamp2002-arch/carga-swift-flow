@@ -407,7 +407,7 @@ function NotasPage() {
     const isSorted = sortKey === col.key;
     const w = view.widths[col.key] ?? col.width;
     return (
-      <th className={`relative select-none ${col.align === "right" ? "text-right" : ""}`} style={{ width: w, minWidth: w }}
+      <th key={col.key} className={`relative select-none ${col.align === "right" ? "text-right" : ""}`} style={{ width: w, minWidth: w }}
         draggable onDragStart={() => (dragCol.current = col.key)} onDragOver={(e) => e.preventDefault()} onDrop={() => dropCol(col.key)}>
         <div className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}>
           <span className="truncate cursor-grab">{col.label}</span>
@@ -564,7 +564,7 @@ function NotasPage() {
                       onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((n: any) => n.id)) : new Set())} />
                   )}
                 </th>
-                {cols.map((c) => <ColHeader key={c.key} col={c} />)}
+                {cols.map((c) => ColHeader({ col: c }))}
               </tr>
             </thead>
             <tbody>
