@@ -1,5 +1,5 @@
 import { pageHead } from "@/lib/page-head";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -21,6 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 function CargasPage() {
+  const nested = useRouterState({ select: state => state.location.pathname.startsWith("/cargas/") });
   const { canWrite } = useAuth();
   const qc = useQueryClient();
   const { data: cargas = [] } = useQuery({
@@ -58,6 +59,7 @@ function CargasPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  if (nested) return <Outlet />;
   return (
     <div>
       <PageHeader title="Cargas" subtitle={`${cargas.length} carga(s)`} />
