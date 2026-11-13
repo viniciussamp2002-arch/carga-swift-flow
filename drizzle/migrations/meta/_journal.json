@@ -36,6 +36,13 @@
       "when": 1794534897014,
       "tag": "0004_permanent_occurrence_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794534924118,
+      "tag": "0005_occurrence_identity_before_save",
+      "breakpoints": true
     }
   ]
 }

@@ -11,7 +11,7 @@
 - [x] Atualização do módulo Cargas de Entrada (agrupamento + ocorrências de recebimento)
 - [x] Atualização consolidada 03–08: integridade e proteção contra XMLs duplicados
 - [x] Atualização consolidada 03–08: importação individual/agrupada sem fusão fiscal
-- [ ] Atualização consolidada 03–08: ocorrências permanentes e rastreáveis em todos os módulos
+- [ ] Atualização consolidada 03–08: ocorrências permanentes e rastreáveis em todos os módulos (etapa atual; validar antes de avançar)
 - [ ] Atualização consolidada 03–08: checklist e recibo de descarga em PDF
 - [ ] Atualização consolidada 03–08: exclusão segura, cancelamento e arquivamento de cargas
 - [ ] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
