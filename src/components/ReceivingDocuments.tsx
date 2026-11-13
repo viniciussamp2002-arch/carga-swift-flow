@@ -41,7 +41,6 @@ export function ReceivingDocuments({load,notes,kind}:{load:ReceivingLoad;notes:R
 function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";saved?:ReceivingData}) {
   const {user,canWrite}=useAuth();
   const qc=useQueryClient();
-  const map=useOcorrencias();
   const defaults=initialReceivingData(load,notes,user?.email||"");
   const [form,setForm]=useState<ReceivingData>(()=>kind==="checklist"&&saved?{...defaults,...saved}:defaults);
   const [preview,setPreview]=useState<{url:string;name:string}|null>(null);
@@ -53,12 +52,20 @@ function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:Receivi
   const versions=useReceivingDocuments(load.id);
   const cost=unloadingCost(Number.isFinite(form.peso_kg)&&form.peso_kg>=0?form.peso_kg:0,Number.isFinite(form.tarifa)&&form.tarifa>=0?form.tarifa:0);
   function change<K extends keyof ReceivingData>(key:K,value:ReceivingData[K]) {setForm(f=>({...f,[key]:value}));setDirty(true);receiptRequest.current=null;}
-  function snapshot():ReceivingData {
-    const occurrences=notes.flatMap(n=>(map.get(n.id)||[]).map(o=>({numero:n.numero,tipo:o.tipo,descricao:o.descricao,status:o.status,quantidade:o.quantidade,unidade:o.unidade})));
+  async function snapshot():Promise<ReceivingData> {
+    const occurrences: ReceivingData["ocorrencias"] = [];
+    const byId = new Map(notes.map(n => [n.id,n]));
+    const ids = notes.map(n=>n.id);
+    for(let start=0;start<ids.length;start+=100) for(let from=0;;from+=1000) {
+      const result=await supabase.from("ocorrencias").select("*").in("nota_id",ids.slice(start,start+100)).order("data_ocorrencia").order("id").range(from,from+999);
+      if(result.error)throw result.error;
+      for(const o of result.data||[]) occurrences.push({numero:byId.get(o.nota_id)?.numero||"",tipo:o.tipo,descricao:o.descricao,status:o.status,quantidade:o.quantidade,unidade:o.unidade});
+      if(!result.data||result.data.length<1000)break;
+    }
     return {...form,...unloadingCost(form.peso_kg,form.tarifa),empresa:defaults.empresa,notas:defaults.notas,fornecedores:defaults.fornecedores,ocorrencias:occurrences};
   }
   const save=useMutation({mutationFn:async()=>{
-    const data=snapshot();validateChecklist(data);
+    const data=await snapshot();validateChecklist(data);
     const r=await supabase.from("checklists_recebimento").upsert({carga_entrada_id:load.id,dados:data as unknown as Json},{onConflict:"carga_entrada_id"}).select().single();
     if(r.error)throw r.error;return r.data;
   },onSuccess:r=>{setDirty(false);setSavedVersion(r.versao);qc.invalidateQueries({queryKey:["checklist",load.id]});qc.invalidateQueries({queryKey:["receiving-documents",load.id]});qc.invalidateQueries({queryKey:["receiving-history",load.id]});toast.success("Checklist salvo");},onError:(e:Error)=>toast.error(e.message)});
@@ -79,7 +86,7 @@ function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:Receivi
         await display(saved.data.dados as unknown as ReceivingData,saved.data.versao,saved.data.registrado_por_nome||"",saved.data.created_at,download);
       } else {
         if(!form.data||!form.conferente.trim())throw new Error("Informe a data do recebimento e o conferente");
-        let data=snapshot(),version=0,responsible=user?.email||"",issued=new Date().toISOString();
+        let data=await snapshot(),version=0,responsible=user?.email||"",issued=new Date().toISOString();
         if(emit){
           const id=receiptRequest.current||crypto.randomUUID();receiptRequest.current=id;
           const r=await supabase.from("documentos_recebimento").insert({id,carga_entrada_id:load.id,tipo:"recibo",dados:data as unknown as Json}).select().single();
