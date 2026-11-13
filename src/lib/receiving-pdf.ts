@@ -16,7 +16,7 @@ export async function receivingPdf(data: ReceivingData, kind: "checklist" | "rec
   line(data.empresa.nome,true,13);line(`${data.empresa.apresentacao} | CNPJ ${data.empresa.cnpj}`,true);
   line(data.empresa.endereco,false,9);y += 5;
   line(kind === "recibo" ? "RECIBO DE DESCARGA" : "CHECKLIST DE RECEBIMENTO",true,14);
-  line(`Transporte ${data.transporte || "—"} | Versão ${version}`,true);y += 3;
+  line(`Transporte ${data.transporte || "—"} | ${version ? `Versão ${version}` : "Prévia — não emitido"}`,true);y += 3;
   line(`Transportadora: ${data.transportadora || "—"}`);line(`Motorista: ${data.motorista || "—"}`);
   line(`Placa: ${data.placa || "—"} | Reboque: ${data.reboque || "—"}`);
   line(`Recebimento / conferência: ${data.data ? fmtDateTime(data.data) : "—"}`);
