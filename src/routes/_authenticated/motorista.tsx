@@ -28,10 +28,11 @@ function DriverPage() {
   const [syncing, setSyncing] = useState(false);
   const [online, setOnline] = useState(true);
   const busy = useRef(false);
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
 
   const { data: me, isLoading } = useQuery({
     queryKey: ["driver-me", user?.id],
-    queryFn: async () => (await supabase.from("motoristas").select("id,nome").eq("user_id", user!.id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("motoristas").select("id,nome").eq("user_id", user?.id ?? "").maybeSingle()).data,
     enabled: !!user,
   });
   const { data: notas = [] } = useQuery({
@@ -42,7 +43,7 @@ function DriverPage() {
   const { data: provas = [] } = useQuery({
     queryKey: ["driver-provas", user?.id],
     enabled: !!me,
-    queryFn: async () => (await supabase.from("comprovantes").select("id,status,capturado_em,motivo_rejeicao,notas_fiscais:nota_id(numero)").eq("user_id", user!.id).order("capturado_em", { ascending: false }).limit(50)).data ?? [],
+    queryFn: async () => (await supabase.from("comprovantes").select("id,status,tipo_documento,triagem,capturado_em,motivo_rejeicao,notas_fiscais:nota_id(numero)").eq("user_id", user?.id ?? "").order("capturado_em", { ascending: false }).limit(50)).data ?? [],
   });
 
   const refreshQueue = useCallback(async () => {
@@ -110,16 +111,17 @@ function DriverPage() {
         <h1 className="text-xl font-bold text-primary">{me.nome}</h1>
         {!online && <div className="mt-1 text-xs flex items-center gap-1 text-destructive"><WifiOff className="h-3 w-3" />Sem internet — as fotos ficam guardadas no celular</div>}
       </div>
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
-      <Button className="w-full h-16 text-lg" onClick={() => fileRef.current?.click()}><Camera className="h-6 w-6 mr-2" />Fotografar canhoto</Button>
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) setPreview({ file, url: URL.createObjectURL(file) }); }} />
+      <Button className="w-full h-16 text-lg" onClick={() => fileRef.current?.click()}><Camera className="h-6 w-6 mr-2" />Fotografar Documento</Button>
 
+      {preview && <div className="space-y-2"><img src={preview.url} alt="Documento fotografado" className="w-full max-h-96 object-contain" /><div className="flex gap-2"><Button variant="outline" onClick={() => { URL.revokeObjectURL(preview.url); setPreview(null); }}>Descartar</Button><Button onClick={async () => { const dt = new DataTransfer(); dt.items.add(preview.file); await onFiles(dt.files); URL.revokeObjectURL(preview.url); setPreview(null); }}>Confirmar foto</Button></div></div>}
       <Section title={`Fotos aguardando envio (${queue.length})`} action={queue.length > 0 && <Button size="sm" variant="outline" onClick={sync} disabled={syncing || !online}>{syncing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CloudUpload className="h-3 w-3 mr-1" />}Enviar</Button>}>
         {queue.length === 0 ? <Empty>Nenhuma foto pendente</Empty> :
           <div className="grid grid-cols-3 gap-2">{queue.map((q) => <div key={q.id} className="relative"><img src={q.url} alt="Canhoto aguardando envio" className="aspect-square object-cover rounded border" />{q.lastError && <span className="absolute bottom-0 inset-x-0 text-[10px] bg-destructive text-destructive-foreground px-1 truncate">erro, tentará de novo</span>}</div>)}</div>}
       </Section>
 
       <Section title={`Comprovantes em análise (${analise.length})`}>
-        {analise.length === 0 ? <Empty>Nenhum</Empty> : analise.map((p: any) => <Row key={p.id} left={p.notas_fiscais?.numero ? `NF ${p.notas_fiscais.numero}` : "NF a identificar"} right={PROOF_LABEL[p.status]} sub={fmtDateTime(p.capturado_em)} />)}
+        {analise.length === 0 ? <Empty>Nenhum</Empty> : analise.map((p: any) => <Row key={p.id} left={p.notas_fiscais?.numero ? `NF ${p.notas_fiscais.numero}` : "NF a identificar"} right={p.triagem === "nova_foto" ? "Envie nova fotografia" : p.tipo_documento !== "canhoto" ? `${p.tipo_documento} • ${p.triagem}` : PROOF_LABEL[p.status]} sub={fmtDateTime(p.capturado_em)} />)}
       </Section>
 
       <Section title={`Entregas pendentes (${pendentes.length})`}>
@@ -127,7 +129,7 @@ function DriverPage() {
       </Section>
 
       <Section title={`Concluídos (${concluidas.length})`}>
-        {concluidas.length === 0 ? <Empty>Nenhum</Empty> : concluidas.map((p: any) => <Row key={p.id} left={p.notas_fiscais?.numero ? `NF ${p.notas_fiscais.numero}` : "Canhoto"} right={PROOF_LABEL[p.status]} sub={p.motivo_rejeicao ? `Motivo: ${p.motivo_rejeicao}` : fmtDateTime(p.capturado_em)} />)}
+        {concluidas.length === 0 ? <Empty>Nenhum</Empty> : concluidas.map((p: any) => <Row key={p.id} left={p.notas_fiscais?.numero ? `NF ${p.notas_fiscais.numero}` : "Canhoto"} right={p.triagem === "nova_foto" ? "Envie nova fotografia" : p.tipo_documento !== "canhoto" ? `${p.tipo_documento} • ${p.triagem}` : PROOF_LABEL[p.status]} sub={p.motivo_rejeicao ? `Motivo: ${p.motivo_rejeicao}` : fmtDateTime(p.capturado_em)} />)}
       </Section>
     </div>
   );
