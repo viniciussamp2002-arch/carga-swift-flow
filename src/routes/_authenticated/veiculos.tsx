@@ -98,7 +98,7 @@ function VeicPage() {
           </tbody>
         </table>
       </div>
-      <VeicDialog open={open} onOpenChange={setOpen} edit={edit} />
+      <VeicDialog key={edit?.id ?? `new-${open}`} open={open} onOpenChange={setOpen} edit={edit} />
     </div>
   );
 }
@@ -108,12 +108,11 @@ function VeicDialog({ open, onOpenChange, edit }: any) {
   const [form, setForm] = useState<any>(edit ?? {
     placa: "", marca: "", modelo: "", tipo: "", capacidade_kg: 0, ano: "", situacao: "disponivel",
   });
-  // sync edit
-  useState(() => { if (edit) setForm(edit); });
+  const { data: drivers = [] } = useQuery({queryKey:["vehicle-drivers"],queryFn:async()=> (await supabase.from("motoristas").select("id,nome").eq("ativo",true).order("nome")).data??[]});
 
   const save = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, capacidade_kg: Number(form.capacidade_kg) || 0, ano: form.ano ? Number(form.ano) : null };
+      const payload = { ...form, motorista_id: form.motorista_id || null, capacidade_kg: Number(form.capacidade_kg) || 0, ano: form.ano ? Number(form.ano) : null };
       if (edit) {
         const { error } = await supabase.from("veiculos").update(payload).eq("id", edit.id);
         if (error) throw error;
@@ -145,6 +144,8 @@ function VeicDialog({ open, onOpenChange, edit }: any) {
             </div>
           ))}
         </div>
+        <Label>Motorista vinculado</Label><Select value={form.motorista_id||"none"} onValueChange={v=>setForm({...form,motorista_id:v==="none"?null:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{drivers.map(d=><SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}</SelectContent></Select>
+        <Label>Observações</Label><Input value={form.observacoes??""} onChange={e=>setForm({...form,observacoes:e.target.value})}/>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending || !form.placa}>Salvar</Button>

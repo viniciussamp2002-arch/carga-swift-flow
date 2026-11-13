@@ -61,7 +61,7 @@ function MotPage() {
           <thead>
             <tr>
               <th>Nome</th><th>CPF</th><th>CNH</th><th>Cat.</th><th>Validade</th>
-              <th>Telefone</th><th>Situação</th><th></th>
+              <th>Telefone</th><th>Situação</th><th>Ativo</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -92,6 +92,7 @@ function MotPage() {
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEdit(m); setOpen(true); }}>Editar</Button>
                   )}
                 </td>
+                <td>{canWrite?<Button size="sm" variant="outline" onClick={async()=>{const r=await supabase.from("motoristas").update({ativo:!m.ativo}).eq("id",m.id);if(r.error)toast.error(r.error.message);else qc.invalidateQueries();}}>{m.ativo?"Desativar":"Ativar"}</Button>:m.ativo?"Sim":"Não"}</td>
               </tr>
             ))}
             {motoristas.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum motorista</td></tr>}
