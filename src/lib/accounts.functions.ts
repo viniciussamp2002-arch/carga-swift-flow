@@ -18,6 +18,8 @@ export const driverAccount = createServerFn({ method: "POST" })
     const ip = getRequest().headers.get("cf-connecting-ip") ?? "unknown";
     const { data: limit, error: le } = await supabaseAdmin.rpc("limitar_acesso", { _chave: await hash(`${ip}:${cpf}:${data.action}`) });
     if (le || !limit) throw new Error("Muitas tentativas. Aguarde 15 minutos.");
+    const { data: ipLimit, error: ipError } = await supabaseAdmin.rpc("limitar_acesso", { _chave: await hash(`ip:${ip}:${data.action}`) });
+    if (ipError || !ipLimit) throw new Error("Muitas tentativas. Aguarde 15 minutos.");
     const { data: mapping } = await supabaseAdmin.from("login_motoristas").select("user_id,email_interno").eq("cpf", cpf).maybeSingle();
     if (data.action === "signup") {
       if (!data.nome?.trim() || !data.telefone?.trim()) throw new Error("Informe nome e telefone");
@@ -27,7 +29,7 @@ export const driverAccount = createServerFn({ method: "POST" })
       const { data: account, error } = await supabaseAdmin.auth.admin.createUser({ email, password: data.password, email_confirm: true, user_metadata: { nome: data.nome } });
       if (error || !account.user) throw new Error("Não foi possível solicitar o cadastro");
       const { error: me } = await supabaseAdmin.from("login_motoristas").insert({ user_id: account.user.id, cpf, email_interno: email });
-      if (me) { await supabaseAdmin.auth.admin.deleteUser(account.user.id); return { pending: true, session: null }; }
+      if (me) { return { pending: true, session: null }; }
       const { error: pe } = await supabaseAdmin.from("profiles").update({ email: null, tipo_acesso: "motorista", telefone: data.telefone }).eq("id", account.user.id);
       if (pe) throw new Error("Solicitação registrada; atualização de contato pendente");
       return { pending: true, session: null };
