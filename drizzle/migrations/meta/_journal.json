@@ -71,6 +71,13 @@
       "when": 1794536493147,
       "tag": "0009_protect_notes_with_receiving_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794536682517,
+      "tag": "0010_preserve_downstream_operations_after_inbound_archive",
+      "breakpoints": true
     }
   ]
 }
