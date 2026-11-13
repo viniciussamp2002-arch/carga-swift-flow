@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import { ComprovantesPendentes } from "@/components/ComprovantesPendentes";
+import { CanhotoButtons, useCanhotosAprovados } from "@/components/Canhoto";
+import { fmtDate } from "@/lib/format";
 
 const searchSchema = z.object({ carga: z.string().optional() }).optional();
 export const Route = createFileRoute("/_authenticated/entregas")({
@@ -103,6 +105,7 @@ function EntregasPage() {
         </table>
       </div>
       {canWrite && <ComprovantesPendentes />}
+      <EntregasConcluidas />
       <EntregaDialog state={dlg} onClose={() => setDlg({ ...dlg, open: false })} />
     </div>
   );
@@ -173,5 +176,35 @@ function EntregaDialog({ state, onClose }: any) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EntregasConcluidas() {
+  const canhotos = useCanhotosAprovados();
+  const { data = [] } = useQuery({
+    queryKey: ["entregas-concluidas"],
+    queryFn: async () => (await supabase.from("entregas").select("id,data_evento,nota_id,notas_fiscais:nota_id(numero,cliente,cidade,uf,fornecedor,status),cargas:carga_id(numero)")
+      .eq("resultado", "entregue").order("data_evento", { ascending: false }).limit(200)).data ?? [],
+  });
+  return (
+    <div className="mt-6">
+      <h2 className="text-base font-bold mb-2">Entregas concluídas <span className="text-muted-foreground font-normal text-sm">(últimas {data.length})</span></h2>
+      <div className="bg-card border rounded-md overflow-x-auto">
+        <table className="table-erp">
+          <thead><tr><th>Canhoto</th><th>NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade</th><th>Carga</th><th>Entregue em</th></tr></thead>
+          <tbody>
+            {data.map((e: any) => (
+              <tr key={e.id}>
+                <td><CanhotoButtons canhoto={canhotos.get(e.nota_id)} numero={e.notas_fiscais?.numero ?? ""} /></td>
+                <td className="font-mono">{e.notas_fiscais?.numero}</td><td>{e.notas_fiscais?.fornecedor}</td>
+                <td>{e.notas_fiscais?.cliente}</td><td>{e.notas_fiscais?.cidade}/{e.notas_fiscais?.uf}</td>
+                <td>{e.cargas?.numero ? `#${e.cargas.numero}` : "—"}</td><td>{fmtDate(e.data_evento)}</td>
+              </tr>
+            ))}
+            {data.length === 0 && <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma entrega concluída</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

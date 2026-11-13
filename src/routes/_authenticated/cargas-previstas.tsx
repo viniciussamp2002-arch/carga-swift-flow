@@ -132,13 +132,28 @@ function F({ label, children, className = "" }: { label: string; children: React
   return <div className={`space-y-1 ${className}`}><Label className="text-[11px]">{label}</Label>{children}</div>;
 }
 
+function FornecedorSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: lista = [] } = useQuery({
+    queryKey: ["fornecedores-lista"],
+    queryFn: async () => (await supabase.from("fornecedores").select("id,nome,cnpj").order("nome")).data ?? [],
+  });
+  const nomes = [...new Set(lista.map((f: any) => f.nome))];
+  if (value && !nomes.includes(value)) nomes.unshift(value);
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder={lista.length ? "Selecione o fornecedor" : "Nenhum fornecedor cadastrado — importe um XML"} /></SelectTrigger>
+      <SelectContent>{nomes.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+    </Select>
+  );
+}
+
 function CargaForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
   const inp = (k: string, type = "text") => <Input type={type} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />;
   return (
     <div className="grid grid-cols-2 gap-3">
       <F label="Número do transporte">{inp("numero_transporte")}</F>
       <F label="Transportadora de origem">{inp("transportadora")}</F>
-      <F label="Fornecedor / embarcador" className="col-span-2">{inp("fornecedor")}</F>
+      <F label="Fornecedor / embarcador" className="col-span-2"><FornecedorSelect value={form.fornecedor ?? ""} onChange={(v) => setForm({ ...form, fornecedor: v })} /></F>
       <F label="Motorista">{inp("motorista")}</F>
       <F label="Placa">{inp("placa")}</F>
       <F label="Data de carregamento na origem">{inp("data_carregamento", "date")}</F>
