@@ -31,15 +31,16 @@ export function useReceivingDocuments(id: string) {
   }});
 }
 
-export function ReceivingDocuments({load,notes,kind}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo"}) {
+export function ReceivingDocuments({load,notes,kind,readOnly=false}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";readOnly?:boolean}) {
   const checklist=useReceivingChecklist(load.id);
   if(checklist.isPending) return <p className="text-sm py-4">Carregando conferência...</p>;
   if(checklist.error) return <p role="alert" className="text-destructive">Não foi possível carregar a conferência.</p>;
-  return <ReceivingForm key={`${load.id}-${kind}`} load={load} notes={notes} kind={kind} saved={checklist.data?.dados as unknown as ReceivingData | undefined} />;
+  return <ReceivingForm key={`${load.id}-${kind}-${readOnly}`} load={load} notes={notes} kind={kind} readOnly={readOnly} saved={checklist.data?.dados as unknown as ReceivingData | undefined} />;
 }
 
-function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";saved?:ReceivingData}) {
-  const {user,canWrite}=useAuth();
+function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";saved?:ReceivingData;readOnly:boolean}) {
+  const {user,canWrite:authorized}=useAuth();
+  const canWrite=authorized&&!readOnly;
   const qc=useQueryClient();
   const defaults=initialReceivingData(load,notes,user?.email||"");
   const [form,setForm]=useState<ReceivingData>(()=>kind==="checklist"&&saved?{...defaults,...saved,peso_kg:defaults.peso_kg,volumes_previstos:defaults.volumes_previstos,notas:defaults.notas,fornecedores:defaults.fornecedores}:defaults);

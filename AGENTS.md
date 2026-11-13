@@ -6,3 +6,4 @@
 - Occurrence identity, resolution timestamps and append-only audit events are recorded by database triggers; browser updates cannot omit or spoof operational history.
 - Parent content routes render Outlet for nested detail paths so child screens remain reachable.
 - Receiving checklists and issued documents use restricted, append-only version snapshots; database triggers assign authors and serialize versions, while PDFs are generated lazily in the browser from saved snapshots without creating finance entries.
+- Load lifecycle is independent of transport status; deletion is a retained tombstone, and database triggers serialize relationship writes against load locks to prevent operational history from being erased or newly attached to excluded loads.
