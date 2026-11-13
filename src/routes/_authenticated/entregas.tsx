@@ -33,13 +33,13 @@ function EntregasPage() {
 
   const { data: cargas = [] } = useQuery({
     queryKey: ["cargas-rota"],
-    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").eq("status", "em_rota").order("numero", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").eq("situacao", "ativa").eq("status", "em_rota").order("numero", { ascending: false })).data ?? [],
   });
 
   const { data: notas = [] } = useQuery({
     queryKey: ["entregas-notas", cargaFilter],
     queryFn: async () => {
-      let q = supabase.from("notas_fiscais").select("*, cargas:carga_id(numero)").eq("status", "em_rota");
+      let q = supabase.from("notas_fiscais").select("*, cargas:carga_id!inner(numero, situacao)").eq("cargas.situacao", "ativa").eq("status", "em_rota");
       if (cargaFilter !== "all") q = q.eq("carga_id", cargaFilter);
       return (await q.order("cidade")).data ?? [];
     },
