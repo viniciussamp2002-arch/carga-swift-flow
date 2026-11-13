@@ -1,4 +1,5 @@
 import { COMPANY } from "./company";
+import Decimal from "decimal.js";
 export type Answer = "sim" | "nao" | "na" | "";
 export const CHECK_QUESTIONS = {
   lacrado: "Veículo chegou lacrado?", lacre_integro: "Lacre íntegro?", limpo: "Condições de limpeza adequadas?",
@@ -16,8 +17,8 @@ export interface ReceivingData {
 }
 export function unloadingCost(kg: number, rate: number) {
   if (!Number.isFinite(kg) || !Number.isFinite(rate) || kg < 0 || rate < 0) throw new Error("Peso e tarifa devem ser válidos e não negativos");
-  const tonnes = kg / 1000;
-  return { toneladas: tonnes, valor_total: Math.round((tonnes * rate + Number.EPSILON) * 100) / 100 };
+  const tonnes = new Decimal(kg).div(1000);
+  return { toneladas: tonnes.toNumber(), valor_total: tonnes.mul(rate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() };
 }
 export function receivingTotals(notes: ReceivingNote[]) {
   const unique = [...new Map(notes.map(n => [n.id, n])).values()];
