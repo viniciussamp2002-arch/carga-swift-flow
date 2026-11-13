@@ -99,6 +99,13 @@
       "when": 1794606222478,
       "tag": "0013_auto_register_suppliers",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794609712658,
+      "tag": "0014_extend_operational_access_roles",
+      "breakpoints": true
     }
   ]
 }
