@@ -14,6 +14,7 @@ import { MOTORISTA_SIT_LABEL, fmtDate, fmtNum } from "@/lib/format";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { maskCpf, validCpf, normalizeCpf } from "@/lib/cpf";
 
 export const Route = createFileRoute("/_authenticated/motoristas")({
   head: () => pageHead("Motoristas", "Cadastro e disponibilidade de motoristas."), component: MotPage });
@@ -67,7 +68,7 @@ function MotPage() {
             {motoristas.map((m: any) => (
               <tr key={m.id}>
                 <td className="font-medium">{m.nome}</td>
-                <td className="font-mono text-xs">{m.cpf}</td>
+                <td className="font-mono text-xs">{maskCpf(m.cpf ?? "")}</td>
                 <td className="font-mono text-xs">{m.cnh}</td>
                 <td>{m.categoria}</td>
                 <td>{fmtDate(m.validade_cnh)}</td>
@@ -109,7 +110,8 @@ function MotDialog({ open, onOpenChange, edit }: any) {
   });
   const save = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, validade_cnh: form.validade_cnh || null };
+      if (form.cpf && !validCpf(form.cpf)) throw new Error("CPF inválido");
+      const payload = { ...form, cpf: form.cpf ? normalizeCpf(form.cpf) : null, validade_cnh: form.validade_cnh || null };
       if (edit) {
         const { error } = await supabase.from("motoristas").update(payload).eq("id", edit.id);
         if (error) throw error;

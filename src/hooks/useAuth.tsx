@@ -26,31 +26,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    let active = true;
+    let generation = 0;
+    async function hydrate(s: Session | null) {
+      const current = ++generation;
+      setLoading(true);
+      setRoles([]);
+      setAccessStatus("pendente");
       setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => loadRoles(s.user.id), 0);
-      } else {
-        setRoles([]);
+      setUser(null);
+      if (!s) { setLoading(false); return; }
+      try {
+        const { data: identity } = await supabase.auth.getUser();
+        if (!active || current !== generation) return;
+        if (!identity.user) { setLoading(false); return; }
+        const uid = identity.user.id;
+        const [{ data: profile }, { data }] = await Promise.all([
+          supabase.from("profiles").select("status_acesso").eq("id", uid).maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", uid),
+        ]);
+        if (!active || current !== generation) return;
+        setAccessStatus(profile?.status_acesso ?? "pendente");
+        setRoles(profile?.status_acesso === "ativo" ? (data ?? []).map(r => r.role) : []);
+        setUser(identity.user);
+      } finally { if (active && current === generation) setLoading(false); }
+    }
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "TOKEN_REFRESHED") { setSession(s); return; }
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        setLoading(true);
+        setTimeout(() => { if (active) void hydrate(s); }, 0);
       }
     });
-    supabase.auth.getUser().then(async ({ data }) => {
-      const { data: tokens } = await supabase.auth.getSession();
-      setSession(tokens.session);
-      setUser(data.user ?? null);
-      if (data.user) loadRoles(data.user.id).finally(() => setLoading(false));
-      else setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    return () => { active = false; generation++; sub.subscription.unsubscribe(); };
   }, []);
-
-  async function loadRoles(uid: string) {
-    const { data: profile } = await supabase.from("profiles").select("status_acesso").eq("id", uid).maybeSingle();
-    setAccessStatus(profile?.status_acesso ?? "pendente");
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((profile?.status_acesso === "ativo" ? data ?? [] : []).map((r) => r.role as Role));
-  }
 
   const isAdmin = roles.includes("administrador");
   const canWrite = isAdmin || roles.includes("operacional");

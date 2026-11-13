@@ -39,7 +39,7 @@ export function ReceivingDocuments({load,notes,kind,readOnly=false}:{load:Receiv
 }
 
 function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";saved?:ReceivingData;readOnly:boolean}) {
-  const {user,canWrite:authorized}=useAuth();
+  const {user,canReceive:authorized}=useAuth();
   const canWrite=authorized&&!readOnly;
   const qc=useQueryClient();
   const defaults=initialReceivingData(load,notes,user?.email||"");
