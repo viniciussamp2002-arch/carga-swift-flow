@@ -19,5 +19,6 @@
   - Preservadas 49 notas, oito cargas e cinco ocorrências anteriores; carga exclusiva VALIDACAO-DOCUMENTOS-131126 e duas notas de peso/valor fiscal zero mantidas para rastreabilidade. Emissão não criou financeiro.
   - Impressão: PDF conferido e chamada de impressão verificada; impressora física não testada. PDFs regenerados de versões imutáveis salvas. Sem publicação; demais etapas não iniciadas.
 - [ ] Atualização consolidada 03–08: exclusão segura, cancelamento e arquivamento de cargas
+  - Em execução: confirmação detalhada, proteção transacional e filtros; preservar registros e validar sem publicar.
 - [ ] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
