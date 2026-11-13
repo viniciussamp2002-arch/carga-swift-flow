@@ -952,7 +952,7 @@ export type Database = {
         | "confirmado"
         | "reagendado"
         | "cancelado"
-      app_role: "administrador" | "operacional" | "consulta"
+      app_role: "administrador" | "operacional" | "consulta" | "motorista"
       carga_status: "separacao" | "carregamento" | "em_rota" | "finalizada"
       entrada_status:
         | "prevista"
@@ -1123,7 +1123,7 @@ export const Constants = {
         "reagendado",
         "cancelado",
       ],
-      app_role: ["administrador", "operacional", "consulta"],
+      app_role: ["administrador", "operacional", "consulta", "motorista"],
       carga_status: ["separacao", "carregamento", "em_rota", "finalizada"],
       entrada_status: [
         "prevista",
