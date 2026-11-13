@@ -1,0 +1,5 @@
+export interface FreightBand { inicio: number; fim: number; unidade: "kg" | "tonelada" | "fixo"; tarifa: number }
+export interface FreightOperation { nome: string; tipo: "percentual" | "fixo" | "minimo" | "icms" | "iss"; base: "nf" | "frete" | "acumulado" | "contratual"; valor: number; por_dentro?: boolean; cidade?: string; uf?: string }
+export interface FreightRule { metodo: "kg" | "tonelada" | "percentual" | "fixo" | "faixas"; tarifa: number; minimo: number; base_percentual: "nf" | "contratual"; base_contratual: number; faixas: FreightBand[]; operacoes: FreightOperation[] }
+export const emptyFreightRule = (): FreightRule => ({ metodo: "kg", tarifa: 0, minimo: 0, base_percentual: "nf", base_contratual: 0, faixas: [], operacoes: [] });
+export const FREIGHT_STATES: Record<string,string> = { sem_tabela:"Sem tabela de frete",aguardando_distancia:"Aguardando distância",calculo_pendente:"Cálculo pendente",pre_calculado:"Pré-calculado",aguardando_conferencia:"Entregue — conferir financeiro",conferido:"Conferido",pronto_faturamento:"Pronto para faturamento",faturado:"Faturado",aprovacao_revertida:"Aprovação revertida" };
