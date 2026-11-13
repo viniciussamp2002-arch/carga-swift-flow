@@ -127,6 +127,13 @@
       "when": 1794609852152,
       "tag": "0017_automate_freight_and_review",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794610102051,
+      "tag": "0018_tighten_review_and_receiving_capabilities",
+      "breakpoints": true
     }
   ]
 }

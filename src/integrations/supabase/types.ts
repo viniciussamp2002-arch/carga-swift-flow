@@ -1397,6 +1397,10 @@ export type Database = {
         Args: { _id: string; _motivo: string }
         Returns: undefined
       }
+      reverter_aprovacao: {
+        Args: { _id: string; _motivo: string }
+        Returns: undefined
+      }
       simular_frete: {
         Args: { _km?: number; _peso: number; _regras: Json; _valor: number }
         Returns: Json
