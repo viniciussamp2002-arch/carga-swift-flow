@@ -190,6 +190,47 @@ export type Database = {
         }
         Relationships: []
       }
+      checklists_recebimento: {
+        Row: {
+          carga_entrada_id: string
+          created_at: string
+          dados: Json
+          id: string
+          registrado_por: string | null
+          registrado_por_nome: string | null
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          carga_entrada_id: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          carga_entrada_id?: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklists_recebimento_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: true
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes_agendamento: {
         Row: {
           ativo: boolean
@@ -216,6 +257,47 @@ export type Database = {
           observacoes?: string | null
         }
         Relationships: []
+      }
+      documentos_recebimento: {
+        Row: {
+          carga_entrada_id: string
+          created_at: string
+          dados: Json
+          id: string
+          registrado_por: string | null
+          registrado_por_nome: string | null
+          tipo: string
+          versao: number
+        }
+        Insert: {
+          carga_entrada_id: string
+          created_at?: string
+          dados: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          tipo: string
+          versao?: number
+        }
+        Update: {
+          carga_entrada_id?: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          tipo?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_recebimento_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entregas: {
         Row: {

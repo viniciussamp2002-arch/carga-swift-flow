@@ -20,6 +20,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Upload, CheckCircle2, Trash2, ChevronRight, ChevronDown, AlertTriangle } from "lucide-react";
 import { OcorrenciaBadge, OcorrenciaGrupoBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ReceivingDocuments, ReceivingOccurrences, ReceivingHistory, useReceivingChecklist } from "@/components/ReceivingDocuments";
+import { hasReceivingDivergence, type ReceivingData } from "@/lib/receiving-rules";
+import { useOcorrencias } from "@/components/Ocorrencias";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   head: () => pageHead("Cargas de Entrada", "Transportes vindos dos fornecedores, antes do recebimento"),
@@ -224,6 +229,9 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             <span>Notas <b>{t.notas}</b></span><span>Peso <b>{fmtNum(t.peso, 3)} kg</b></span>
             <span>Volumes <b>{fmtNum(t.volumes)}</b></span><span>Valor <b>{fmtBRL(t.valor)}</b></span>
           </div>
+          <Tabs defaultValue="notas" className="min-w-0">
+          <div className="overflow-x-auto"><TabsList className="w-max"><TabsTrigger value="notas">Notas Fiscais</TabsTrigger><TabsTrigger value="checklist">Checklist</TabsTrigger><TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger><TabsTrigger value="recibo">Recibo de Descarga</TabsTrigger><TabsTrigger value="historico">Histórico</TabsTrigger></TabsList></div>
+          <TabsContent value="notas" className="space-y-3">
           {canWrite && <div className="flex flex-wrap gap-2">
             <input ref={xmlRef} type="file" accept=".xml" multiple className="hidden" onChange={(e) => { if (e.target.files) importar(e.target.files); e.target.value = ""; }} />
             {!fechada && <>
@@ -275,6 +283,12 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
               </tbody>
             </table>}
           </div>
+          </TabsContent>
+          <TabsContent value="checklist"><ReceivingDocuments load={data} notes={notas} kind="checklist" /></TabsContent>
+          <TabsContent value="ocorrencias"><ReceivingOccurrences notes={notas} /></TabsContent>
+          <TabsContent value="recibo"><ReceivingDocuments load={data} notes={notas} kind="recibo" /></TabsContent>
+          <TabsContent value="historico"><ReceivingHistory loadId={id} notes={notas} /></TabsContent>
+          </Tabs>
         </>}
         {ocNota && <RegistrarOcorrencia nota={ocNota} transporte={data?.numero_transporte} cargaEntradaId={id} onClose={() => setOcNota(null)} />}
         {confirmar && data && <ConfirmarChegada carga={data} onClose={() => setConfirmar(false)} onDone={refresh} />}
@@ -285,6 +299,10 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
 
 function ConfirmarChegada({ carga, onClose, onDone }: { carga: any; onClose: () => void; onDone: () => void }) {
   const { user } = useAuth();
+  const checklist = useReceivingChecklist(carga.id);
+  const occurrences = useOcorrencias();
+  const divergencia = hasReceivingDivergence(checklist.data?.dados as unknown as ReceivingData | undefined) || (carga.notas_fiscais ?? []).some((n: any) => (occurrences.get(n.id) ?? []).some(o => o.status !== "resolvida"));
+  const [ciente, setCiente] = useState(false);
   const pendentes = (carga.notas_fiscais ?? []).filter((n: any) => !n.recebida);
   const agora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const [quando, setQuando] = useState(agora);
@@ -292,8 +310,9 @@ function ConfirmarChegada({ carga, onClose, onDone }: { carga: any; onClose: () 
   const [sel, setSel] = useState<Set<string>>(new Set(pendentes.map((n: any) => n.id)));
   const mut = useMutation({
     mutationFn: async () => {
+      if (divergencia && !ciente) throw new Error("Confirme a conferência das divergências antes de receber");
       const { data, error } = await supabase.rpc("confirmar_chegada", {
-        _carga: carga.id, _quando: new Date(quando).toISOString(), _obs: obs || null, _notas: Array.from(sel),
+        _carga: carga.id, _quando: new Date(quando).toISOString(), _obs: [obs, divergencia ? "Recebimento autorizado após conferência das divergências e ocorrências registradas." : ""].filter(Boolean).join("\n") || null, _notas: Array.from(sel),
       } as any);
       if (error) throw error;
       return data as unknown as string;
@@ -309,6 +328,9 @@ function ConfirmarChegada({ carga, onClose, onDone }: { carga: any; onClose: () 
           <F label="Data e horário do recebimento"><Input type="datetime-local" value={quando} onChange={(e) => setQuando(e.target.value)} /></F>
           <F label="Responsável"><Input value={user?.email ?? ""} disabled /></F>
           <F label="Observações"><Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></F>
+          {checklist.isPending && <p className="text-xs">Verificando checklist...</p>}
+          {checklist.error && <p role="alert" className="text-destructive text-sm">Não foi possível verificar o checklist. Tente novamente.</p>}
+          {divergencia && <label className="flex items-start gap-2 border border-warning/40 bg-warning/10 p-3 text-sm"><Checkbox aria-label="Confirmar recebimento com divergências" checked={ciente} onCheckedChange={v => setCiente(v === true)} /><span>Conferi as divergências e ocorrências registradas e autorizo o recebimento das notas selecionadas.</span></label>}
           <div>
             <Label className="text-[11px]">Notas recebidas ({sel.size} de {pendentes.length}) — desmarque as que não chegaram</Label>
             <div className="max-h-48 overflow-auto border rounded mt-1">
@@ -321,7 +343,7 @@ function ConfirmarChegada({ carga, onClose, onDone }: { carga: any; onClose: () 
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button disabled={mut.isPending || sel.size === 0 || !quando} onClick={() => mut.mutate()}>Confirmar</Button>
+          <Button disabled={mut.isPending || sel.size === 0 || !quando || checklist.isPending || !!checklist.error || (divergencia && !ciente)} onClick={() => mut.mutate()}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
