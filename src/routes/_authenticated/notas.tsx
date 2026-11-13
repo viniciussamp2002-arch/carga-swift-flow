@@ -392,6 +392,7 @@ function NotasPage() {
     if (col.key === "numero") content = <>{content}<OcorrenciaBadge nota={n} /></>;
     return (
       <td
+        key={col.key}
         className={`${col.align === "right" ? "text-right" : ""} ${col.key === "numero" ? "font-mono" : ""} overflow-hidden text-ellipsis ${isActive && !isEdit ? "outline outline-2 -outline-offset-2 outline-primary" : ""} ${editable ? "cursor-cell" : ""}`}
         style={{ maxWidth: view.widths[col.key] ?? col.width }}
         title={editable ? "Duplo clique para editar" : undefined}
@@ -574,7 +575,7 @@ function NotasPage() {
                 const individualRows = ns.map((n: any) => (
                   <tr key={n.id} className={selected.has(n.id) ? "!bg-primary/10" : ""}>
                     <td><input type="checkbox" checked={selected.has(n.id)} disabled={!canWrite} onChange={() => toggle(n.id)} /></td>
-                    {cols.map((c) => <Cell key={c.key} n={n} col={c} />)}
+                    {cols.map((c) => Cell({ n, col: c }))}
                   </tr>
                 ));
                 if (!grouped) return individualRows;
