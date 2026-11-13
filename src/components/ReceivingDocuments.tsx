@@ -66,7 +66,7 @@ function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:Receivi
   async function display(data:ReceivingData,version:number,responsible:string,issued:string,download=false) {
     const blob=await receivingPdf(data,kind,version,responsible,issued);
     const url=URL.createObjectURL(blob);const name=`${kind}-${data.transporte||load.id}-v${version}.pdf`;
-    if(download){const a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    if(download){const a=document.createElement("a");a.href=url;a.download=name;a.click();}
     if(preview)URL.revokeObjectURL(preview.url);setPreview({url,name});
   }
   async function generate(emit:boolean,download=false) {
@@ -117,7 +117,7 @@ function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:Receivi
       {kind==="checklist"&&canWrite&&<Button size="sm" disabled={save.isPending} onClick={()=>save.mutate()}><Save className="h-4 w-4" />Salvar Checklist</Button>}
       <Button size="sm" variant="outline" disabled={busy} onClick={()=>generate(false)}><Eye className="h-4 w-4" />{kind==="recibo"?"Visualizar recibo":"Visualizar checklist"}</Button>
       {(kind==="checklist"||canWrite)&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>generate(kind==="recibo",true)}><Download className="h-4 w-4" />Gerar PDF</Button>}
-      <Button size="sm" variant="outline" disabled={busy} onClick={()=>generate(kind==="recibo")}><Printer className="h-4 w-4" />Imprimir</Button>
+      {(kind==="checklist"||canWrite)&&<Button size="sm" variant="outline" disabled={busy} onClick={()=>generate(kind==="recibo")}><Printer className="h-4 w-4" />Imprimir</Button>}
     </div>
     <div className="border-t pt-3 space-y-2"><h3 className="font-semibold text-sm">{kind==="recibo"?"Recibos emitidos":"Versões do checklist"}</h3>
       {versions.error&&<p className="text-destructive text-sm">Não foi possível carregar versões anteriores.</p>}
