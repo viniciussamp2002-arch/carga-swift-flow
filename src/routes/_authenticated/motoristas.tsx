@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,8 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/_authenticated/motoristas")({ component: MotPage });
+export const Route = createFileRoute("/_authenticated/motoristas")({
+  head: () => pageHead("Motoristas", "Cadastro e disponibilidade de motoristas."), component: MotPage });
 
 const SIT_COLOR: Record<string, string> = {
   disponivel: "bg-success/15 text-success border-success/30",

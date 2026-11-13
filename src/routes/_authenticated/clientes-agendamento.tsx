@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clientes-agendamento")({
-  head: () => ({ meta: [{ title: "Clientes com Agendamento Obrigatório — Transmerida" }, { name: "description", content: "Clientes que exigem agendamento para receber mercadorias" }] }),
+  head: () => pageHead("Clientes com Agendamento Obrigatório", "Clientes que exigem agendamento para receber mercadorias"),
   component: ClientesAgPage,
 });
 

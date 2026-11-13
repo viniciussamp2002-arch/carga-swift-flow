@@ -1,10 +1,12 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtDateTime } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/historico")({ component: HistPage });
+export const Route = createFileRoute("/_authenticated/historico")({
+  head: () => pageHead("Histórico Operacional", "Rastreabilidade das movimentações logísticas."), component: HistPage });
 
 function HistPage() {
   const { data: rows = [] } = useQuery({

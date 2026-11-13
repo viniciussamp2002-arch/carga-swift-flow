@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ import { Plus, Upload, CheckCircle2, Trash2, ChevronRight, ChevronDown, AlertTri
 import { OcorrenciaBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
-  head: () => ({ meta: [{ title: "Cargas de Entrada — Transmerida" }, { name: "description", content: "Transportes vindos dos fornecedores, antes do recebimento" }] }),
+  head: () => pageHead("Cargas de Entrada", "Transportes vindos dos fornecedores, antes do recebimento"),
   component: CargasEntradaPage,
 });
 

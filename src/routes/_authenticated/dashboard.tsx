@@ -1,8 +1,9 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MODULES } from "@/lib/modules";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Início — Transmerida" }, { name: "description", content: "Módulos do sistema de gestão logística Transmerida" }] }),
+  head: () => pageHead("Início", "Módulos do sistema de gestão logística Transmerida"),
   component: Inicio,
 });
 

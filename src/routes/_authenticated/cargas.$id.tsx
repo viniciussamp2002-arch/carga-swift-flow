@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,8 @@ import {
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_authenticated/cargas/$id")({ component: CargaDetail });
+export const Route = createFileRoute("/_authenticated/cargas/$id")({
+  head: () => pageHead("Detalhes da Carga", "Notas, motorista e veículo da carga de saída."), component: CargaDetail });
 
 function CargaDetail() {
   const { id } = Route.useParams();

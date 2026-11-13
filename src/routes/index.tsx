@@ -1,7 +1,9 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/")({ component: Index });
+export const Route = createFileRoute("/")({
+  head: () => pageHead("Acesso", "Acesso ao sistema logístico Transmerida."), component: Index });
 
 function Index() {
   const { user, loading } = useAuth();

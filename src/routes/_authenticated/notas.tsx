@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +36,7 @@ import { z } from "zod";
 const searchSchema = z.object({ q: z.string().optional() }).optional();
 
 export const Route = createFileRoute("/_authenticated/notas")({
+  head: () => pageHead("Notas Fiscais / Depósito", "Controle operacional de notas fiscais recebidas."),
   component: NotasPage,
   validateSearch: searchSchema,
 });
