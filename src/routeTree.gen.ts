@@ -24,6 +24,7 @@ import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authentica
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
+import { Route as AuthenticatedNotasEntreguesRouteImport } from './routes/_authenticated/notas-entregues'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -107,6 +108,12 @@ const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
   path: '/notas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotasEntreguesRoute =
+  AuthenticatedNotasEntreguesRouteImport.update({
+    id: '/notas-entregues',
+    path: '/notas-entregues',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOcorrenciasRoute =
   AuthenticatedOcorrenciasRouteImport.update({
     id: '/ocorrencias',
@@ -149,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
+  '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
+  '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -193,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
+  '/_authenticated/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/notas'
+    | '/notas-entregues'
     | '/ocorrencias'
     | '/relatorios'
     | '/usuarios'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/motorista'
     | '/motoristas'
     | '/notas'
+    | '/notas-entregues'
     | '/ocorrencias'
     | '/relatorios'
     | '/usuarios'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/notas'
+    | '/_authenticated/notas-entregues'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/relatorios'
     | '/_authenticated/usuarios'
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notas-entregues': {
+      id: '/_authenticated/notas-entregues'
+      path: '/notas-entregues'
+      fullPath: '/notas-entregues'
+      preLoaderRoute: typeof AuthenticatedNotasEntreguesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ocorrencias': {
       id: '/_authenticated/ocorrencias'
       path: '/ocorrencias'
@@ -441,6 +461,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
+  AuthenticatedNotasEntreguesRoute: typeof AuthenticatedNotasEntreguesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
@@ -460,6 +481,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
+  AuthenticatedNotasEntreguesRoute: AuthenticatedNotasEntreguesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
