@@ -113,6 +113,13 @@
       "when": 1794609765182,
       "tag": "0015_accounts_documents_freight_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794609808147,
+      "tag": "0016_freight_versions_and_document_triage",
+      "breakpoints": true
     }
   ]
 }

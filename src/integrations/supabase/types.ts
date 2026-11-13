@@ -88,6 +88,57 @@ export type Database = {
         }
         Relationships: []
       }
+      calculos_frete: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          memoria: Json
+          motivo: string
+          nota_id: string
+          situacao: string
+          tabela_id: string | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          memoria?: Json
+          motivo?: string
+          nota_id: string
+          situacao: string
+          tabela_id?: string | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          memoria?: Json
+          motivo?: string
+          nota_id?: string
+          situacao?: string
+          tabela_id?: string | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calculos_frete_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calculos_frete_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_frete"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cargas: {
         Row: {
           created_at: string
@@ -322,12 +373,15 @@ export type Database = {
           motivo_rejeicao: string | null
           motorista_id: string
           nota_id: string | null
+          observacoes_documento: string
           reconhecimento: Json
           revisado_em: string | null
           revisado_por: string | null
           revisado_por_nome: string | null
           status: string
           storage_path: string
+          tipo_documento: string
+          triagem: string
           updated_at: string
           user_id: string
         }
@@ -341,12 +395,15 @@ export type Database = {
           motivo_rejeicao?: string | null
           motorista_id: string
           nota_id?: string | null
+          observacoes_documento?: string
           reconhecimento?: Json
           revisado_em?: string | null
           revisado_por?: string | null
           revisado_por_nome?: string | null
           status?: string
           storage_path: string
+          tipo_documento?: string
+          triagem?: string
           updated_at?: string
           user_id?: string
         }
@@ -360,12 +417,15 @@ export type Database = {
           motivo_rejeicao?: string | null
           motorista_id?: string
           nota_id?: string | null
+          observacoes_documento?: string
           reconhecimento?: Json
           revisado_em?: string | null
           revisado_por?: string | null
           revisado_por_nome?: string | null
           status?: string
           storage_path?: string
+          tipo_documento?: string
+          triagem?: string
           updated_at?: string
           user_id?: string
         }
@@ -393,6 +453,89 @@ export type Database = {
           },
           {
             foreignKeyName: "comprovantes_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distancias: {
+        Row: {
+          atualizado_em: string
+          cidade: string
+          fonte: string
+          ibge: string | null
+          id: string
+          km: number
+          uf: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cidade: string
+          fonte: string
+          ibge?: string | null
+          id?: string
+          km: number
+          uf: string
+        }
+        Update: {
+          atualizado_em?: string
+          cidade?: string
+          fonte?: string
+          ibge?: string | null
+          id?: string
+          km?: number
+          uf?: string
+        }
+        Relationships: []
+      }
+      documento_vinculos: {
+        Row: {
+          carga_id: string | null
+          comprovante_id: string
+          entrega_id: string | null
+          id: string
+          nota_id: string | null
+        }
+        Insert: {
+          carga_id?: string | null
+          comprovante_id: string
+          entrega_id?: string | null
+          id?: string
+          nota_id?: string | null
+        }
+        Update: {
+          carga_id?: string | null
+          comprovante_id?: string
+          entrega_id?: string | null
+          id?: string
+          nota_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_vinculos_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_vinculos_comprovante_id_fkey"
+            columns: ["comprovante_id"]
+            isOneToOne: false
+            referencedRelation: "comprovantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_vinculos_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_vinculos_nota_id_fkey"
             columns: ["nota_id"]
             isOneToOne: false
             referencedRelation: "notas_fiscais"
@@ -494,8 +637,14 @@ export type Database = {
       }
       financeiro: {
         Row: {
+          ajuste: number
+          calculo_id: string | null
+          comprovante_id: string | null
           created_at: string
           data_entrega: string | null
+          distancia: number | null
+          entrega_id: string | null
+          estado_frete: string
           fornecedor_id: string | null
           id: string
           nota_fiscal_id: string
@@ -503,16 +652,24 @@ export type Database = {
           regiao: string | null
           situacao: string
           updated_at: string
+          valor_ad_valorem: number
           valor_base: number
           valor_desconto: number
           valor_frete: number
           valor_icms: number
           valor_pedagio: number
           valor_taxa_extra: number
+          valor_tributos: number
         }
         Insert: {
+          ajuste?: number
+          calculo_id?: string | null
+          comprovante_id?: string | null
           created_at?: string
           data_entrega?: string | null
+          distancia?: number | null
+          entrega_id?: string | null
+          estado_frete?: string
           fornecedor_id?: string | null
           id?: string
           nota_fiscal_id: string
@@ -520,16 +677,24 @@ export type Database = {
           regiao?: string | null
           situacao?: string
           updated_at?: string
+          valor_ad_valorem?: number
           valor_base?: number
           valor_desconto?: number
           valor_frete?: number
           valor_icms?: number
           valor_pedagio?: number
           valor_taxa_extra?: number
+          valor_tributos?: number
         }
         Update: {
+          ajuste?: number
+          calculo_id?: string | null
+          comprovante_id?: string | null
           created_at?: string
           data_entrega?: string | null
+          distancia?: number | null
+          entrega_id?: string | null
+          estado_frete?: string
           fornecedor_id?: string | null
           id?: string
           nota_fiscal_id?: string
@@ -537,14 +702,37 @@ export type Database = {
           regiao?: string | null
           situacao?: string
           updated_at?: string
+          valor_ad_valorem?: number
           valor_base?: number
           valor_desconto?: number
           valor_frete?: number
           valor_icms?: number
           valor_pedagio?: number
           valor_taxa_extra?: number
+          valor_tributos?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "financeiro_calculo_id_fkey"
+            columns: ["calculo_id"]
+            isOneToOne: false
+            referencedRelation: "calculos_frete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_comprovante_id_fkey"
+            columns: ["comprovante_id"]
+            isOneToOne: false
+            referencedRelation: "comprovantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financeiro_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "financeiro_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
@@ -563,46 +751,64 @@ export type Database = {
       }
       fornecedores: {
         Row: {
+          ativo: boolean
+          cidade: string | null
           cnpj: string
+          contatos: string | null
           created_at: string
           desconto_percent: number
+          endereco: string | null
           icms_percent: number
           id: string
           nome: string
+          nome_fantasia: string | null
           observacoes: string | null
           pedagio: number
           taxa_extra: number
           tipo_calculo: string
+          uf: string | null
           updated_at: string
           valor_base: number
           valor_minimo: number
         }
         Insert: {
+          ativo?: boolean
+          cidade?: string | null
           cnpj: string
+          contatos?: string | null
           created_at?: string
           desconto_percent?: number
+          endereco?: string | null
           icms_percent?: number
           id?: string
           nome: string
+          nome_fantasia?: string | null
           observacoes?: string | null
           pedagio?: number
           taxa_extra?: number
           tipo_calculo?: string
+          uf?: string | null
           updated_at?: string
           valor_base?: number
           valor_minimo?: number
         }
         Update: {
+          ativo?: boolean
+          cidade?: string | null
           cnpj?: string
+          contatos?: string | null
           created_at?: string
           desconto_percent?: number
+          endereco?: string | null
           icms_percent?: number
           id?: string
           nome?: string
+          nome_fantasia?: string | null
           observacoes?: string | null
           pedagio?: number
           taxa_extra?: number
           tipo_calculo?: string
+          uf?: string | null
           updated_at?: string
           valor_base?: number
           valor_minimo?: number
@@ -1020,6 +1226,53 @@ export type Database = {
         }
         Relationships: []
       }
+      tabelas_frete: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          criado_por: string | null
+          fim: string | null
+          fornecedor_id: string
+          id: string
+          inicio: string
+          nome: string
+          regras: Json
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          fim?: string | null
+          fornecedor_id: string
+          id?: string
+          inicio: string
+          nome: string
+          regras: Json
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          fim?: string | null
+          fornecedor_id?: string
+          id?: string
+          inicio?: string
+          nome?: string
+          regras?: Json
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_frete_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1130,6 +1383,10 @@ export type Database = {
       rejeitar_comprovante: {
         Args: { _id: string; _motivo: string }
         Returns: undefined
+      }
+      simular_frete: {
+        Args: { _km?: number; _peso: number; _regras: Json; _valor: number }
+        Returns: Json
       }
     }
     Enums: {
