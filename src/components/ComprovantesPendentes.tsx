@@ -16,7 +16,7 @@ import { toast } from "sonner";
 export function ComprovantesPendentes() {
   const { data: list = [] } = useQuery({
     queryKey: ["comprovantes-pendentes"],
-    queryFn: async () => (await supabase.from("comprovantes").select("*, motoristas:motorista_id(nome), notas_fiscais:nota_id(numero,cliente), cargas:carga_id(numero)").in("status", ["pendente", "identificado", "nao_identificado"]).order("capturado_em")).data ?? [],
+    queryFn: async () => (await supabase.from("comprovantes").select("*, motoristas:motorista_id(nome), notas_fiscais:nota_id(numero,cliente), cargas:carga_id(numero)").eq("tipo_documento", "canhoto").in("status", ["pendente", "identificado", "nao_identificado"]).order("capturado_em")).data ?? [],
     refetchInterval: 30000,
   });
   const [open, setOpen] = useState<any>(null);
@@ -50,7 +50,7 @@ function Review({ c, onClose }: { c: any; onClose: () => void }) {
   const qc = useQueryClient();
   const recognize = useServerFn(reconhecerComprovante);
   const [url, setUrl] = useState<string>();
-  const [nota, setNota] = useState<string>(c.nota_id ?? "");
+  const [nota, setNota] = useState<string>(c.nota_id ?? c.reconhecimento?.nota_sugerida ?? "");
   const [quando, setQuando] = useState(() => new Date(c.capturado_em).toISOString().slice(0, 16));
   const [motivo, setMotivo] = useState("");
   const [rejecting, setRejecting] = useState(false);

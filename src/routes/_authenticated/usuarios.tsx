@@ -6,16 +6,21 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useServerFn } from "@tanstack/react-start";
+import { resetDriverPassword } from "@/lib/accounts.functions";
 import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => pageHead("Usuários", "Gestão autorizada de acessos ao sistema."), component: UsersPage });
 
-const ROLES = ["administrador", "operacional", "consulta", "motorista"] as const;
+const ROLES = ["administrador", "operacional", "consulta", "conferente", "financeiro", "motorista"] as const;
 
 function UsersPage() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
+  const reset = useServerFn(resetDriverPassword);
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const { data: users = [] } = useQuery({
@@ -32,8 +37,7 @@ function UsersPage() {
 
   const setRole = useMutation({
     mutationFn: async ({ userId, role }: any) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+      const { error } = await supabase.rpc("gerenciar_acesso", { _user: userId, _status: "ativo", _role: role });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Papel atualizado"); qc.invalidateQueries({ queryKey: ["users-all"] }); },
@@ -59,7 +63,7 @@ function UsersPage() {
       <PageHeader title="Usuários" subtitle="Gestão de acessos e perfis" />
       <div className="bg-card border rounded-md overflow-hidden">
         <table className="table-erp">
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Criado em</th><th>Perfil</th><th>Motorista vinculado</th></tr></thead>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Criado em</th><th>Perfil</th><th>Motorista vinculado</th><th>Acesso</th><th>Recuperação</th></tr></thead>
           <tbody>
             {users.map((u: any) => (
               <tr key={u.id}>
@@ -67,8 +71,8 @@ function UsersPage() {
                 <td className="font-mono text-xs">{u.email}</td>
                 <td>{fmtDate(u.created_at)}</td>
                 <td>
-                  <Select value={u.roles[0] ?? "consulta"} onValueChange={(role) => setRole.mutate({ userId: u.id, role })}>
-                    <SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger>
+                  <Select value={u.roles[0]} onValueChange={(role) => setRole.mutate({ userId: u.id, role })}>
+                    <SelectTrigger className="h-7 text-xs w-36"><SelectValue placeholder="Aprovar como…" /></SelectTrigger>
                     <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                   </Select>
                 </td>
@@ -83,6 +87,8 @@ function UsersPage() {
                     </Select>
                   ) : "—"}
                 </td>
+                <td><Select value={u.status_acesso} onValueChange={async status => { const { error } = await supabase.rpc("gerenciar_acesso", { _user: u.id, _status: status, _role: u.roles[0] ?? (u.tipo_acesso === "motorista" ? "motorista" : "consulta") }); if (error) toast.error(error.message); else { toast.success("Acesso atualizado"); qc.invalidateQueries(); } }}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{["pendente","ativo","inativo"].map(st => <SelectItem key={st} value={st}>{st}</SelectItem>)}</SelectContent></Select></td>
+                <td>{u.tipo_acesso === "motorista" && <Button variant="outline" size="sm" onClick={async () => { const password = window.prompt("Nova senha (mínimo 8 caracteres). Confirme a identidade do motorista antes."); if (!password) return; const motivo = window.prompt("Justificativa da recuperação de acesso"); if (!motivo) return; try { await reset({ data: { userId: u.id, password, motivo } }); toast.success("Senha redefinida"); } catch { toast.error("Não foi possível redefinir a senha"); } }}>Redefinir senha</Button>}</td>
               </tr>
             ))}
           </tbody>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera } from "lucide-react";
+import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera, MoreVertical, FolderOpen, Truck, Building2, FileCheck } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -30,7 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <Link to={isDriver ? "/motorista" : "/dashboard"} className="font-bold tracking-wide">TRANSMERIDA</Link>
           <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
-          <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
+           {!isDriver && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Mais opções"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to="/notas-entregues"><FileCheck className="h-4 w-4 mr-2" />Notas Entregues</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/arquivos-complementares"><FolderOpen className="h-4 w-4 mr-2" />Arquivos Complementares</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel>Cadastros</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/motoristas"><Users className="h-4 w-4 mr-2" />Motoristas</Link></DropdownMenuItem>{isAdmin && <DropdownMenuItem asChild><Link to="/usuarios"><ShieldCheck className="h-4 w-4 mr-2" />Usuários</Link></DropdownMenuItem>}<DropdownMenuItem asChild><Link to="/fornecedores"><Building2 className="h-4 w-4 mr-2" />Fornecedores</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/veiculos"><Truck className="h-4 w-4 mr-2" />Veículos</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+           <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
             <UserCircle className="h-4 w-4" />{user?.email}
           </div>
         </div>

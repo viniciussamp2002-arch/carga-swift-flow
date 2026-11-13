@@ -2,6 +2,11 @@
 - [x] Notas estilo Excel: edição na célula, colunas (ocultar/arrastar/largura), visualização salva, busca geral, totais, importar planilha, adicionar à carga
 - [x] Cargas de entrada + confirmação de chegada → depósito
 - [x] Clientes com agendamento obrigatório (CNPJ) + aba Agendamentos integrada
+- [ ] Atualização login/cadastros/financeiro: CPF seguro, aprovação e perfis de acesso
+- [ ] Atualização login/cadastros/financeiro: documentos complementares e fila offline compartilhada
+- [ ] Atualização login/cadastros/financeiro: menu superior e cadastros completos
+- [ ] Atualização login/cadastros/financeiro: tabelas versionadas, distâncias, simulação e memória por NF
+- [ ] Atualização login/cadastros/financeiro: automação e conferência financeira, Excel e testes integrados
 - [ ] Estoque (saldos por fornecedor)
 - [ ] Montagem de cargas: adicionar à carga pela tabela, sequência, romaneio A4, conferência, saída
 - [ ] Agendamentos com histórico

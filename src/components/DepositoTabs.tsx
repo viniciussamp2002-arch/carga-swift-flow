@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 const TABS = [
   { to: "/cargas-previstas", label: "Cargas de Entrada" },
   { to: "/notas", label: "Notas Fiscais / Depósito" },
-  { to: "/notas-entregues", label: "Notas Entregues" },
   { to: "/agendamentos", label: "Agendamentos" },
   { to: "/clientes-agendamento", label: "Clientes c/ Agendamento" },
 ] as const;

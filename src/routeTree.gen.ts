@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
+import { Route as AuthenticatedArquivosComplementaresRouteImport } from './routes/_authenticated/arquivos-complementares'
 import { Route as AuthenticatedCargasRouteImport } from './routes/_authenticated/cargas'
 import { Route as AuthenticatedCargasPrevistasRouteImport } from './routes/_authenticated/cargas-previstas'
 import { Route as AuthenticatedClientesAgendamentoRouteImport } from './routes/_authenticated/clientes-agendamento'
@@ -20,6 +22,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
+import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
@@ -45,10 +48,21 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAgendamentosRoute =
   AuthenticatedAgendamentosRouteImport.update({
     id: '/agendamentos',
     path: '/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedArquivosComplementaresRoute =
+  AuthenticatedArquivosComplementaresRouteImport.update({
+    id: '/arquivos-complementares',
+    path: '/arquivos-complementares',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCargasRoute = AuthenticatedCargasRouteImport.update({
@@ -88,6 +102,12 @@ const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   path: '/financeiro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFornecedoresRoute =
+  AuthenticatedFornecedoresRouteImport.update({
+    id: '/fornecedores',
+    path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
@@ -144,7 +164,9 @@ const AuthenticatedCargasIdRoute = AuthenticatedCargasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -152,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -166,7 +189,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -174,6 +199,7 @@ export interface FileRoutesByTo {
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
@@ -190,7 +216,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/_authenticated/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/_authenticated/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/_authenticated/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/_authenticated/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -198,6 +226,7 @@ export interface FileRoutesById {
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
@@ -214,7 +243,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/agendamentos'
+    | '/arquivos-complementares'
     | '/cargas'
     | '/cargas-previstas'
     | '/clientes-agendamento'
@@ -222,6 +253,7 @@ export interface FileRouteTypes {
     | '/entregas'
     | '/estoque'
     | '/financeiro'
+    | '/fornecedores'
     | '/historico'
     | '/motorista'
     | '/motoristas'
@@ -236,7 +268,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/agendamentos'
+    | '/arquivos-complementares'
     | '/cargas'
     | '/cargas-previstas'
     | '/clientes-agendamento'
@@ -244,6 +278,7 @@ export interface FileRouteTypes {
     | '/entregas'
     | '/estoque'
     | '/financeiro'
+    | '/fornecedores'
     | '/historico'
     | '/motorista'
     | '/motoristas'
@@ -259,7 +294,9 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/reset-password'
     | '/_authenticated/agendamentos'
+    | '/_authenticated/arquivos-complementares'
     | '/_authenticated/cargas'
     | '/_authenticated/cargas-previstas'
     | '/_authenticated/clientes-agendamento'
@@ -267,6 +304,7 @@ export interface FileRouteTypes {
     | '/_authenticated/entregas'
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
+    | '/_authenticated/fornecedores'
     | '/_authenticated/historico'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
@@ -283,6 +321,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -308,11 +347,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/agendamentos': {
       id: '/_authenticated/agendamentos'
       path: '/agendamentos'
       fullPath: '/agendamentos'
       preLoaderRoute: typeof AuthenticatedAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/arquivos-complementares': {
+      id: '/_authenticated/arquivos-complementares'
+      path: '/arquivos-complementares'
+      fullPath: '/arquivos-complementares'
+      preLoaderRoute: typeof AuthenticatedArquivosComplementaresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cargas': {
@@ -362,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/financeiro'
       fullPath: '/financeiro'
       preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fornecedores': {
+      id: '/_authenticated/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/historico': {
@@ -450,6 +510,7 @@ const AuthenticatedCargasRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
+  AuthenticatedArquivosComplementaresRoute: typeof AuthenticatedArquivosComplementaresRoute
   AuthenticatedCargasRoute: typeof AuthenticatedCargasRouteWithChildren
   AuthenticatedCargasPrevistasRoute: typeof AuthenticatedCargasPrevistasRoute
   AuthenticatedClientesAgendamentoRoute: typeof AuthenticatedClientesAgendamentoRoute
@@ -457,6 +518,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
+  AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
@@ -470,6 +532,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
+  AuthenticatedArquivosComplementaresRoute:
+    AuthenticatedArquivosComplementaresRoute,
   AuthenticatedCargasRoute: AuthenticatedCargasRouteWithChildren,
   AuthenticatedCargasPrevistasRoute: AuthenticatedCargasPrevistasRoute,
   AuthenticatedClientesAgendamentoRoute: AuthenticatedClientesAgendamentoRoute,
@@ -477,6 +541,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
+  AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
@@ -495,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

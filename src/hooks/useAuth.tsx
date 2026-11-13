@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type Role = "administrador" | "operacional" | "consulta" | "motorista";
+type Role = "administrador" | "operacional" | "consulta" | "motorista" | "conferente" | "financeiro";
 interface AuthCtx {
   user: User | null;
   session: Session | null;
@@ -11,6 +11,9 @@ interface AuthCtx {
   isAdmin: boolean;
   canWrite: boolean;
   isDriver: boolean;
+  canFinance: boolean;
+  canReceive: boolean;
+  accessStatus: string;
   signOut: () => Promise<void>;
 }
 const Ctx = createContext<AuthCtx | undefined>(undefined);
@@ -19,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [accessStatus, setAccessStatus] = useState("pendente");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,18 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRoles([]);
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) loadRoles(data.session.user.id).finally(() => setLoading(false));
+    supabase.auth.getUser().then(async ({ data }) => {
+      const { data: tokens } = await supabase.auth.getSession();
+      setSession(tokens.session);
+      setUser(data.user ?? null);
+      if (data.user) loadRoles(data.user.id).finally(() => setLoading(false));
       else setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   async function loadRoles(uid: string) {
+    const { data: profile } = await supabase.from("profiles").select("status_acesso").eq("id", uid).maybeSingle();
+    setAccessStatus(profile?.status_acesso ?? "pendente");
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((data ?? []).map((r) => r.role as Role));
+    setRoles((profile?.status_acesso === "ativo" ? data ?? [] : []).map((r) => r.role as Role));
   }
 
   const isAdmin = roles.includes("administrador");
@@ -52,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider
       value={{
-        user, session, loading, roles, isAdmin, canWrite, isDriver,
+        user, session, loading, roles, isAdmin, canWrite, isDriver, accessStatus, canFinance: canWrite || roles.includes("financeiro"), canReceive: canWrite || roles.includes("conferente"),
         signOut: async () => { await supabase.auth.signOut(); },
       }}
     >
