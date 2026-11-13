@@ -42,7 +42,7 @@ function ReceivingForm({load,notes,kind,saved}:{load:ReceivingLoad;notes:Receivi
   const {user,canWrite}=useAuth();
   const qc=useQueryClient();
   const defaults=initialReceivingData(load,notes,user?.email||"");
-  const [form,setForm]=useState<ReceivingData>(()=>kind==="checklist"&&saved?{...defaults,...saved}:defaults);
+  const [form,setForm]=useState<ReceivingData>(()=>kind==="checklist"&&saved?{...defaults,...saved,peso_kg:defaults.peso_kg,volumes_previstos:defaults.volumes_previstos,notas:defaults.notas,fornecedores:defaults.fornecedores}:defaults);
   const [preview,setPreview]=useState<{url:string;name:string}|null>(null);
   const [busy,setBusy]=useState(false);
   const [dirty,setDirty]=useState(false);

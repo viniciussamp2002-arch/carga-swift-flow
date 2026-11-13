@@ -14,7 +14,10 @@
 - [x] Atualização consolidada 03–08: ocorrências permanentes e rastreáveis em todos os módulos
   - Validado: 14 testes; criação, observação, resolução, recarga, filtro, carga agrupada, saída, entregas e consulta geral como administrador; tela de celular conferida.
   - Registro de validação VALIDACAO-OC-131126 mantido, com peso/valor zero e histórico permanente; quatro ocorrências preexistentes preservadas. Anexos e propagação em agendamento específico ainda não exercitados nesta etapa.
-- [ ] Atualização consolidada 03–08: checklist e recibo de descarga em PDF (etapa atual; salvar versões, testar documentos e recebimento)
+- [x] Atualização consolidada 03–08: checklist e recibo de descarga em PDF
+  - Validado: 25 testes de regras; checklist salvo/reaberto, fornecedores múltiplos, ocorrência específica incluída no PDF, versões e histórico, recibo A4 de uma página (8.500 kg × R$35/t = R$297,50), documento longo de cinco páginas sem cortes e recebimento parcial/definitivo com ciência das divergências.
+  - Preservadas 49 notas, oito cargas e cinco ocorrências anteriores; carga exclusiva VALIDACAO-DOCUMENTOS-131126 e duas notas de peso/valor fiscal zero mantidas para rastreabilidade. Emissão não criou financeiro.
+  - Impressão: PDF conferido e chamada de impressão verificada; impressora física não testada. PDFs regenerados de versões imutáveis salvas. Sem publicação; demais etapas não iniciadas.
 - [ ] Atualização consolidada 03–08: exclusão segura, cancelamento e arquivamento de cargas
 - [ ] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
