@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle } from "lucide-react";
+import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -8,14 +8,15 @@ import { GlobalSearch } from "./GlobalSearch";
 import { MODULES } from "@/lib/modules";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isDriver, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = [
+  const items = isDriver ? [{ to: "/motorista", label: "Meus canhotos", icon: Camera }] : [
     { to: "/dashboard", label: "Início", icon: Home },
     ...MODULES,
     { to: "/veiculos", label: "Veículos", icon: Users },
     { to: "/motoristas", label: "Motoristas", icon: Users },
+    { to: "/motorista", label: "Portal do Motorista", icon: Camera },
     { to: "/historico", label: "Histórico", icon: History },
     ...(isAdmin ? [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck }] : []),
   ];
@@ -27,8 +28,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Button size="icon" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={() => setOpen(true)} aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </Button>
-          <Link to="/dashboard" className="font-bold tracking-wide">TRANSMERIDA</Link>
-          <div className="flex-1 flex justify-center text-foreground"><GlobalSearch /></div>
+          <Link to={isDriver ? "/motorista" : "/dashboard"} className="font-bold tracking-wide">TRANSMERIDA</Link>
+          <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
           <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
             <UserCircle className="h-4 w-4" />{user?.email}
           </div>
