@@ -25,3 +25,4 @@
   - Sem publicação. Próxima melhoria: portal do motorista e aprovação de comprovantes.
 - [ ] Atualização consolidada 03–08: portal do motorista, fotos offline e aprovação de comprovantes
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
+- [ ] Exclusão definitiva de carga com senha validada no servidor e acesso de administrador; definir tratamento de notas vinculadas a outras operações antes de implementar, sem publicar.
