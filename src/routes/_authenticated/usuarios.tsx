@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { fmtDate } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/usuarios")({ component: UsersPage });
+export const Route = createFileRoute("/_authenticated/usuarios")({
+  head: () => pageHead("Usuários", "Gestão autorizada de acessos ao sistema."), component: UsersPage });
 
 const ROLES = ["administrador", "operacional", "consulta"] as const;
 

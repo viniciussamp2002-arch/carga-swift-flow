@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { z } from "zod";
 
 const searchSchema = z.object({ carga: z.string().optional() }).optional();
 export const Route = createFileRoute("/_authenticated/entregas")({
+  head: () => pageHead("Entregas", "Acompanhamento das entregas em rota."),
   component: EntregasPage,
   validateSearch: searchSchema,
 });

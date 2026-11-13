@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -14,7 +15,7 @@ import { Search, Send, FileDown } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({
-  head: () => ({ meta: [{ title: "Agendamentos — Transmerida" }, { name: "description", content: "Agendamento das notas de clientes com agendamento obrigatório" }] }),
+  head: () => pageHead("Agendamentos", "Agendamento das notas de clientes com agendamento obrigatório"),
   component: AgendamentosPage,
 });
 

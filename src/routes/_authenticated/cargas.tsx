@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-export const Route = createFileRoute("/_authenticated/cargas")({ component: CargasPage });
+export const Route = createFileRoute("/_authenticated/cargas")({
+  head: () => pageHead("Montagem de Cargas", "Organização de notas para expedição e entrega."), component: CargasPage });
 
 const STATUS_COLOR: Record<string, string> = {
   separacao: "bg-warning/15 text-warning-foreground border-warning/40",

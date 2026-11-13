@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +21,8 @@ import { DepositoTabs } from "@/components/DepositoTabs";
 import { AG_STATUS_LABEL } from "@/lib/agenda";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } from "@/lib/format";
-import { parseNFeXml } from "@/lib/xml-parser";
+import { lerXmls } from "@/lib/nfe-import";
+import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3 } from "lucide-react";
@@ -34,6 +36,7 @@ import { z } from "zod";
 const searchSchema = z.object({ q: z.string().optional() }).optional();
 
 export const Route = createFileRoute("/_authenticated/notas")({
+  head: () => pageHead("Notas Fiscais / Depósito", "Controle operacional de notas fiscais recebidas."),
   component: NotasPage,
   validateSearch: searchSchema,
 });
@@ -82,6 +85,10 @@ function NotasPage() {
   const { canWrite, user } = useAuth();
   const { q } = Route.useSearch() ?? {};
   const qc = useQueryClient();
+  const [modoXml, setModoXml] = useState<"individual" | "agrupada">("individual");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [importando, setImportando] = useState(false);
+  const [resultadoXml, setResultadoXml] = useState<{ importadas: number; erros: string[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
@@ -177,7 +184,8 @@ function NotasPage() {
 
   const updateCell = useMutation({
     mutationFn: async ({ n, col, raw }: { n: any; col: ColDef; raw: string | boolean }) => {
-      const e = col.edit!;
+      const e = col.edit;
+      if (!e) return false;
       let value: any = raw;
       if (e.type === "number") { value = Number(String(raw).replace(/\./g, "").replace(",", ".")); if (isNaN(value) || value < 0) throw new Error("Valor numérico inválido"); }
       if (e.type === "int") { value = parseInt(String(raw), 10); if (isNaN(value) || value < 0) throw new Error("Quantidade inválida"); }
@@ -226,48 +234,26 @@ function NotasPage() {
   });
 
   async function importXml(files: FileList, agrupado: boolean) {
-    const parsed: any[] = [];
-    const errors: string[] = [];
-    for (const f of Array.from(files)) {
-      const p = parseNFeXml(await f.text());
-      if ("error" in p) errors.push(`${f.name}: XML inválido`);
-      else parsed.push(p);
-    }
-    if (parsed.length === 0) { errors.forEach((e) => toast.error(e)); return; }
-    const chaves = parsed.map((p) => p.chave_nfe).filter(Boolean);
-    if (new Set(chaves).size !== chaves.length) { toast.error("Há XMLs repetidos na seleção."); return; }
-    if (chaves.length) {
-      const { data: dup } = await supabase
-        .from("notas_fiscais")
-        .select("chave_nfe, chaves_agrupadas, numero")
-        .or(`chave_nfe.in.(${chaves.map((c) => `"${c}"`).join(",")}),chaves_agrupadas.ov.{${chaves.join(",")}}`);
-      if (dup && dup.length > 0) { toast.error(`Nota(s) já importada(s): ${dup.map((d: any) => d.numero).join(", ")}`); return; }
-    }
-    if (agrupado) {
-      if (parsed.length < 2) { toast.error("Selecione pelo menos 2 XMLs para importação agrupada."); return; }
-      const first = parsed[0];
-      if (parsed.find((p) => p.fornecedor !== first.fornecedor || p.cliente !== first.cliente)) {
-        toast.error("Erro: XMLs com fornecedor ou cliente diferentes não podem ser agrupados."); return;
+    setImportando(true);
+    try {
+      const { ok, erros, nomes } = await lerXmls(files);
+      const groups = new Map<string, string>();
+      let importadas = 0;
+      for (const p of ok) {
+        const recipient = p.cnpj_destinatario.replace(/\D/g, "");
+        if (agrupado && !recipient) { erros.push(`${nomes.get(p.chave_nfe)}: destinatário sem CNPJ/CPF; importe individualmente`); continue; }
+        if (!groups.has(recipient)) groups.set(recipient, crypto.randomUUID());
+        const { error } = await supabase.from("notas_fiscais").insert({
+          ...p, origem: "xml", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id,
+          grupo_importacao: agrupado ? groups.get(recipient) : null,
+        });
+        if (error) erros.push(`${nomes.get(p.chave_nfe)}: ${error.code === "23505" ? "NF já cadastrada; não foi duplicada" : error.message}`);
+        else importadas++;
       }
-      const { error } = await supabase.from("notas_fiscais").insert({
-        chave_nfe: first.chave_nfe, numero: first.numero, serie: first.serie, data_emissao: first.data_emissao,
-        cnpj_emissor: first.cnpj_emissor, fornecedor: first.fornecedor, cnpj_destinatario: first.cnpj_destinatario,
-        cliente: first.cliente, cidade: first.cidade, uf: first.uf,
-        peso: parsed.reduce((s, p) => s + Number(p.peso ?? 0), 0),
-        volumes: parsed.reduce((s, p) => s + Number(p.volumes ?? 0), 0),
-        valor: parsed.reduce((s, p) => s + Number(p.valor ?? 0), 0),
-        chaves_agrupadas: parsed.map((p) => p.chave_nfe), numeros_agrupados: parsed.map((p) => p.numero),
-        cfops: Array.from(new Set(parsed.flatMap((p) => p.cfops ?? []))),
-        origem: "xml", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id,
-      });
-      if (error) toast.error(error.message); else toast.success(`Importação agrupada: ${parsed.length} notas em 1 linha`);
-    } else {
-      const { error } = await supabase.from("notas_fiscais").insert(
-        parsed.map((p) => ({ ...p, volumes: Number(p.volumes ?? 0), agendamento: false, origem: "xml", status: "disponivel", recebida_em: new Date().toISOString(), recebida_por: user?.id })));
-      if (error) toast.error(error.message); else toast.success(`${parsed.length} nota(s) importada(s)`);
-    }
-    errors.forEach((e) => toast.error(e));
-    qc.invalidateQueries({ queryKey: ["notas"] });
+      setModoXml(agrupado ? "agrupada" : "individual");
+      setResultadoXml({ importadas, erros });
+      qc.invalidateQueries({ queryKey: ["notas"] });
+    } finally { setImportando(false); }
   }
 
   async function importExcel(file: File) {
@@ -460,6 +446,11 @@ function NotasPage() {
   }
 
   const hasFilters = busca || Object.values(filters).some(Boolean);
+  const displayGroups = new Map<string, any[]>();
+  for (const n of pageRows) {
+    const key = modoXml === "agrupada" && n.grupo_importacao ? `${n.grupo_importacao}:${recipientGroupKey(n)}` : `nota:${n.id}`;
+    displayGroups.set(key, [...(displayGroups.get(key) ?? []), n]);
+  }
 
   return (
     <div>
@@ -479,14 +470,14 @@ function NotasPage() {
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importExcel(f); e.target.value = ""; }} />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9"><Upload className="h-4 w-4 mr-1" /> Importar <ChevronDown className="h-3.5 w-3.5 ml-1" /></Button>
+                    <Button variant="outline" size="sm" className="h-9" disabled={importando}><Upload className="h-4 w-4 mr-1" /> Importar <ChevronDown className="h-3.5 w-3.5 ml-1" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-72">
                     <DropdownMenuItem onClick={() => indivRef.current?.click()}>
                       <div><div className="font-medium">XML individual</div><div className="text-[11px] text-muted-foreground">Uma linha por XML</div></div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => grupRef.current?.click()}>
-                      <div><div className="font-medium">XML agrupado</div><div className="text-[11px] text-muted-foreground">Vários XMLs em uma linha (mesmo fornecedor e cliente)</div></div>
+                      <div><div className="font-medium">XML agrupado</div><div className="text-[11px] text-muted-foreground">Agrupar por destinatário, preservando cada NF</div></div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => xlsRef.current?.click()}>
                       <div><div className="font-medium">Planilha Excel</div><div className="text-[11px] text-muted-foreground">Colunas: Nº NF, Fornecedor, Cliente, Cidade, UF, Peso, Volumes, Valor, Recebimento</div></div>
@@ -501,7 +492,13 @@ function NotasPage() {
         }
       />
 
+      {resultadoXml && <div role="status" className="mb-2 border rounded-md p-3 text-sm">
+        <b>{resultadoXml.importadas} nota(s) importada(s)</b>
+        {resultadoXml.erros.length > 0 && <><p className="text-destructive">{resultadoXml.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-40 overflow-auto">{resultadoXml.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></>}
+      </div>}
       <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Button size="sm" variant={modoXml === "individual" ? "default" : "outline"} onClick={() => setModoXml("individual")}>Individual</Button>
+        <Button size="sm" variant={modoXml === "agrupada" ? "default" : "outline"} onClick={() => setModoXml("agrupada")}>Agrupada</Button>
         <div className="flex items-center gap-2 border rounded-md px-2 h-9 bg-card flex-1 min-w-[220px] max-w-md">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar em todas as colunas..." className="bg-transparent outline-none text-sm flex-1" />
@@ -564,12 +561,26 @@ function NotasPage() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((n: any) => (
-                <tr key={n.id} className={selected.has(n.id) ? "!bg-primary/10" : ""}>
-                  <td><input type="checkbox" checked={selected.has(n.id)} disabled={!canWrite} onChange={() => toggle(n.id)} /></td>
-                  {cols.map((c) => <Cell key={c.key} n={n} col={c} />)}
-                </tr>
-              ))}
+              {Array.from(displayGroups.entries()).map(([key, ns]) => {
+                const grouped = ns.length > 1;
+                const expanded = expandedGroups.has(key);
+                const totals = sum(ns);
+                const individualRows = ns.map((n: any) => (
+                  <tr key={n.id} className={selected.has(n.id) ? "!bg-primary/10" : ""}>
+                    <td><input type="checkbox" checked={selected.has(n.id)} disabled={!canWrite} onChange={() => toggle(n.id)} /></td>
+                    {cols.map((c) => <Cell key={c.key} n={n} col={c} />)}
+                  </tr>
+                ));
+                if (!grouped) return individualRows;
+                return [<tr key={key}>
+                  <td><input type="checkbox" aria-label={`Selecionar grupo ${ns[0].cliente}`} disabled={!canWrite} checked={ns.every(n => selected.has(n.id))} onChange={e => { const next = new Set(selected); ns.forEach(n => e.target.checked ? next.add(n.id) : next.delete(n.id)); setSelected(next); }} /></td>
+                  <td colSpan={cols.length}>
+                    <Button variant="ghost" size="sm" onClick={() => { const next = new Set(expandedGroups); expanded ? next.delete(key) : next.add(key); setExpandedGroups(next); }}>
+                      <ChevronDown className={`h-4 w-4 mr-2 ${expanded ? "" : "-rotate-90"}`} />{ns[0].cliente} · {ns.length} NFs · {fmtKg(totals.peso)} · {fmtNum(totals.volumes)} volumes · {fmtBRL(totals.valor)}
+                    </Button>
+                  </td>
+                </tr>, ...(expanded ? individualRows : [])];
+              })}
               {filtered.length === 0 && (
                 <tr><td colSpan={cols.length + 1} className="text-center text-muted-foreground py-8">Nenhuma nota encontrada</td></tr>
               )}

@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,13 +15,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ENTRADA_STATUS_LABEL } from "@/lib/agenda";
 import { fmtBRL, fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
 import { lerXmls } from "@/lib/nfe-import";
+import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Upload, CheckCircle2, Trash2, ChevronRight, ChevronDown, AlertTriangle } from "lucide-react";
 import { OcorrenciaBadge, RegistrarOcorrencia } from "@/components/Ocorrencias";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
-  head: () => ({ meta: [{ title: "Cargas de Entrada — Transmerida" }, { name: "description", content: "Transportes vindos dos fornecedores, antes do recebimento" }] }),
+  head: () => pageHead("Cargas de Entrada", "Transportes vindos dos fornecedores, antes do recebimento"),
   component: CargasEntradaPage,
 });
 
@@ -147,6 +149,9 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   const { canWrite } = useAuth();
   const qc = useQueryClient();
   const xmlRef = useRef<HTMLInputElement>(null);
+  const importMode = useRef<"individual" | "agrupada">("individual");
+  const [importando, setImportando] = useState(false);
+  const [resultado, setResultado] = useState<{ importadas: number; erros: string[] } | null>(null);
   const [confirmar, setConfirmar] = useState(false);
   const [modo, setModo] = useState<"individual" | "agrupada">("individual");
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -163,23 +168,33 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   const t = useMemo(() => sum(notas), [notas]);
   const grupos = useMemo(() => {
     const m = new Map<string, any[]>();
-    for (const n of notas) { const k = n.cnpj_destinatario || `__${n.cliente}`; m.set(k, [...(m.get(k) ?? []), n]); }
+    for (const n of notas) { const k = recipientGroupKey(n); m.set(k, [...(m.get(k) ?? []), n]); }
     return Array.from(m.entries()).map(([k, ns]) => ({ k, ns, t: sum(ns) })).sort((a, b) => String(a.ns[0].cliente).localeCompare(String(b.ns[0].cliente)));
   }, [notas]);
   const fechada = data && ["recebida", "cancelada"].includes(data.status);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["carga-entrada", id] }); qc.invalidateQueries({ queryKey: ["cargas-entrada"] }); qc.invalidateQueries({ queryKey: ["notas"] }); };
 
   async function importar(files: FileList) {
-    const { ok, erros } = await lerXmls(files);
-    erros.forEach((e) => toast.error(e));
-    if (!ok.length) return;
-    const { error } = await supabase.from("notas_fiscais").insert(ok.map((p) => ({
-      ...p, origem: "xml", status: "disponivel" as const, recebida: false, carga_entrada_id: id,
-    })));
-    if (error) { toast.error(error.message); return; }
-    if (data && !data.fornecedor) await supabase.from("cargas_entrada").update({ fornecedor: ok[0].fornecedor }).eq("id", id);
-    toast.success(`${ok.length} nota(s) vinculada(s) à carga`);
-    refresh();
+    setImportando(true);
+    try {
+      const { ok, erros, nomes } = await lerXmls(files);
+      let importadas = 0;
+      const gruposImportados = new Map<string, string>();
+      for (const p of ok) {
+        const destinatario = p.cnpj_destinatario.replace(/\D/g, "");
+        if (importMode.current === "agrupada" && !destinatario) { erros.push(`${nomes.get(p.chave_nfe)}: destinatário sem CNPJ/CPF; importe individualmente`); continue; }
+        if (!gruposImportados.has(destinatario)) gruposImportados.set(destinatario, crypto.randomUUID());
+        const { error } = await supabase.from("notas_fiscais").insert({
+          ...p, origem: "xml", status: "disponivel", recebida: false, carga_entrada_id: id,
+          grupo_importacao: importMode.current === "agrupada" ? gruposImportados.get(destinatario) : null,
+        });
+        if (error) erros.push(`${nomes.get(p.chave_nfe)}: ${error.code === "23505" ? "NF já cadastrada; não foi duplicada" : error.message}`);
+        else importadas++;
+      }
+      setModo(importMode.current);
+      setResultado({ importadas, erros });
+      refresh();
+    } finally { setImportando(false); }
   }
 
   async function remover(nid: string) {
@@ -209,11 +224,18 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             <span>Notas <b>{t.notas}</b></span><span>Peso <b>{fmtNum(t.peso, 3)} kg</b></span>
             <span>Volumes <b>{fmtNum(t.volumes)}</b></span><span>Valor <b>{fmtBRL(t.valor)}</b></span>
           </div>
-          {canWrite && <div className="flex gap-2">
+          {canWrite && <div className="flex flex-wrap gap-2">
             <input ref={xmlRef} type="file" accept=".xml" multiple className="hidden" onChange={(e) => { if (e.target.files) importar(e.target.files); e.target.value = ""; }} />
-            {!fechada && <Button size="sm" variant="outline" onClick={() => xmlRef.current?.click()}><Upload className="h-4 w-4 mr-1" />Importar XMLs</Button>}
+            {!fechada && <>
+              <Button size="sm" variant="outline" disabled={importando} onClick={() => { importMode.current = "agrupada"; xmlRef.current?.click(); }}><Upload className="h-4 w-4 mr-1" />Importar Agrupado</Button>
+              <Button size="sm" variant="outline" disabled={importando} onClick={() => { importMode.current = "individual"; xmlRef.current?.click(); }}><Upload className="h-4 w-4 mr-1" />Importar Individual</Button>
+            </>}
             <Button size="sm" variant="outline" onClick={() => onEdit(data)}>Editar dados</Button>
             {!fechada && notas.some((n) => !n.recebida) && <Button size="sm" className="ml-auto" onClick={() => setConfirmar(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Confirmar Chegada</Button>}
+          </div>}
+          {resultado && <div role="status" className="border rounded-md p-3 text-sm">
+            <b>{resultado.importadas} nota(s) importada(s)</b>
+            {resultado.erros.length > 0 && <><p className="text-destructive">{resultado.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-40 overflow-auto">{resultado.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></>}
           </div>}
           <div className="flex gap-1">
             <Button size="sm" variant={modo === "individual" ? "default" : "outline"} className="h-8" onClick={() => setModo("individual")}>Visualização Individual</Button>
