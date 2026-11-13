@@ -583,20 +583,77 @@ export type Database = {
           },
         ]
       }
+      ocorrencia_eventos: {
+        Row: {
+          acao: string
+          anterior: Json | null
+          atual: Json
+          created_at: string
+          id: string
+          nota_id: string
+          ocorrencia_id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          anterior?: Json | null
+          atual: Json
+          created_at?: string
+          id?: string
+          nota_id: string
+          ocorrencia_id: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          anterior?: Json | null
+          atual?: Json
+          created_at?: string
+          id?: string
+          nota_id?: string
+          ocorrencia_id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocorrencia_eventos_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencia_eventos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "ocorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocorrencias: {
         Row: {
           anexo_path: string | null
           carga_entrada_id: string | null
+          carga_id: string | null
           chave_nfe: string | null
           created_at: string
           data_ocorrencia: string
           descricao: string
+          etapa: string
           id: string
           nota_id: string
+          observacao_posterior: string
           origem: string
           quantidade: number | null
           registrado_por: string | null
           registrado_por_nome: string | null
+          resolucao: string
+          resolvida_em: string | null
+          resolvida_por: string | null
           status: Database["public"]["Enums"]["ocorrencia_status"]
           tipo: Database["public"]["Enums"]["ocorrencia_tipo"]
           unidade: string | null
@@ -605,16 +662,22 @@ export type Database = {
         Insert: {
           anexo_path?: string | null
           carga_entrada_id?: string | null
+          carga_id?: string | null
           chave_nfe?: string | null
           created_at?: string
           data_ocorrencia?: string
           descricao?: string
+          etapa?: string
           id?: string
           nota_id: string
+          observacao_posterior?: string
           origem?: string
           quantidade?: number | null
           registrado_por?: string | null
           registrado_por_nome?: string | null
+          resolucao?: string
+          resolvida_em?: string | null
+          resolvida_por?: string | null
           status?: Database["public"]["Enums"]["ocorrencia_status"]
           tipo: Database["public"]["Enums"]["ocorrencia_tipo"]
           unidade?: string | null
@@ -623,16 +686,22 @@ export type Database = {
         Update: {
           anexo_path?: string | null
           carga_entrada_id?: string | null
+          carga_id?: string | null
           chave_nfe?: string | null
           created_at?: string
           data_ocorrencia?: string
           descricao?: string
+          etapa?: string
           id?: string
           nota_id?: string
+          observacao_posterior?: string
           origem?: string
           quantidade?: number | null
           registrado_por?: string | null
           registrado_por_nome?: string | null
+          resolucao?: string
+          resolvida_em?: string | null
+          resolvida_por?: string | null
           status?: Database["public"]["Enums"]["ocorrencia_status"]
           tipo?: Database["public"]["Enums"]["ocorrencia_tipo"]
           unidade?: string | null
@@ -644,6 +713,13 @@ export type Database = {
             columns: ["carga_entrada_id"]
             isOneToOne: false
             referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
             referencedColumns: ["id"]
           },
           {
@@ -790,6 +866,12 @@ export type Database = {
         | "sobra"
         | "divergencia_volumes"
         | "outros"
+        | "produto_vencido"
+        | "produto_recusado"
+        | "entrega_nao_realizada"
+        | "devolucao"
+        | "lacre_violado"
+        | "divergencia_documental"
       recebimento_cliente_status:
         | "aguardando_entrada"
         | "entrada_realizada"
@@ -957,6 +1039,12 @@ export const Constants = {
         "sobra",
         "divergencia_volumes",
         "outros",
+        "produto_vencido",
+        "produto_recusado",
+        "entrega_nao_realizada",
+        "devolucao",
+        "lacre_violado",
+        "divergencia_documental",
       ],
       recebimento_cliente_status: [
         "aguardando_entrada",

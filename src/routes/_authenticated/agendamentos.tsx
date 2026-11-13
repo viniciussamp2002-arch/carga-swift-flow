@@ -31,7 +31,7 @@ function AgendamentosPage() {
     queryKey: ["agendamentos"],
     queryFn: async () => {
       const { data, error } = await supabase.from("agendamentos")
-        .select("*, nota:nota_id(id, numero, numeros_agrupados, fornecedor, cfops, cliente, cnpj_destinatario, cidade, uf, peso, volumes, valor, data_chegada, status, recebida, entregas(resultado, data_evento))")
+        .select("*, nota:nota_id(id, numero, numeros_agrupados, fornecedor, cfops, cliente, cnpj_destinatario, chave_nfe, carga_entrada_id, carga_id, cidade, uf, peso, volumes, valor, data_chegada, status, recebida, entregas(resultado, data_evento))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).filter((r: any) => r.nota?.recebida);
@@ -115,7 +115,7 @@ function AgendamentosPage() {
           <tbody>
             {filtered.map((r: any) => { const n = r.nota; return (
               <tr key={r.id}>
-                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}<OcorrenciaBadge nota={n} /></td>
+                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}<OcorrenciaBadge nota={n} allowCreate etapa="deposito" /></td>
                 <td>{n.fornecedor}</td><td title={(n.cfops ?? []).join(", ")}>{(n.cfops ?? []).join(", ") || "—"}</td>
                 <td>{n.cliente}</td><td className="font-mono">{n.cnpj_destinatario}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                 <td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td>
