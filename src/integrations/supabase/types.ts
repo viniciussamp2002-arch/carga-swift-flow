@@ -282,6 +282,95 @@ export type Database = {
         }
         Relationships: []
       }
+      comprovantes: {
+        Row: {
+          capturado_em: string
+          carga_id: string | null
+          created_at: string
+          data_entrega: string | null
+          entrega_id: string | null
+          id: string
+          motivo_rejeicao: string | null
+          motorista_id: string
+          nota_id: string | null
+          reconhecimento: Json
+          revisado_em: string | null
+          revisado_por: string | null
+          revisado_por_nome: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capturado_em?: string
+          carga_id?: string | null
+          created_at?: string
+          data_entrega?: string | null
+          entrega_id?: string | null
+          id: string
+          motivo_rejeicao?: string | null
+          motorista_id: string
+          nota_id?: string | null
+          reconhecimento?: Json
+          revisado_em?: string | null
+          revisado_por?: string | null
+          revisado_por_nome?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          capturado_em?: string
+          carga_id?: string | null
+          created_at?: string
+          data_entrega?: string | null
+          entrega_id?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          motorista_id?: string
+          nota_id?: string | null
+          reconhecimento?: Json
+          revisado_em?: string | null
+          revisado_por?: string | null
+          revisado_por_nome?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprovantes_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_recebimento: {
         Row: {
           carga_entrada_id: string
@@ -533,6 +622,7 @@ export type Database = {
           situacao: Database["public"]["Enums"]["motorista_situacao"]
           telefone: string | null
           updated_at: string
+          user_id: string | null
           validade_cnh: string | null
         }
         Insert: {
@@ -546,6 +636,7 @@ export type Database = {
           situacao?: Database["public"]["Enums"]["motorista_situacao"]
           telefone?: string | null
           updated_at?: string
+          user_id?: string | null
           validade_cnh?: string | null
         }
         Update: {
@@ -559,6 +650,7 @@ export type Database = {
           situacao?: Database["public"]["Enums"]["motorista_situacao"]
           telefone?: string | null
           updated_at?: string
+          user_id?: string | null
           validade_cnh?: string | null
         }
         Relationships: []
@@ -933,6 +1025,10 @@ export type Database = {
         Args: { _acao: string; _id: string; _motivo: string; _tipo: string }
         Returns: Json
       }
+      aprovar_comprovante: {
+        Args: { _data_entrega: string; _id: string; _nota: string }
+        Returns: string
+      }
       confirmar_chegada: {
         Args: {
           _carga: string
@@ -943,6 +1039,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["entrada_status"]
       }
       inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
+      rejeitar_comprovante: {
+        Args: { _id: string; _motivo: string }
+        Returns: undefined
+      }
     }
     Enums: {
       agendamento_status:
