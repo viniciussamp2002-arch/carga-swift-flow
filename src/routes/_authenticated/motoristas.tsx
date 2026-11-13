@@ -61,7 +61,7 @@ function MotPage() {
           <thead>
             <tr>
               <th>Nome</th><th>CPF</th><th>CNH</th><th>Cat.</th><th>Validade</th>
-              <th>Telefone</th><th>Situação</th><th>Ativo</th><th></th>
+              <th>Telefone</th><th>Situação</th><th>Ações</th><th>Ativo</th>
             </tr>
           </thead>
           <tbody>
