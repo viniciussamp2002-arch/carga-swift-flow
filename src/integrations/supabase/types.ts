@@ -70,6 +70,24 @@ export type Database = {
           },
         ]
       }
+      auth_tentativas: {
+        Row: {
+          chave: string
+          inicio: string
+          quantidade: number
+        }
+        Insert: {
+          chave: string
+          inicio?: string
+          quantidade?: number
+        }
+        Update: {
+          chave?: string
+          inicio?: string
+          quantidade?: number
+        }
+        Relationships: []
+      }
       cargas: {
         Row: {
           created_at: string
@@ -165,6 +183,7 @@ export type Database = {
           status: Database["public"]["Enums"]["entrada_status"]
           transportadora: string
           updated_at: string
+          veiculo_id: string | null
         }
         Insert: {
           created_at?: string
@@ -188,6 +207,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["entrada_status"]
           transportadora?: string
           updated_at?: string
+          veiculo_id?: string | null
         }
         Update: {
           created_at?: string
@@ -211,8 +231,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["entrada_status"]
           transportadora?: string
           updated_at?: string
+          veiculo_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cargas_entrada_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       checklists_recebimento: {
         Row: {
@@ -610,8 +639,35 @@ export type Database = {
         }
         Relationships: []
       }
+      login_motoristas: {
+        Row: {
+          cpf: string
+          email_interno: string
+          user_id: string
+        }
+        Insert: {
+          cpf: string
+          email_interno: string
+          user_id: string
+        }
+        Update: {
+          cpf?: string
+          email_interno?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_motoristas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motoristas: {
         Row: {
+          ativo: boolean
           categoria: string | null
           cnh: string | null
           cpf: string | null
@@ -626,6 +682,7 @@ export type Database = {
           validade_cnh: string | null
         }
         Insert: {
+          ativo?: boolean
           categoria?: string | null
           cnh?: string | null
           cpf?: string | null
@@ -640,6 +697,7 @@ export type Database = {
           validade_cnh?: string | null
         }
         Update: {
+          ativo?: boolean
           categoria?: string | null
           cnh?: string | null
           cpf?: string | null
@@ -935,6 +993,9 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          status_acesso: string
+          telefone: string | null
+          tipo_acesso: string
           updated_at: string
         }
         Insert: {
@@ -942,6 +1003,9 @@ export type Database = {
           email?: string | null
           id: string
           nome?: string
+          status_acesso?: string
+          telefone?: string | null
+          tipo_acesso?: string
           updated_at?: string
         }
         Update: {
@@ -949,6 +1013,9 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          status_acesso?: string
+          telefone?: string | null
+          tipo_acesso?: string
           updated_at?: string
         }
         Relationships: []
@@ -982,6 +1049,7 @@ export type Database = {
           id: string
           marca: string
           modelo: string
+          motorista_id: string | null
           observacoes: string | null
           placa: string
           situacao: Database["public"]["Enums"]["veiculo_situacao"]
@@ -995,6 +1063,7 @@ export type Database = {
           id?: string
           marca?: string
           modelo?: string
+          motorista_id?: string | null
           observacoes?: string | null
           placa: string
           situacao?: Database["public"]["Enums"]["veiculo_situacao"]
@@ -1008,13 +1077,22 @@ export type Database = {
           id?: string
           marca?: string
           modelo?: string
+          motorista_id?: string | null
           observacoes?: string | null
           placa?: string
           situacao?: Database["public"]["Enums"]["veiculo_situacao"]
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1038,7 +1116,17 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["entrada_status"]
       }
+      gerenciar_acesso: {
+        Args: {
+          _motorista?: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _status: string
+          _user: string
+        }
+        Returns: undefined
+      }
       inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
+      limitar_acesso: { Args: { _chave: string }; Returns: boolean }
       rejeitar_comprovante: {
         Args: { _id: string; _motivo: string }
         Returns: undefined
