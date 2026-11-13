@@ -4,3 +4,4 @@
 - All XML entry points use the shared import validator and persist one row per fiscal note; import-group IDs and recipient/load keys organize presentation without merging fiscal records, while the database trigger protects current and legacy access keys under concurrent writes.
 
 - Occurrence identity, resolution timestamps and append-only audit events are recorded by database triggers; browser updates cannot omit or spoof operational history.
+- Parent content routes render Outlet for nested detail paths so child screens remain reachable.
