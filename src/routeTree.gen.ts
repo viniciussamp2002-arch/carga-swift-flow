@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
+import { Route as AuthenticatedArquivosComplementaresRouteImport } from './routes/_authenticated/arquivos-complementares'
 import { Route as AuthenticatedCargasRouteImport } from './routes/_authenticated/cargas'
 import { Route as AuthenticatedCargasPrevistasRouteImport } from './routes/_authenticated/cargas-previstas'
 import { Route as AuthenticatedClientesAgendamentoRouteImport } from './routes/_authenticated/clientes-agendamento'
@@ -55,6 +56,12 @@ const AuthenticatedAgendamentosRoute =
   AuthenticatedAgendamentosRouteImport.update({
     id: '/agendamentos',
     path: '/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedArquivosComplementaresRoute =
+  AuthenticatedArquivosComplementaresRouteImport.update({
+    id: '/arquivos-complementares',
+    path: '/arquivos-complementares',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCargasRoute = AuthenticatedCargasRouteImport.update({
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -200,6 +209,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/_authenticated/arquivos-complementares': typeof AuthenticatedArquivosComplementaresRoute
   '/_authenticated/cargas': typeof AuthenticatedCargasRouteWithChildren
   '/_authenticated/cargas-previstas': typeof AuthenticatedCargasPrevistasRoute
   '/_authenticated/clientes-agendamento': typeof AuthenticatedClientesAgendamentoRoute
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/agendamentos'
+    | '/arquivos-complementares'
     | '/cargas'
     | '/cargas-previstas'
     | '/clientes-agendamento'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/agendamentos'
+    | '/arquivos-complementares'
     | '/cargas'
     | '/cargas-previstas'
     | '/clientes-agendamento'
@@ -272,6 +284,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/agendamentos'
+    | '/_authenticated/arquivos-complementares'
     | '/_authenticated/cargas'
     | '/_authenticated/cargas-previstas'
     | '/_authenticated/clientes-agendamento'
@@ -333,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/agendamentos'
       fullPath: '/agendamentos'
       preLoaderRoute: typeof AuthenticatedAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/arquivos-complementares': {
+      id: '/_authenticated/arquivos-complementares'
+      path: '/arquivos-complementares'
+      fullPath: '/arquivos-complementares'
+      preLoaderRoute: typeof AuthenticatedArquivosComplementaresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cargas': {
@@ -470,6 +490,7 @@ const AuthenticatedCargasRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
+  AuthenticatedArquivosComplementaresRoute: typeof AuthenticatedArquivosComplementaresRoute
   AuthenticatedCargasRoute: typeof AuthenticatedCargasRouteWithChildren
   AuthenticatedCargasPrevistasRoute: typeof AuthenticatedCargasPrevistasRoute
   AuthenticatedClientesAgendamentoRoute: typeof AuthenticatedClientesAgendamentoRoute
@@ -490,6 +511,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
+  AuthenticatedArquivosComplementaresRoute:
+    AuthenticatedArquivosComplementaresRoute,
   AuthenticatedCargasRoute: AuthenticatedCargasRouteWithChildren,
   AuthenticatedCargasPrevistasRoute: AuthenticatedCargasPrevistasRoute,
   AuthenticatedClientesAgendamentoRoute: AuthenticatedClientesAgendamentoRoute,
