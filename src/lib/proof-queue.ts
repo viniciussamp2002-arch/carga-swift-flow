@@ -10,7 +10,13 @@ function open(): Promise<IDBDatabase> {
 }
 async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   const db = await open();
-  return new Promise((res, rej) => { const q = fn(db.transaction(STORE, mode).objectStore(STORE)); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+  return new Promise((res, rej) => {
+    const transaction = db.transaction(STORE, mode);
+    const q = fn(transaction.objectStore(STORE));
+    transaction.oncomplete = () => { db.close(); res(q.result); };
+    transaction.onabort = () => { db.close(); rej(transaction.error); };
+    transaction.onerror = () => { db.close(); rej(transaction.error); };
+  });
 }
 export const queueAdd = (p: QueuedProof) => tx("readwrite", (s) => s.put(p));
 export const queueRemove = (id: string) => tx("readwrite", (s) => s.delete(id));
