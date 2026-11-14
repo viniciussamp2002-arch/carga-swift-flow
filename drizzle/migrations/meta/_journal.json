@@ -155,6 +155,13 @@
       "when": 1794620231285,
       "tag": "0021_optional_contract_selection",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794620370966,
+      "tag": "0022_enforce_financial_workflow_and_delivery_approval",
+      "breakpoints": true
     }
   ]
 }
