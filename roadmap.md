@@ -2,11 +2,19 @@
 - [x] Notas estilo Excel: edição na célula, colunas (ocultar/arrastar/largura), visualização salva, busca geral, totais, importar planilha, adicionar à carga
 - [x] Cargas de entrada + confirmação de chegada → depósito
 - [x] Clientes com agendamento obrigatório (CNPJ) + aba Agendamentos integrada
-- [ ] Atualização login/cadastros/financeiro: CPF seguro, aprovação e perfis de acesso
-- [ ] Atualização login/cadastros/financeiro: documentos complementares e fila offline compartilhada
-- [ ] Atualização login/cadastros/financeiro: menu superior e cadastros completos
-- [ ] Atualização login/cadastros/financeiro: tabelas versionadas, distâncias, simulação e memória por NF
-- [ ] Atualização login/cadastros/financeiro: automação e conferência financeira, Excel e testes integrados
+- [x] Atualização login/cadastros/financeiro: CPF seguro, solicitações pendentes, aprovação e perfis de acesso
+  - Solicitação VALIDACAO CPF 141126 persistida pendente, sem autorização operacional. Contas antigas de motorista habilitam CPF pela ação de recuperação em Usuários, após validar CPF e vínculo.
+- [x] Atualização login/cadastros/financeiro: documentos complementares e fila offline compartilhada
+  - Classificação, triagem, vínculos e pedido de nova foto implementados; fila aguarda confirmação de transação local e registro remoto. Não validado com câmera física nem nova classificação de foto real.
+- [x] Atualização login/cadastros/financeiro: menu superior e cadastros
+  - Menu, fornecedor, ativação de motorista e vínculo veículo–motorista–carga de entrada disponíveis; telas administrativas verificadas.
+- [x] Atualização login/cadastros/financeiro: tabelas versionadas, distâncias, simulação e memória por NF
+  - Regras configuráveis sem ativar exemplos; contrato explícito quando houver ambiguidade, destino efetivo e peso operacional separados dos dados fiscais.
+- [x] Atualização login/cadastros/financeiro: automação, conferência financeira e Excel
+  - Aprovação alimenta financeiro; fechamento exige canhoto aprovado e cálculos completos; fechamento bloqueia recálculo. Exportação Excel verificada.
+- [ ] Validação externa: câmera e reabertura offline em Android/iPhone reais — depende de aparelho e acesso de motorista.
+- [ ] Validação externa: contrato real, distância e tributos aplicáveis — depende de parâmetros comerciais confirmados.
+  - 54 testes passaram; seis simulações reais conferiram faixa R$240, percentual R$30, adicional R$270, tonelada R$297,50, tributo por dentro R$125 e distância pendente. Cadastro de CPF persistido pendente; telas, parâmetros e Excel verificados. Aprovação completa de foto nova e faturamento não exercitados; sem publicação.
 - [ ] Estoque (saldos por fornecedor)
 - [ ] Montagem de cargas: adicionar à carga pela tabela, sequência, romaneio A4, conferência, saída
 - [ ] Agendamentos com histórico

@@ -54,7 +54,13 @@ export const resetDriverPassword = createServerFn({ method: "POST" })
     if (!role) throw new Error("Acesso não autorizado");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: mapping } = await supabaseAdmin.from("login_motoristas").select("user_id").eq("user_id", data.userId).maybeSingle();
-    if (!mapping) throw new Error("Conta de motorista não encontrada");
+    if (!mapping) {
+      const {data: driver}=await supabaseAdmin.from("motoristas").select("cpf").eq("user_id",data.userId).maybeSingle();
+      const {data: account}=await supabaseAdmin.auth.admin.getUserById(data.userId);
+      if (!driver?.cpf || !validCpf(driver.cpf) || !account.user?.email) throw new Error("Confira o CPF válido e o vínculo do motorista antes de habilitar o acesso");
+      const {error: linkError}=await supabaseAdmin.from("login_motoristas").insert({user_id:data.userId,cpf:normalizeCpf(driver.cpf),email_interno:account.user.email});
+      if(linkError)throw new Error("Não foi possível habilitar o acesso por CPF");
+    }
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.password });
     if (error) throw new Error("Não foi possível redefinir a senha");
     await context.supabase.from("historico").insert({ entidade: "usuario", entidade_id: data.userId, acao: "recuperacao_acesso", descricao: data.motivo, user_id: context.userId });

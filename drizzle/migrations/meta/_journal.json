@@ -148,6 +148,20 @@
       "when": 1794610849439,
       "tag": "0020_resolve_contracts_without_invented_values",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794620231285,
+      "tag": "0021_optional_contract_selection",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794620370966,
+      "tag": "0022_enforce_financial_workflow_and_delivery_approval",
+      "breakpoints": true
     }
   ]
 }
