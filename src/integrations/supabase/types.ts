@@ -1374,10 +1374,10 @@ export type Database = {
       ajustar_parametros_frete: {
         Args: {
           _cidade: string
-          _motivo: string
+          _motivo?: string
           _nota: string
           _peso: number
-          _tabela: string
+          _tabela?: string
           _uf: string
         }
         Returns: string
