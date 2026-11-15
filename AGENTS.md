@@ -12,3 +12,5 @@
 - Driver receipt photos queue in IndexedDB per account and are removed locally only after the server row exists; only office RPCs (aprovar/rejeitar_comprovante) finalize proofs and create deliveries, so AI and drivers can never approve.
 - CPF sign-in resolves a private random identifier on the server and approvals use a transactional administrator RPC; browser metadata must never grant access.
 - Freight rules and per-note calculations are immutable version snapshots; only approved proofs enter the financial workflow, and closure blocks recalculation to preserve billed amounts.
+- XML product arrays are immutable fiscal snapshots keyed by nItem; legacy recovery matches the access key and only fills empty arrays, avoiding duplicate fiscal notes.
+- Item occurrences use the existing occurrence table and server-derived item identity; unloading receipts preserve payment and multimodal charge snapshots with server-recalculated totals.

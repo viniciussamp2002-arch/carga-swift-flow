@@ -574,13 +574,13 @@ function NotasPage() {
                 const expanded = expandedGroups.has(key);
                 const totals = sum(ns);
                 const individualRows = ns.map((n: any) => (
-                  <tr key={n.id} className={selected.has(n.id) ? "!bg-primary/10" : ""}>
+                  <tr key={n.id} aria-selected={selected.has(n.id)} className={occurrenceMap.has(n.id) ? "occurrence-row" : selected.has(n.id) ? "!bg-primary/10" : ""}>
                     <td><input type="checkbox" checked={selected.has(n.id)} disabled={!canWrite} onChange={() => toggle(n.id)} /></td>
                     {cols.map((c) => Cell({ n, col: c }))}
                   </tr>
                 ));
                 if (!grouped) return individualRows;
-                return [<tr key={key}>
+                return [<tr key={key} className={ns.some(n=>occurrenceMap.has(n.id))?"occurrence-row":""}>
                   <td><input type="checkbox" aria-label={`Selecionar grupo ${ns[0].cliente}`} disabled={!canWrite} checked={ns.every(n => selected.has(n.id))} onChange={e => { const next = new Set(selected); ns.forEach(n => e.target.checked ? next.add(n.id) : next.delete(n.id)); setSelected(next); }} /></td>
                   <td colSpan={cols.length}>
                     <Button variant="ghost" size="sm" onClick={() => { const next = new Set(expandedGroups); expanded ? next.delete(key) : next.add(key); setExpandedGroups(next); }}>
