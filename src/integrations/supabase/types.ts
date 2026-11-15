@@ -1493,6 +1493,8 @@ export type Database = {
         | "devolucao"
         | "lacre_violado"
         | "divergencia_documental"
+        | "produto_proximo_vencimento"
+        | "divergencia_valor_item"
       recebimento_cliente_status:
         | "aguardando_entrada"
         | "entrada_realizada"
@@ -1673,6 +1675,8 @@ export const Constants = {
         "devolucao",
         "lacre_violado",
         "divergencia_documental",
+        "produto_proximo_vencimento",
+        "divergencia_valor_item",
       ],
       recebimento_cliente_status: [
         "aguardando_entrada",

@@ -162,6 +162,13 @@
       "when": 1794620370966,
       "tag": "0022_enforce_financial_workflow_and_delivery_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794714780715,
+      "tag": "0023_extend_inbound_occurrence_types",
+      "breakpoints": true
     }
   ]
 }
