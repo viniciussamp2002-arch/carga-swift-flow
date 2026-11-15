@@ -61,6 +61,7 @@ function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;note
   function toggleMode(mode: UnloadingMode, enabled: boolean) { change("cobrancas", enabled ? [...charges, { modalidade:mode,quantidade:mode==="peso"?defaults.peso_kg:mode==="volume"?defaults.volumes_previstos:0,tarifa:0 }] : charges.filter(c=>c.modalidade!==mode)); }
   function change<K extends keyof ReceivingData>(key:K,value:ReceivingData[K]) {setForm(f=>({...f,[key]:value}));setDirty(true);receiptRequest.current=null;}
   async function snapshot():Promise<ReceivingData> {
+    if (kind === "recibo" && (payment.isPending || payment.error)) throw new Error("Aguarde o carregamento dos dados para pagamento");
     const occurrences: ReceivingData["ocorrencias"] = [];
     const byId = new Map(notes.map(n => [n.id,n]));
     const ids = notes.map(n=>n.id);

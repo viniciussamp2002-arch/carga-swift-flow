@@ -15,9 +15,10 @@
 - [ ] Validação externa: câmera e reabertura offline em Android/iPhone reais — depende de aparelho e acesso de motorista.
 - [ ] Validação externa: contrato real, distância e tributos aplicáveis — depende de parâmetros comerciais confirmados.
   - 54 testes passaram; seis simulações reais conferiram faixa R$240, percentual R$30, adicional R$270, tonelada R$297,50, tributo por dentro R$125 e distância pendente. Cadastro de CPF persistido pendente; telas, parâmetros e Excel verificados. Aprovação completa de foto nova e faturamento não exercitados; sem publicação.
-- [ ] Revisão Cargas de Entrada: itens XML, ocorrências por produto e fotos múltiplas, destaque das linhas
-- [ ] Revisão Cargas de Entrada: remover acesso redundante de checklist; recibo multimodal, Pix configurável, NFs completas e PDF
-- [ ] Revisão Cargas de Entrada: testes de cálculo, vínculos, recibo e regressões
+- [x] Revisão Cargas de Entrada: itens XML, ocorrências por produto e fotos múltiplas, destaque das linhas
+- [x] Revisão Cargas de Entrada: remover acesso redundante de checklist; recibo multimodal, Pix configurável, NFs completas e PDF
+- [x] Revisão Cargas de Entrada: 50 testes de cálculo e preservação; conta administrativa verificou 15 NFs, expansão, ausência do Checklist, recibo misto R$370 e PDF A4 com Pix, NFs e assinaturas; tela de 625px sem excesso horizontal.
+- [ ] Validação de ocorrência por produto e fotos reais — depende dos XMLs originais: as 15 NFs existentes não possuíam produtos armazenados. Recuperação segura disponível; nenhum produto fiscal ou cobrança fictícia foi inserido. Emissão de nova versão e impressão física não exercitadas nesta revisão.
 - [ ] Estoque (saldos por fornecedor)
 - [ ] Montagem de cargas: adicionar à carga pela tabela, sequência, romaneio A4, conferência, saída
 - [ ] Agendamentos com histórico
