@@ -188,9 +188,16 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   const { data } = useQuery({
     queryKey: ["carga-entrada", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("cargas_entrada").select("*, notas_fiscais(*)").eq("id", id).single();
+      const { data, error } = await supabase.from("cargas_entrada").select("*").eq("id", id).single();
       if (error) throw error;
-      return data as any;
+      const notes = [];
+      for (let from = 0; ; from += 1000) {
+        const r = await supabase.from("notas_fiscais").select("*").eq("carga_entrada_id", id).order("id").range(from, from + 999);
+        if (r.error) throw r.error;
+        notes.push(...(r.data || []));
+        if (!r.data || r.data.length < 1000) break;
+      }
+      return { ...data, notas_fiscais: notes };
     },
   });
   const notas: any[] = data?.notas_fiscais ?? [];
