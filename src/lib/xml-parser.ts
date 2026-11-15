@@ -16,7 +16,7 @@ export interface ParsedNFe {
   cfops: string[];
   itens_xml: NFeItem[];
 }
-export interface NFeItem { numero: string; codigo: string; descricao: string; quantidade: number; unidade: string }
+export type NFeItem = { numero: string; codigo: string; descricao: string; quantidade: number; unidade: string };
 export function unitLabel(unit: string) {
   const units: Record<string, string> = { CX: "Caixa", FD: "Fardo", UN: "Unidade", UND: "Unidade", PCT: "Pacote", KG: "kg", LT: "Litro", L: "Litro" };
   return units[unit.toUpperCase()] || unit;
