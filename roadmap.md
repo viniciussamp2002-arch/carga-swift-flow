@@ -44,3 +44,5 @@
   - Feito: perfil motorista vinculado em Usuários, tela de celular com fila de fotos no aparelho, leitura automática, conferência/aprovação/rejeição em Entregas.
   - Não testado ponta a ponta com conta real de motorista nem em Android/iPhone; instalação como aplicativo (PWA) ainda não feita.
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
+
+- [x] Revisão 02: Clientes com Agendamento em Cadastros, colunas simplificadas, lembretes (amanhã/vencido/aguardando), pendências até entrega aprovada, desfazer/refazer em Agendamentos
