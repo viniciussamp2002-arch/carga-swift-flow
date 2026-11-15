@@ -6,14 +6,32 @@ export const CHECK_QUESTIONS = {
   violacao: "Indícios de avaria ou violação?", falta: "Houve falta?", sobra: "Houve sobra?", avaria: "Houve avaria?",
   divergencia_produtos: "Houve divergência de produtos?", produto_vencido: "Houve produto vencido?",
 };
-export interface ReceivingNote { id: string; numero: string; fornecedor: string; cliente?: string; peso: number; volumes: number; recebida?: boolean }
+export interface ReceivingNote { id: string; numero: string; serie?: string | null; cnpj_emissor?: string | null; chave_nfe?: string | null; carga_entrada_id?: string | null; fornecedor: string; cliente?: string; peso: number; volumes: number; recebida?: boolean; itens_xml?: unknown }
 export interface ReceivingLoad { id: string; numero_transporte: string; transportadora: string; motorista?: string | null; placa?: string | null; data_chegada?: string | null; recebido_por_nome?: string | null }
 export interface ReceivingData {
+  cobrancas?: UnloadingCharge[]; pagamento?: PaymentDetails;
   empresa: typeof COMPANY; transporte: string; transportadora: string; motorista: string; placa: string; reboque: string;
   data: string; conferente: string; fornecedores: string[]; notas: ReceivingNote[]; peso_kg: number; volumes_previstos: number;
   volumes_recebidos: number | null; tarifa: number; toneladas: number; valor_total: number; numero_lacre: string;
   condicoes_veiculo: string; observacoes: string; respostas: Record<string, Answer>;
   ocorrencias: { numero: string; tipo: string; descricao: string; status: string; quantidade: number | null; unidade: string | null }[];
+}
+export interface PaymentDetails { favorecido: string; pix: string; tipo_chave: string }
+export const DEFAULT_PAYMENT: PaymentDetails = { favorecido: "COELHO E SILVA LTDA", pix: "38.974.133/0001-31", tipo_chave: "CNPJ" };
+export type UnloadingMode = "volume" | "peso" | "pallet";
+export interface UnloadingCharge { modalidade: UnloadingMode; quantidade: number; tarifa: number; subtotal?: number }
+export const UNLOADING_LABELS = { volume: "Por volume", peso: "Por peso", pallet: "Por pallet" };
+export function mixedUnloadingCost(charges: UnloadingCharge[]) {
+  if (!charges.length || new Set(charges.map(c => c.modalidade)).size !== charges.length) throw new Error("Selecione modalidades distintas");
+  const cobrancas = charges.map(c => {
+    if (!Object.hasOwn(UNLOADING_LABELS, c.modalidade) || !Number.isFinite(c.quantidade) || !Number.isFinite(c.tarifa) || c.quantidade < 0 || c.tarifa < 0) throw new Error("Quantidade e tarifa inválidas");
+    return { ...c, subtotal: new Decimal(c.quantidade).mul(c.tarifa).div(c.modalidade === "peso" ? 1000 : 1).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() };
+  });
+  return { cobrancas, valor_total: cobrancas.reduce((sum, c) => sum.plus(c.subtotal), new Decimal(0)).toNumber() };
+}
+export function receiptNoteLabels(notes: ReceivingNote[]) {
+  const unique = receivingTotals(notes).notas;
+  return unique.map(n => unique.filter(x => x.numero === n.numero).length > 1 ? `${n.numero} (série ${n.serie || "—"}, emitente ${n.cnpj_emissor || n.fornecedor})` : n.numero);
 }
 export function unloadingCost(kg: number, rate: number) {
   if (!Number.isFinite(kg) || !Number.isFinite(rate) || kg < 0 || rate < 0) throw new Error("Peso e tarifa devem ser válidos e não negativos");
@@ -29,7 +47,7 @@ export function initialReceivingData(load: ReceivingLoad, notes: ReceivingNote[]
   return { empresa: COMPANY, transporte: load.numero_transporte, transportadora: load.transportadora, motorista: load.motorista || "", placa: load.placa || "", reboque: "",
     data: load.data_chegada || "", conferente: load.recebido_por_nome || responsible, fornecedores: totals.fornecedores, notas: totals.notas,
     peso_kg: totals.peso, volumes_previstos: totals.volumes, volumes_recebidos: null, tarifa: 0, toneladas: totals.peso / 1000, valor_total: 0,
-    numero_lacre: "", condicoes_veiculo: "", observacoes: "", respostas: {}, ocorrencias: [] };
+    numero_lacre: "", condicoes_veiculo: "", observacoes: "", respostas: {}, ocorrencias: [], pagamento: { ...DEFAULT_PAYMENT }, cobrancas: [{ modalidade: "peso", quantidade: totals.peso, tarifa: 0 }] };
 }
 export function hasReceivingDivergence(data?: Pick<ReceivingData, "respostas" | "volumes_previstos" | "volumes_recebidos"> | null) {
   if (!data) return false;

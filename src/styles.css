@@ -54,6 +54,7 @@
 }
 
 :root {
+  --occurrence-row: #FFF1F2;
   --radius: 0.375rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.20 0.03 250);
@@ -97,6 +98,7 @@
 }
 
 .dark {
+  --occurrence-row: oklch(0.27 0.045 20);
   --background: oklch(0.16 0.02 250);
   --foreground: oklch(0.95 0.01 240);
   --card: oklch(0.20 0.02 250);
@@ -166,3 +168,6 @@
 }
 .table-erp tbody tr:nth-child(even) { background: var(--color-muted); }
 .table-erp tbody tr:hover { background: var(--color-accent); }
+.table-erp tbody tr.occurrence-row { background: var(--occurrence-row); }
+.table-erp tbody tr.occurrence-row:hover { background: var(--occurrence-row); }
+.table-erp tbody tr.occurrence-row[aria-selected="true"] { box-shadow: inset 3px 0 var(--color-primary); }

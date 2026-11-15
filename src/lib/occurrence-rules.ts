@@ -1,7 +1,7 @@
 export const OC_TIPO_LABEL: Record<string, string> = {
   falta: "Falta de mercadoria", avaria: "Avaria", sobra: "Sobra", divergencia_volumes: "Divergência de volumes",
   produto_vencido: "Produto vencido", produto_recusado: "Produto recusado pelo cliente", entrega_nao_realizada: "Entrega não realizada",
-  devolucao: "Devolução", lacre_violado: "Lacre violado", divergencia_documental: "Divergência documental", outros: "Outros",
+  devolucao: "Devolução", lacre_violado: "Lacre violado", divergencia_documental: "Divergência documental", produto_proximo_vencimento: "Produto próximo do vencimento", divergencia_valor_item: "Divergência de valor do item", outros: "Outros",
 };
 export const OC_STATUS_LABEL: Record<string, string> = { aberta: "Aberta", em_analise: "Em análise", resolvida: "Resolvida" };
 export const OC_ETAPA_LABEL: Record<string, string> = {
@@ -16,4 +16,7 @@ export function occurrenceOrigin(etapa: string): "recebimento" | "entrega" {
 }
 export function validateOccurrenceUpdate(status: string, resolucao: string) {
   if (status === "resolvida" && !resolucao.trim()) throw new Error("Informe a solução adotada");
+}
+export function validateAffectedQuantity(value: number) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error("Informe quantidade afetada positiva");
 }

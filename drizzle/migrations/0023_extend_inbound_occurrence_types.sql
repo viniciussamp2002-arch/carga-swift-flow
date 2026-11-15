@@ -1,0 +1,1 @@
+ALTER TYPE public.ocorrencia_tipo ADD VALUE IF NOT EXISTS 'produto_proximo_vencimento'; ALTER TYPE public.ocorrencia_tipo ADD VALUE IF NOT EXISTS 'divergencia_valor_item';

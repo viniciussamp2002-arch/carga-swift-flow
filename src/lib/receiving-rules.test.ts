@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { hasReceivingDivergence, initialReceivingData, receivingTotals, unloadingCost, validateChecklist } from "./receiving-rules";
+import { hasReceivingDivergence, initialReceivingData, receivingTotals, unloadingCost, validateChecklist, mixedUnloadingCost, DEFAULT_PAYMENT, receiptNoteLabels } from "./receiving-rules";
 const note = { id: "nf1", numero: "1", fornecedor: "Fornecedor A", peso: 8500, volumes: 100 };
 const load = { id: "carga1", numero_transporte: "582", transportadora: "Origem" };
 describe("Checklist e descarga", () => {
+  it("cobra 80 volumes a R$1,50 como R$120",()=>expect(mixedUnloadingCost([{modalidade:"volume",quantidade:80,tarifa:1.5}]).valor_total).toBe(120));
+  it("cobra 10 pallets a R$25 como R$250",()=>expect(mixedUnloadingCost([{modalidade:"pallet",quantidade:10,tarifa:25}]).valor_total).toBe(250));
+  it("soma modalidade mista como R$370",()=>expect(mixedUnloadingCost([{modalidade:"pallet",quantidade:10,tarifa:25},{modalidade:"volume",quantidade:80,tarifa:1.5}]).valor_total).toBe(370));
+  it("calcula peso por tonelada",()=>expect(mixedUnloadingCost([{modalidade:"peso",quantidade:8500,tarifa:35}]).valor_total).toBe(297.5));
+  it("preserva favorecido distinto da empresa",()=>{const d=initialReceivingData(load,[note],"Conferente");expect(d.pagamento).toEqual({favorecido:"COELHO E SILVA LTDA",pix:"38.974.133/0001-31",tipo_chave:"CNPJ"});expect(d.empresa.cnpj).toBe("33.146.732/0001-43");expect(DEFAULT_PAYMENT.pix).not.toBe(d.empresa.cnpj);});
+  it("lista todas as 15 NFs sem repetir agrupamentos",()=>{const ns=Array.from({length:15},(_,i)=>({...note,id:String(i),numero:String(15874+i)}));expect(receiptNoteLabels([...ns,ns[0]])).toEqual(Array.from({length:15},(_,i)=>String(15874+i)));});
+  it("distingue mesma numeração em emitentes diferentes",()=>expect(receiptNoteLabels([{...note,serie:"1",cnpj_emissor:"111"},{...note,id:"nf2",serie:"2",cnpj_emissor:"222"}])).toEqual(["1 (série 1, emitente 111)","1 (série 2, emitente 222)"]));
   it("calcula 8.500 kg a R$35/t como R$297,50", () => expect(unloadingCost(8500,35)).toEqual({ toneladas:8.5, valor_total:297.5 }));
   it("arredonda descarga em centavos", () => expect(unloadingCost(1001,35).valor_total).toBe(35.04));
   it("recusa tarifas negativas", () => expect(() => unloadingCost(8500,-35)).toThrow());

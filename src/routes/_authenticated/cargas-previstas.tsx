@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ReceivingDocuments, ReceivingOccurrences, ReceivingHistory, useReceivingChecklist } from "@/components/ReceivingDocuments";
 import { hasReceivingDivergence, type ReceivingData } from "@/lib/receiving-rules";
 import { useOcorrencias } from "@/components/Ocorrencias";
+import { InboundOccurrenceItems } from "@/components/InboundOccurrenceItems";
 import { LoadLifecycleActions, LoadStateFilter, LoadStateInfo } from "@/components/LoadLifecycle";
 import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
 
@@ -173,6 +174,7 @@ function CargaForm({ form, setForm }: { form: any; setForm: (f: any) => void }) 
 }
 
 function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void; onEdit: (c: any) => void }) {
+  const occurrenceMap = useOcorrencias();
   const { canWrite } = useAuth();
   const qc = useQueryClient();
   const xmlRef = useRef<HTMLInputElement>(null);
@@ -255,7 +257,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             <span>Volumes <b>{fmtNum(t.volumes)}</b></span><span>Valor <b>{fmtBRL(t.valor)}</b></span>
           </div>
           <Tabs defaultValue="notas" className="min-w-0">
-          <div className="overflow-x-auto"><TabsList className="w-max"><TabsTrigger value="notas">Notas Fiscais</TabsTrigger><TabsTrigger value="checklist">Checklist</TabsTrigger><TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger><TabsTrigger value="recibo">Recibo de Descarga</TabsTrigger><TabsTrigger value="historico">Histórico</TabsTrigger></TabsList></div>
+          <div className="overflow-x-auto"><TabsList className="w-max"><TabsTrigger value="notas">Notas Fiscais</TabsTrigger><TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger><TabsTrigger value="recibo">Recibo de Descarga</TabsTrigger><TabsTrigger value="historico">Histórico</TabsTrigger></TabsList></div>
           <TabsContent value="notas" className="space-y-3">
           {canWrite && <div className="flex flex-wrap gap-2">
             <input ref={xmlRef} type="file" accept=".xml" multiple className="hidden" onChange={(e) => { if (e.target.files) importar(e.target.files); e.target.value = ""; }} />
@@ -279,7 +281,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             {modo === "individual" ? <table className="table-erp">
               <thead><tr><th>Nº NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade/UF</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th><th>Recebida</th><th></th></tr></thead>
               <tbody>
-                {notas.map((n) => <tr key={n.id}>
+                {notas.map((n) => <tr key={n.id} className={occurrenceMap.has(n.id) ? "occurrence-row" : ""}>
                   <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td><td>{n.fornecedor}</td><td>{n.cliente}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                   <td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td>
                   <td>{n.recebida ? "Sim" : "Não"}</td>
@@ -291,7 +293,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
               <thead><tr><th></th><th>Cliente / destinatário</th><th>CNPJ</th><th>Cidade/UF</th><th className="text-right">Notas</th><th>Nº das NFs</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th></tr></thead>
               <tbody>
                 {grupos.map((g) => { const aberto = abertos.has(g.k); const f = g.ns[0]; return [
-                  <tr key={g.k} className="cursor-pointer" onClick={() => { const s = new Set(abertos); aberto ? s.delete(g.k) : s.add(g.k); setAbertos(s); }}>
+                  <tr key={g.k} className={`cursor-pointer ${g.ns.some(n=>occurrenceMap.has(n.id))?"occurrence-row":""}`} onClick={() => { const s = new Set(abertos); aberto ? s.delete(g.k) : s.add(g.k); setAbertos(s); }}>
                     <td>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</td>
                     <td className="font-semibold">{f.cliente}<OcorrenciaGrupoBadge notas={g.ns} /></td><td className="font-mono">{f.cnpj_destinatario || "—"}</td><td>{f.cidade}{f.uf && `/${f.uf}`}</td>
                     <td className="text-right">{g.t.notas}</td><td className="font-mono text-xs">{g.ns.map((n) => n.numero).join(", ")}</td>
@@ -299,7 +301,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
                   </tr>,
                   aberto && <tr key={g.k + "-x"}><td></td><td colSpan={8} className="p-0">
                     <table className="table-erp"><thead><tr><th>Nº NF</th><th>Chave de acesso</th><th>Fornecedor</th><th>Cliente</th><th>Cidade</th><th className="text-right">Peso</th><th className="text-right">Vol.</th><th className="text-right">Valor</th><th></th></tr></thead>
-                      <tbody>{g.ns.map((n) => <tr key={n.id}>
+                      <tbody>{g.ns.map((n) => <tr key={n.id} className={occurrenceMap.has(n.id)?"occurrence-row":""}>
                         <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td><td className="font-mono text-[10px]">{n.chave_nfe || "—"}</td><td>{n.fornecedor}</td><td>{n.cliente}</td>
                         <td>{n.cidade}</td><td className="text-right">{fmtNum(n.peso, 3)}</td><td className="text-right">{n.volumes}</td><td className="text-right">{fmtBRL(n.valor)}</td><td>{acoes(n)}</td>
                       </tr>)}</tbody></table>
@@ -310,8 +312,7 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             </table>}
           </div>
           </TabsContent>
-          <TabsContent value="checklist"><ReceivingDocuments load={data} notes={notas} kind="checklist" readOnly={!!inativa} /></TabsContent>
-          <TabsContent value="ocorrencias"><ReceivingOccurrences notes={notas} /></TabsContent>
+          <TabsContent value="ocorrencias"><InboundOccurrenceItems notes={notas} transporte={data.numero_transporte} readOnly={!!inativa} /></TabsContent>
           <TabsContent value="recibo"><ReceivingDocuments load={data} notes={notas} kind="recibo" readOnly={!!inativa} /></TabsContent>
           <TabsContent value="historico"><ReceivingHistory loadId={id} notes={notas} /></TabsContent>
           </Tabs>

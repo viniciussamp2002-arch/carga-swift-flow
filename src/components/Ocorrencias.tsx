@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtDateTime, fmtNum } from "@/lib/format";
-import { OC_TIPO_LABEL, OC_STATUS_LABEL, OC_ETAPA_LABEL, occurrenceState, occurrenceOrigin, validateOccurrenceUpdate } from "@/lib/occurrence-rules";
+import { OC_TIPO_LABEL, OC_STATUS_LABEL, OC_ETAPA_LABEL, occurrenceState, occurrenceOrigin, validateOccurrenceUpdate, validateAffectedQuantity } from "@/lib/occurrence-rules";
+import { unitLabel, type NFeItem } from "@/lib/xml-parser";
 import { toast } from "sonner";
 import { AlertTriangle, Paperclip, Plus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -18,8 +19,8 @@ type Occurrence = Database["public"]["Tables"]["ocorrencias"]["Row"];
 type Nota = { id: string; numero?: string; chave_nfe?: string | null; carga_entrada_id?: string | null; carga_id?: string | null; cliente?: string; fornecedor?: string };
 
 export function useOcorrencias() {
-  const { canWrite } = useAuth();
-  const { data = [] } = useQuery({ queryKey: ["ocorrencias"], enabled: canWrite, queryFn: async () => {
+  const { canWrite, canReceive } = useAuth();
+  const { data = [] } = useQuery({ queryKey: ["ocorrencias"], enabled: canWrite || canReceive, queryFn: async () => {
     const all: Occurrence[] = [];
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supabase.from("ocorrencias").select("*").order("data_ocorrencia", { ascending: false }).order("id").range(from, from + 999);
@@ -82,17 +83,17 @@ function OccurrenceItem({ o }: { o: Occurrence }) {
     const { error } = await supabase.from("ocorrencias").update({ status, resolucao: resolucao.trim(), observacao_posterior: observacao.trim() }).eq("id", o.id).select("id").single();
     if (error) throw error;
   }, onSuccess: () => { setObservacao(""); qc.invalidateQueries({ queryKey: ["ocorrencias"] }); qc.invalidateQueries({ queryKey: ["ocorrencia-eventos", o.id] }); qc.invalidateQueries({ queryKey: ["historico"] }); toast.success("Ocorrência atualizada"); }, onError: (e: Error) => toast.error(e.message) });
-  async function attachment() {
-    if (!o.anexo_path) return;
-    const { data, error } = await supabase.storage.from("ocorrencias").createSignedUrl(o.anexo_path, 300);
+  async function attachment(path: string) {
+    const { data, error } = await supabase.storage.from("ocorrencias").createSignedUrl(path, 300);
     if (error) toast.error(error.message); else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
   return <section className="border-b pb-4 space-y-2">
     <div className="flex flex-wrap items-center gap-2 text-sm"><b>{OC_TIPO_LABEL[o.tipo]}</b><span>{OC_ETAPA_LABEL[o.etapa]}</span><span className="ml-auto">{OC_STATUS_LABEL[o.status]}</span></div>
     {o.quantidade != null && <p className="text-sm">{fmtNum(o.quantidade)} {o.unidade}</p>}
     <p className="text-sm whitespace-pre-wrap break-words">{o.descricao}</p>
+    {o.item_numero && <p className="text-sm">{o.produto_codigo} · {o.produto_descricao} · {fmtNum(o.quantidade ?? 0)} {unitLabel(o.unidade || "")} (NF: {fmtNum(o.quantidade_item ?? 0)})</p>}
     <p className="text-xs text-muted-foreground">{fmtDateTime(o.data_ocorrencia)} · {o.registrado_por_nome || "—"}</p>
-    {o.anexo_path && <Button variant="link" size="sm" onClick={attachment}><Paperclip className="h-3 w-3" />Anexo</Button>}
+    {[...new Set([o.anexo_path, ...(o.anexos_paths || [])].filter((p): p is string => !!p))].map((path, index) => <Button key={path} variant="link" size="sm" onClick={() => attachment(path)}><Paperclip className="h-3 w-3" />Anexo {index + 1}</Button>)}
     {o.resolvida_em && <p className="text-xs">Resolvida em {fmtDateTime(o.resolvida_em)}</p>}
     <div className="space-y-1"><h3 className="text-sm font-semibold">Histórico</h3>
       {isPending && <p className="text-xs">Carregando histórico...</p>}{error && <p className="text-destructive text-xs">Não foi possível carregar o histórico.</p>}
@@ -122,27 +123,29 @@ function OcorrenciasDetalhe({ nota, list, etapa, onClose }: { nota: Nota; list: 
   </DialogContent></Dialog>;
 }
 
-export function RegistrarOcorrencia({ nota, transporte, cargaEntradaId, etapa = "recebimento", onClose }: { nota: Nota; transporte?: string; cargaEntradaId?: string; etapa?: string; onClose: () => void }) {
+export function RegistrarOcorrencia({ nota, transporte, cargaEntradaId, etapa = "recebimento", item, quantidadeAfetada, onClose }: { nota: Nota; transporte?: string; cargaEntradaId?: string; etapa?: string; item?: NFeItem; quantidadeAfetada?: number; onClose: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const idRef = useRef(crypto.randomUUID());
-  const uploaded = useRef<string | null>(null);
+  const uploaded = useRef<string[]>([]);
   const agora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16);
-  const [f, setF] = useState({ tipo: "falta", etapa, quantidade: "", unidade: "", descricao: "", quando: agora });
-  const [file, setFile] = useState<File | null>(null);
+  const [f, setF] = useState({ tipo: "falta", etapa, quantidade: quantidadeAfetada == null ? "" : String(quantidadeAfetada), unidade: item?.unidade || "", descricao: "", quando: agora });
+  const [files, setFiles] = useState<File[]>([]);
   const mut = useMutation({ mutationFn: async () => {
     if (!user) throw new Error("Entre novamente para registrar a ocorrência");
     if (f.quantidade && (!Number.isFinite(Number(f.quantidade)) || Number(f.quantidade) < 0)) throw new Error("Quantidade inválida");
-    if (file && !uploaded.current) {
-      const path = `${nota.id}/${idRef.current}-${file.name.replace(/[^\w.-]/g, "_")}`;
+    if (item) validateAffectedQuantity(Number(f.quantidade));
+    for (let index = uploaded.current.length; index < files.length; index++) {
+      const file = files[index];
+      const path = `${nota.id}/${idRef.current}-${index}-${file.name.replace(/[^\w.-]/g, "_")}`;
       const up = await supabase.storage.from("ocorrencias").upload(path, file);
       if (up.error) throw up.error;
-      uploaded.current = path;
+      uploaded.current.push(path);
     }
     const { error } = await supabase.from("ocorrencias").insert({ id: idRef.current, origem: occurrenceOrigin(f.etapa), etapa: f.etapa, nota_id: nota.id,
       chave_nfe: nota.chave_nfe, carga_entrada_id: cargaEntradaId ?? nota.carga_entrada_id, carga_id: nota.carga_id,
       tipo: f.tipo as Occurrence["tipo"], quantidade: f.quantidade === "" ? null : Number(f.quantidade), unidade: f.unidade || null,
-      descricao: f.descricao, data_ocorrencia: new Date(f.quando).toISOString(), anexo_path: uploaded.current });
+      descricao: f.descricao, data_ocorrencia: new Date(f.quando).toISOString(), anexo_path: uploaded.current[0] || null, anexos_paths: uploaded.current, item_numero: item?.numero || null });
     if (error) {
       if (error.code !== "23505") throw error;
       const retry = await supabase.from("ocorrencias").select("id").eq("id", idRef.current).eq("nota_id", nota.id).single();
@@ -153,14 +156,15 @@ export function RegistrarOcorrencia({ nota, transporte, cargaEntradaId, etapa = 
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Field label="Nota fiscal"><Input value={nota.numero ?? ""} disabled /></Field><Field label="Transporte"><Input value={transporte ?? ""} disabled /></Field>
       <Field label="Cliente"><Input value={nota.cliente ?? ""} disabled /></Field><Field label="Fornecedor"><Input value={nota.fornecedor ?? ""} disabled /></Field>
+      {item && <><Field label="Código do produto"><Input value={item.codigo} disabled /></Field><Field label="Produto"><Input value={item.descricao} disabled /></Field><Field label="Quantidade na NF"><Input value={`${fmtNum(item.quantidade)} ${unitLabel(item.unidade)}`} disabled /></Field></>}
       <Field label="Etapa"><Select value={f.etapa} onValueChange={v => setF({ ...f, etapa: v })}><SelectTrigger aria-label="Etapa da operação"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(OC_ETAPA_LABEL).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent></Select></Field>
       <Field label="Tipo"><Select value={f.tipo} onValueChange={v => setF({ ...f, tipo: v })}><SelectTrigger aria-label="Tipo de ocorrência"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(OC_TIPO_LABEL).map(([k,v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent></Select></Field>
       <Field label="Data e horário"><Input aria-label="Data e horário" type="datetime-local" value={f.quando} onChange={e => setF({ ...f, quando: e.target.value })} /></Field>
       <Field label="Quantidade afetada"><Input aria-label="Quantidade afetada" type="number" min="0" step="any" value={f.quantidade} onChange={e => setF({ ...f, quantidade: e.target.value })} /></Field>
-      <Field label="Unidade"><Input aria-label="Unidade" value={f.unidade} onChange={e => setF({ ...f, unidade: e.target.value })} /></Field>
+      <Field label="Unidade"><Input aria-label="Unidade" disabled={!!item} value={item ? unitLabel(item.unidade) : f.unidade} onChange={e => setF({ ...f, unidade: e.target.value })} /></Field>
       <Field label="Descrição"><Textarea aria-label="Descrição" value={f.descricao} onChange={e => setF({ ...f, descricao: e.target.value })} /></Field>
       <Field label="Responsável"><Input value={user?.email ?? ""} disabled /></Field>
-      <Field label="Foto / documento"><Input type="file" accept="image/*,.pdf" disabled={mut.isPending || !!uploaded.current} onChange={e => setFile(e.target.files?.[0] ?? null)} /></Field>
+      <Field label="Fotos / documentos"><Input type="file" multiple accept="image/*,.pdf" disabled={mut.isPending || uploaded.current.length > 0} onChange={e => setFiles(Array.from(e.target.files ?? []))} />{files.map((file, index) => <p key={index} className="text-xs break-all">{file.name}</p>)}</Field>
     </div><DialogFooter><Button variant="outline" disabled={mut.isPending} onClick={onClose}>Cancelar</Button><Button disabled={mut.isPending || !f.quando} onClick={() => mut.mutate()}>{mut.isPending ? "Salvando..." : "Salvar"}</Button></DialogFooter>
   </DialogContent></Dialog>;
 }
