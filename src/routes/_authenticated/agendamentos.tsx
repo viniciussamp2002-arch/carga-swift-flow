@@ -168,7 +168,7 @@ function AgendamentosPage() {
                 <td><HistoricoNota notaId={n.id} /></td>
               </tr>); })}
             {filtered.length === 0 && <tr><td colSpan={18} className="text-center text-muted-foreground py-8">
-              Nenhum agendamento. Notas de clientes cadastrados em "Clientes c/ Agendamento" aparecem aqui ao serem recebidas.</td></tr>}
+              Nenhum agendamento. Notas de clientes cadastrados em Cadastros › Clientes com Agendamento aparecem aqui ao serem recebidas.</td></tr>}
           </tbody>
         </table>
       </div>
