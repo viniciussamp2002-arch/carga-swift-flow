@@ -169,6 +169,13 @@
       "when": 1794714780715,
       "tag": "0023_extend_inbound_occurrence_types",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794714813178,
+      "tag": "0024_inbound_products_and_unloading_receipts",
+      "breakpoints": true
     }
   ]
 }

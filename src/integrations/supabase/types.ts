@@ -460,6 +460,27 @@ export type Database = {
           },
         ]
       }
+      configuracao_descarga: {
+        Row: {
+          chave: string
+          favorecido: string
+          pix: string
+          tipo_chave: string
+        }
+        Insert: {
+          chave?: string
+          favorecido?: string
+          pix?: string
+          tipo_chave?: string
+        }
+        Update: {
+          chave?: string
+          favorecido?: string
+          pix?: string
+          tipo_chave?: string
+        }
+        Relationships: []
+      }
       distancias: {
         Row: {
           atualizado_em: string
@@ -941,6 +962,7 @@ export type Database = {
           fornecedor: string
           grupo_importacao: string | null
           id: string
+          itens_xml: Json
           numero: string
           numeros_agrupados: string[]
           observacoes: string | null
@@ -981,6 +1003,7 @@ export type Database = {
           fornecedor?: string
           grupo_importacao?: string | null
           id?: string
+          itens_xml?: Json
           numero: string
           numeros_agrupados?: string[]
           observacoes?: string | null
@@ -1021,6 +1044,7 @@ export type Database = {
           fornecedor?: string
           grupo_importacao?: string | null
           id?: string
+          itens_xml?: Json
           numero?: string
           numeros_agrupados?: string[]
           observacoes?: string | null
@@ -1118,6 +1142,7 @@ export type Database = {
       ocorrencias: {
         Row: {
           anexo_path: string | null
+          anexos_paths: string[]
           carga_entrada_id: string | null
           carga_id: string | null
           chave_nfe: string | null
@@ -1126,10 +1151,14 @@ export type Database = {
           descricao: string
           etapa: string
           id: string
+          item_numero: string | null
           nota_id: string
           observacao_posterior: string
           origem: string
+          produto_codigo: string | null
+          produto_descricao: string | null
           quantidade: number | null
+          quantidade_item: number | null
           registrado_por: string | null
           registrado_por_nome: string | null
           resolucao: string
@@ -1142,6 +1171,7 @@ export type Database = {
         }
         Insert: {
           anexo_path?: string | null
+          anexos_paths?: string[]
           carga_entrada_id?: string | null
           carga_id?: string | null
           chave_nfe?: string | null
@@ -1150,10 +1180,14 @@ export type Database = {
           descricao?: string
           etapa?: string
           id?: string
+          item_numero?: string | null
           nota_id: string
           observacao_posterior?: string
           origem?: string
+          produto_codigo?: string | null
+          produto_descricao?: string | null
           quantidade?: number | null
+          quantidade_item?: number | null
           registrado_por?: string | null
           registrado_por_nome?: string | null
           resolucao?: string
@@ -1166,6 +1200,7 @@ export type Database = {
         }
         Update: {
           anexo_path?: string | null
+          anexos_paths?: string[]
           carga_entrada_id?: string | null
           carga_id?: string | null
           chave_nfe?: string | null
@@ -1174,10 +1209,14 @@ export type Database = {
           descricao?: string
           etapa?: string
           id?: string
+          item_numero?: string | null
           nota_id?: string
           observacao_posterior?: string
           origem?: string
+          produto_codigo?: string | null
+          produto_descricao?: string | null
           quantidade?: number | null
+          quantidade_item?: number | null
           registrado_por?: string | null
           registrado_por_nome?: string | null
           resolucao?: string
@@ -1390,6 +1429,7 @@ export type Database = {
         Args: { _data_entrega: string; _id: string; _nota: string }
         Returns: string
       }
+      calcular_descarga: { Args: { _linhas: Json }; Returns: Json }
       confirmar_chegada: {
         Args: {
           _carga: string
@@ -1422,6 +1462,10 @@ export type Database = {
       recalcular_frete: {
         Args: { _motivo: string; _nota: string }
         Returns: string
+      }
+      recuperar_itens_xml: {
+        Args: { _chave: string; _itens: Json; _nota: string }
+        Returns: undefined
       }
       rejeitar_comprovante: {
         Args: { _id: string; _motivo: string }
