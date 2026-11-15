@@ -1,4 +1,4 @@
-import { CHECK_QUESTIONS, type ReceivingData } from "./receiving-rules";
+import { CHECK_QUESTIONS, receiptNoteLabels, UNLOADING_LABELS, type ReceivingData } from "./receiving-rules";
 import { OC_STATUS_LABEL, OC_TIPO_LABEL } from "./occurrence-rules";
 import { fmtBRL, fmtNum, fmtDateTime } from "./format";
 export async function receivingPdf(data: ReceivingData, kind: "checklist" | "recibo", version: number, responsible: string, issued: string) {
@@ -24,10 +24,15 @@ export async function receivingPdf(data: ReceivingData, kind: "checklist" | "rec
   line(`NFs: ${data.notas.length} | Peso: ${fmtNum(data.peso_kg,3)} kg | Volumes previstos: ${fmtNum(data.volumes_previstos)}`);
   y += 4;
   if (kind === "recibo") {
-    line(`Peso em toneladas: ${fmtNum(data.toneladas,3)} t`);line(`Tarifa por tonelada: ${fmtBRL(data.tarifa)}`);
+    line("NOTAS FISCAIS",true,11);
+    line(`NFs (${data.notas.length}): ${receiptNoteLabels(data.notas).join(", ")}`,false,9);y+=3;
+    line("DISCRIMINAÇÃO DA DESCARGA",true,11);
+    if(data.cobrancas) for(const c of data.cobrancas) line(`${UNLOADING_LABELS[c.modalidade]} | ${fmtNum(c.quantidade,3)} ${c.modalidade==="peso"?"kg":c.modalidade==="volume"?"volumes":"pallets"} | ${fmtBRL(c.tarifa)}${c.modalidade==="peso"?"/t":"/un."} | Subtotal: ${fmtBRL(c.subtotal || 0)}`,false,9);
+    else {line(`Peso em toneladas: ${fmtNum(data.toneladas,3)} t`);line(`Tarifa por tonelada: ${fmtBRL(data.tarifa)}`);}
     line(`VALOR TOTAL DA DESCARGA: ${fmtBRL(data.valor_total)}`,true,13);y += 7;
     line(`Declaramos a prestação do serviço de descarga das mercadorias do transporte ${data.transporte || "—"}, no valor de ${fmtBRL(data.valor_total)}.`);
     if(data.observacoes) line(`Observações: ${data.observacoes}`);
+    if(data.pagamento){y+=4;line("DADOS PARA PAGAMENTO",true,11);line(`Favorecido: ${data.pagamento.favorecido}`);line(`Pix (${data.pagamento.tipo_chave}): ${data.pagamento.pix}`);}
   } else {
     line("Condições do veículo e mercadoria",true,12);
     for(const [key,label] of Object.entries(CHECK_QUESTIONS)) line(`${label} ${ {sim:"Sim",nao:"Não",na:"Não se aplica","":"Não informado"}[data.respostas[key] || ""] }`);

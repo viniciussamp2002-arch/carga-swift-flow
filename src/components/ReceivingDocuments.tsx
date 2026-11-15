@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OcorrenciaBadge, useOcorrencias } from "@/components/Ocorrencias";
-import { CHECK_QUESTIONS, initialReceivingData, unloadingCost, validateChecklist, type Answer, type ReceivingData, type ReceivingLoad, type ReceivingNote } from "@/lib/receiving-rules";
+import { InboundOccurrenceItems } from "./InboundOccurrenceItems";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CHECK_QUESTIONS, initialReceivingData, mixedUnloadingCost, receiptNoteLabels, UNLOADING_LABELS, DEFAULT_PAYMENT, validateChecklist, type UnloadingMode, type PaymentDetails, type Answer, type ReceivingData, type ReceivingLoad, type ReceivingNote } from "@/lib/receiving-rules";
 import { receivingPdf } from "@/lib/receiving-pdf";
 import { fmtBRL, fmtNum, fmtDateTime } from "@/lib/format";
 import type { Database, Json } from "@/integrations/supabase/types";
@@ -39,7 +41,7 @@ export function ReceivingDocuments({load,notes,kind,readOnly=false}:{load:Receiv
 }
 
 function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;notes:ReceivingNote[];kind:"checklist"|"recibo";saved?:ReceivingData;readOnly:boolean}) {
-  const {user,canReceive:authorized}=useAuth();
+  const {user,canReceive:authorized,isAdmin}=useAuth();
   const canWrite=authorized&&!readOnly;
   const qc=useQueryClient();
   const defaults=initialReceivingData(load,notes,user?.email||"");
@@ -51,7 +53,12 @@ function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;note
   const receiptRequest=useRef<string|null>(null);
   const frame=useRef<HTMLIFrameElement>(null);
   const versions=useReceivingDocuments(load.id);
-  const cost=unloadingCost(Number.isFinite(form.peso_kg)&&form.peso_kg>=0?form.peso_kg:0,Number.isFinite(form.tarifa)&&form.tarifa>=0?form.tarifa:0);
+  const charges = form.cobrancas || [];
+  const cost=charges.length ? mixedUnloadingCost(charges) : { cobrancas: [], valor_total: 0 };
+  const payment = useQuery({ queryKey: ["unloading-payment"], queryFn: async () => { const r = await supabase.from("configuracao_descarga").select("favorecido,pix,tipo_chave").eq("chave","padrao").maybeSingle(); if(r.error) throw r.error; return r.data || DEFAULT_PAYMENT; } });
+  const [paymentDraft,setPaymentDraft] = useState<PaymentDetails | null>(null);
+  const savePayment=useMutation({mutationFn:async()=>{if(!paymentDraft || !paymentDraft.favorecido.trim() || !paymentDraft.pix.trim())throw new Error("Complete os dados para pagamento");const r=await supabase.from("configuracao_descarga").upsert({chave:"padrao",...paymentDraft});if(r.error)throw r.error;},onSuccess:()=>{qc.invalidateQueries({queryKey:["unloading-payment"]});setPaymentDraft(null);toast.success("Dados para pagamento salvos");},onError:(e:Error)=>toast.error(e.message)});
+  function toggleMode(mode: UnloadingMode, enabled: boolean) { change("cobrancas", enabled ? [...charges, { modalidade:mode,quantidade:mode==="peso"?defaults.peso_kg:mode==="volume"?defaults.volumes_previstos:0,tarifa:0 }] : charges.filter(c=>c.modalidade!==mode)); }
   function change<K extends keyof ReceivingData>(key:K,value:ReceivingData[K]) {setForm(f=>({...f,[key]:value}));setDirty(true);receiptRequest.current=null;}
   async function snapshot():Promise<ReceivingData> {
     const occurrences: ReceivingData["ocorrencias"] = [];
@@ -63,7 +70,7 @@ function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;note
       for(const o of result.data||[]) occurrences.push({numero:byId.get(o.nota_id)?.numero||"",tipo:o.tipo,descricao:o.descricao,status:o.status,quantidade:o.quantidade,unidade:o.unidade});
       if(!result.data||result.data.length<1000)break;
     }
-    return {...form,...unloadingCost(form.peso_kg,form.tarifa),empresa:defaults.empresa,notas:defaults.notas,fornecedores:defaults.fornecedores,ocorrencias:occurrences};
+    return {...form,...(kind==="recibo"?mixedUnloadingCost(charges):{}),pagamento:payment.data || DEFAULT_PAYMENT,empresa:defaults.empresa,notas:defaults.notas,fornecedores:defaults.fornecedores,ocorrencias:occurrences};
   }
   const save=useMutation({mutationFn:async()=>{
     const data=await snapshot();validateChecklist(data);
@@ -110,14 +117,16 @@ function ReceivingForm({load,notes,kind,saved,readOnly}:{load:ReceivingLoad;note
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {txt("transporte","Número do transporte")}{txt("transportadora","Transportadora")}{txt("motorista","Motorista")}{txt("placa","Placa do veículo")}{txt("reboque","Placa do reboque")}{txt("conferente","Conferente")}
       <Field label={kind==="checklist"?"Data da conferência":"Data do recebimento"}><Input aria-label={kind==="checklist"?"Data da conferência":"Data do recebimento"} type="datetime-local" disabled={!canWrite} value={toLocal(form.data)} onChange={e=>change("data",e.target.value?new Date(e.target.value).toISOString():"")} /></Field>
-      <Field label="Peso total (kg)"><Input aria-label="Peso total (kg)" type="number" step="0.001" min="0" disabled={!canWrite||kind==="checklist"} value={form.peso_kg} onChange={e=>change("peso_kg",Number(e.target.value))} /></Field>
-      <Field label="Volumes previstos"><Input aria-label="Volumes previstos" type="number" min="0" step="1" disabled={!canWrite||kind==="checklist"} value={form.volumes_previstos} onChange={e=>change("volumes_previstos",Number(e.target.value))} /></Field>
+      <Field label="Peso total (kg)"><Input aria-label="Peso total (kg)" disabled value={form.peso_kg} /></Field>
+      <Field label="Volumes previstos"><Input aria-label="Volumes previstos" disabled value={form.volumes_previstos} /></Field>
     </div>
     {kind==="checklist"?<>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{Object.entries(CHECK_QUESTIONS).map(([key,label])=><Field key={key} label={label}><Select value={form.respostas[key]||"pendente"} disabled={!canWrite} onValueChange={v=>change("respostas",{...form.respostas,[key]:v as Answer})}><SelectTrigger aria-label={label}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pendente" disabled>Não informado</SelectItem><SelectItem value="sim">Sim</SelectItem><SelectItem value="nao">Não</SelectItem><SelectItem value="na">Não se aplica</SelectItem></SelectContent></Select></Field>)}</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">{txt("numero_lacre","Número do lacre")}{txt("condicoes_veiculo","Condições gerais do veículo")}<Field label="Volumes recebidos"><Input aria-label="Volumes recebidos" type="number" min="0" step="1" value={form.volumes_recebidos??""} disabled={!canWrite} onChange={e=>change("volumes_recebidos",e.target.value===""?null:Number(e.target.value))} /></Field></div>
     </>:<>
-      <div className="flex flex-wrap items-end gap-5 border-y py-3"><Field label="Tarifa por tonelada (R$)"><Input aria-label="Tarifa por tonelada (R$)" className="w-48" type="number" min="0" step="0.01" value={form.tarifa} disabled={!canWrite} onChange={e=>change("tarifa",Number(e.target.value))} /></Field><p className="text-sm">Toneladas <b>{fmtNum(cost.toneladas,3)} t</b></p><p className="text-lg">Total <b>{fmtBRL(cost.valor_total)}</b></p></div>
+      <p className="text-sm break-words"><b>NFs ({defaults.notas.length}):</b> {receiptNoteLabels(defaults.notas).join(", ")}</p>
+      <div className="space-y-3 border-y py-3"><h3 className="font-semibold">Forma de Cálculo da Descarga</h3><div className="flex flex-wrap gap-4">{(Object.keys(UNLOADING_LABELS) as UnloadingMode[]).map(mode=><label key={mode} className="flex gap-2 items-center"><Checkbox aria-label={UNLOADING_LABELS[mode]} disabled={!canWrite} checked={charges.some(c=>c.modalidade===mode)} onCheckedChange={v=>toggleMode(mode,v===true)} />{UNLOADING_LABELS[mode]}</label>)}</div>{charges.length>1&&<p className="text-sm text-warning-foreground">Modalidade mista — informe apenas a parcela cobrada em cada modalidade, sem repetir mercadorias.</p>}{charges.map((c,index)=><div key={c.modalidade} className="grid grid-cols-1 sm:grid-cols-3 gap-3"><Field label={c.modalidade==="peso"?"Peso cobrado (kg)":c.modalidade==="volume"?"Volumes cobrados":"Pallets cobrados"}><Input aria-label={`Quantidade ${c.modalidade}`} type="number" min="0" step="any" disabled={!canWrite} value={c.quantidade} onChange={e=>change("cobrancas",charges.map((x,i)=>i===index?{...x,quantidade:Math.max(0,Number(e.target.value))}:x))} /></Field><Field label={c.modalidade==="peso"?"Tarifa por tonelada (R$)":c.modalidade==="volume"?"Valor por volume (R$)":"Valor por pallet (R$)"}><Input aria-label={`Tarifa ${c.modalidade}`} type="number" min="0" step="0.01" disabled={!canWrite} value={c.tarifa} onChange={e=>change("cobrancas",charges.map((x,i)=>i===index?{...x,tarifa:Math.max(0,Number(e.target.value))}:x))} /></Field><p className="self-end pb-2">Subtotal <b>{fmtBRL(cost.cobrancas[index]?.subtotal || 0)}</b></p></div>)}<p className="text-lg">Valor total da descarga <b>{fmtBRL(cost.valor_total)}</b></p></div>
+      <section className="space-y-2"><h3 className="font-semibold">DADOS PARA PAGAMENTO</h3>{payment.error?<p role="alert" className="text-destructive">Não foi possível carregar os dados para pagamento.</p>:<><p>Favorecido: {payment.data?.favorecido || DEFAULT_PAYMENT.favorecido}</p><p>Pix ({payment.data?.tipo_chave || DEFAULT_PAYMENT.tipo_chave}): {payment.data?.pix || DEFAULT_PAYMENT.pix}</p></>}{isAdmin&&<Button variant="outline" size="sm" onClick={()=>setPaymentDraft(payment.data || DEFAULT_PAYMENT)}>Alterar dados para pagamento</Button>}{paymentDraft&&<div className="space-y-2">{(["favorecido","pix","tipo_chave"] as const).map(key=><Field key={key} label={key==="favorecido"?"Favorecido":key==="pix"?"Chave Pix":"Tipo de chave"}><Input value={paymentDraft[key]} onChange={e=>setPaymentDraft({...paymentDraft,[key]:e.target.value})} /></Field>)}<Button size="sm" disabled={savePayment.isPending} onClick={()=>savePayment.mutate()}>Salvar dados para pagamento</Button></div>}</section>
     </>}
     <Field label="Observações"><Textarea aria-label="Observações do documento" disabled={!canWrite} value={form.observacoes} onChange={e=>change("observacoes",e.target.value)} /></Field>
     {kind==="checklist"&&<ReceivingOccurrences notes={notes} etapa="conferencia" />}
@@ -138,8 +147,7 @@ function toLocal(value:string){if(!value)return "";const d=new Date(value);retur
 function Field({label,children}:{label:string;children:React.ReactNode}){return <div className="space-y-1 min-w-0"><Label className="text-xs">{label}</Label>{children}</div>;}
 
 export function ReceivingOccurrences({notes,etapa="recebimento"}:{notes:ReceivingNote[];etapa?:string}) {
-  const map=useOcorrencias();
-  return <div className="space-y-2"><h3 className="text-sm font-semibold">Ocorrências por nota fiscal</h3><div className="border rounded-md overflow-auto"><table className="table-erp"><thead><tr><th>NF</th><th>Fornecedor</th><th>Cliente</th><th>Ocorrências</th></tr></thead><tbody>{notes.map(n=><tr key={n.id}><td>{n.numero}</td><td>{n.fornecedor}</td><td>{n.cliente}</td><td><OcorrenciaBadge nota={n} allowCreate etapa={etapa} />{!map.has(n.id)&&<span className="text-xs text-muted-foreground ml-2">Sem ocorrência</span>}</td></tr>)}</tbody></table></div></div>;
+  return <InboundOccurrenceItems notes={notes} etapa={etapa} />;
 }
 export function ReceivingHistory({loadId,notes}:{loadId:string;notes:ReceivingNote[]}) {
   const {data=[],isPending,error}=useQuery({queryKey:["receiving-history",loadId],queryFn:async()=>{
