@@ -14,6 +14,12 @@ export interface ParsedNFe {
   volumes: number;
   valor: number;
   cfops: string[];
+  itens_xml: NFeItem[];
+}
+export interface NFeItem { numero: string; codigo: string; descricao: string; quantidade: number; unidade: string }
+export function unitLabel(unit: string) {
+  const units: Record<string, string> = { CX: "Caixa", FD: "Fardo", UN: "Unidade", UND: "Unidade", PCT: "Pacote", KG: "kg", LT: "Litro", L: "Litro" };
+  return units[unit.toUpperCase()] || unit;
 }
 
 const txt = (el: Element | null | undefined, tag: string) => {
@@ -28,6 +34,9 @@ const num = (s: string) => {
 
 export function parseNFeXml(xmlString: string): ParsedNFe | { error: string } {
   const dom = new DOMParser().parseFromString(xmlString, "text/xml");
+  for (const element of Array.from(dom.getElementsByTagName("*"))) {
+    if (element.prefix) dom.renameNode?.(element, null, element.localName);
+  }
   if (dom.getElementsByTagName("parsererror").length > 0) return { error: "XML inválido" };
 
   const infNFe = dom.getElementsByTagName("infNFe")[0];
@@ -59,5 +68,6 @@ export function parseNFeXml(xmlString: string): ParsedNFe | { error: string } {
     volumes: vols.reduce((s, vol) => s + (parseInt(txt(vol, "qVol") || "0", 10) || 0), 0),
     valor: num(txt(icmsTot, "vNF") || "0"),
     cfops: Array.from(new Set(Array.from(infNFe.getElementsByTagName("CFOP")).map((e) => e.textContent?.trim() ?? "").filter(Boolean))),
+    itens_xml: Array.from(infNFe.getElementsByTagName("det")).map((det, index) => { const prod = det.getElementsByTagName("prod")[0]; return { numero: det.getAttribute("nItem") || String(index + 1), codigo: txt(prod, "cProd"), descricao: txt(prod, "xProd"), quantidade: num(txt(prod, "qCom")), unidade: txt(prod, "uCom") }; }),
   };
 }
