@@ -33,10 +33,7 @@ const num = (s: string) => {
 };
 
 export function parseNFeXml(xmlString: string): ParsedNFe | { error: string } {
-  const dom = new DOMParser().parseFromString(xmlString, "text/xml");
-  for (const element of Array.from(dom.getElementsByTagName("*"))) {
-    if (element.prefix) dom.renameNode?.(element, null, element.localName);
-  }
+  const dom = new DOMParser().parseFromString(xmlString.replace(/(<\/?)[\w.-]+:([\w.-]+)/g, "$1$2"), "text/xml");
   if (dom.getElementsByTagName("parsererror").length > 0) return { error: "XML inválido" };
 
   const infNFe = dom.getElementsByTagName("infNFe")[0];
