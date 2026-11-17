@@ -171,3 +171,13 @@
 .table-erp tbody tr.occurrence-row { background: var(--occurrence-row); }
 .table-erp tbody tr.occurrence-row:hover { background: var(--occurrence-row); }
 .table-erp tbody tr.occurrence-row[aria-selected="true"] { box-shadow: inset 3px 0 var(--color-primary); }
+
+/* Excel-style compact density, toggled via html.dense-tables */
+.dense-tables .table-erp { font-size: 12px; }
+.dense-tables .table-erp thead th { padding: 4px 8px; font-size: 10.5px; }
+.dense-tables .table-erp tbody td { padding: 2px 8px; height: 24px; line-height: 1.2; }
+.dense-tables .table-erp tbody td button,
+.dense-tables .table-erp tbody td [data-slot="button"] { height: 20px; min-height: 20px; padding-top: 0; padding-bottom: 0; font-size: 11.5px; }
+.dense-tables .table-erp tbody td input { height: 20px; font-size: 12px; padding-top: 0; padding-bottom: 0; }
+.dense-tables .table-erp tbody td svg { width: 14px; height: 14px; }
+.dense-tables .table-erp tbody td [data-slot="badge"] { padding-top: 0; padding-bottom: 0; font-size: 11px; }

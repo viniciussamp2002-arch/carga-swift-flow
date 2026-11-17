@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Rows3, Rows4 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera, MoreVertical, FolderOpen, Truck, Building2, FileCheck, CalendarCheck } from "lucide-react";
 import { AgendaBell } from "./AgendaBell";
@@ -12,6 +13,9 @@ import { MODULES } from "@/lib/modules";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isDriver, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [dense, setDense] = useState(false);
+  useEffect(() => { const v = localStorage.getItem("tm-dense-tables") === "1"; setDense(v); document.documentElement.classList.toggle("dense-tables", v); }, []);
+  const toggleDense = () => { const v = !dense; setDense(v); localStorage.setItem("tm-dense-tables", v ? "1" : "0"); document.documentElement.classList.toggle("dense-tables", v); };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = isDriver ? [{ to: "/motorista", label: "Meus canhotos", icon: Camera }] : [
     { to: "/dashboard", label: "Início", icon: Home },
@@ -33,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link to={isDriver ? "/motorista" : "/dashboard"} className="font-bold tracking-wide">TRANSMERIDA</Link>
           <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
            {!isDriver && <AgendaBell variant="header" />}
+           {!isDriver && <Button size="icon" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={toggleDense} aria-label={dense ? "Visualização confortável" : "Visualização planilha (compacta)"} title={dense ? "Visualização confortável" : "Visualização planilha (compacta)"}>{dense ? <Rows3 className="h-5 w-5" /> : <Rows4 className="h-5 w-5" />}</Button>}
            {!isDriver && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Mais opções"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to="/notas-entregues"><FileCheck className="h-4 w-4 mr-2" />Notas Entregues</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/arquivos-complementares"><FolderOpen className="h-4 w-4 mr-2" />Arquivos Complementares</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel>Cadastros</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/motoristas"><Users className="h-4 w-4 mr-2" />Motoristas</Link></DropdownMenuItem>{isAdmin && <DropdownMenuItem asChild><Link to="/usuarios"><ShieldCheck className="h-4 w-4 mr-2" />Usuários</Link></DropdownMenuItem>}<DropdownMenuItem asChild><Link to="/fornecedores"><Building2 className="h-4 w-4 mr-2" />Fornecedores</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/veiculos"><Truck className="h-4 w-4 mr-2" />Veículos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/clientes-agendamento"><CalendarCheck className="h-4 w-4 mr-2" />Clientes com Agendamento</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
            <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
             <UserCircle className="h-4 w-4" />{isDriver ? "Motorista" : user?.email}
