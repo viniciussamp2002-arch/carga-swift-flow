@@ -41,7 +41,7 @@ function AgendamentosPage() {
     queryKey: ["agendamentos"],
     queryFn: async () => {
       const { data, error } = await supabase.from("agendamentos")
-        .select("*, nota:nota_id(id, numero, numeros_agrupados, fornecedor, cfops, cliente, cnpj_destinatario, chave_nfe, carga_entrada_id, carga_id, cidade, uf, peso, volumes, valor, data_chegada, status, recebida, entregas(resultado, data_evento))")
+        .select("*, nota:nota_id(id, numero, numeros_agrupados, fornecedor, cliente, cnpj_destinatario, chave_nfe, carga_entrada_id, carga_id, cidade, uf, peso, volumes, valor, data_chegada, status, recebida, entregas(resultado, data_evento))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).filter((r: any) => r.nota?.recebida);
@@ -96,7 +96,7 @@ function AgendamentosPage() {
 
   function exportar() {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r: any) => ({
-      "Nº NF": r.nota.numero, Fornecedor: r.nota.fornecedor, CFOP: (r.nota.cfops ?? []).join(", "), Cliente: r.nota.cliente,
+      "Nº NF": r.nota.numero, Fornecedor: r.nota.fornecedor, Cliente: r.nota.cliente,
       CNPJ: r.nota.cnpj_destinatario, "Cidade/UF": `${r.nota.cidade}/${r.nota.uf ?? ""}`, Peso: r.nota.peso, Volumes: r.nota.volumes,
       Valor: r.nota.valor, Recebimento: r.nota.data_chegada, Solicitação: r.data_solicitacao, Responsável: r.solicitante,
       "Data agendada": r.data_agendada, Horário: r.horario, Protocolo: r.protocolo, Status: AG_STATUS_LABEL[r.status],

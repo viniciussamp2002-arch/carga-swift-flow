@@ -74,7 +74,6 @@ const COLS: ColDef[] = [
       const pend = a.status === "nao_solicitado" || a.status === "solicitado" || a.status === "aguardando_confirmacao";
       return <StatusBadge className={pend ? "bg-warning/15 text-warning-foreground border-warning/40" : "bg-info/15 text-info border-info/30"}>
         {AG_STATUS_LABEL[a.status]}{a.data_agendada ? ` ${a.data_agendada.split("-").reverse().join("/")}` : ""}</StatusBadge>; } },
-  { key: "cfops", label: "CFOP", width: 90, get: (n) => (n.cfops ?? []).join(", ") },
   { key: "motorista", label: "Motorista", width: 140, get: (n) => n.cargas?.motoristas?.nome ?? "", options: true },
   { key: "observacoes", label: "Observações", width: 200, get: (n) => n.observacoes ?? "", edit: { field: "observacoes", type: "text" } },
 ];
