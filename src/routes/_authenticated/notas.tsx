@@ -26,7 +26,7 @@ import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3 } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -314,6 +314,27 @@ function NotasPage() {
     XLSX.writeFile(wb, `notas-fiscais-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  function printTable() {
+    const esc = (v: any) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" } as any)[c]);
+    const fmt = (v: any) => typeof v === "number" ? v.toLocaleString("pt-BR") : v;
+    const filtros = [busca.trim() && `Busca: ${busca.trim()}`, ...Object.entries(filters).filter(([, v]) => v).map(([k, v]) => `${COL_MAP[k]?.label ?? k}: ${v}`)].filter(Boolean).join(" | ") || "Nenhum";
+    const head = cols.map((c) => `<th>${esc(c.label)}</th>`).join("");
+    const body = filtered.map((n: any) => `<tr>${cols.map((c) => `<td>${esc(fmt(c.get(n)))}</td>`).join("")}</tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Notas Fiscais</title><style>
+      @page{size:A4 landscape;margin:10mm}*{color:#000!important;background:#fff!important}
+      body{font-family:Arial,sans-serif;font-size:10px;margin:0}h1{font-size:14px;margin:0 0 4px}p{margin:2px 0}
+      table{border-collapse:collapse;width:100%;margin-top:6px}th,td{border:1px solid #000;padding:2px 4px;text-align:left;vertical-align:top}
+      th{font-weight:bold}thead{display:table-header-group}tr{page-break-inside:avoid}</style></head><body>
+      <h1>Transmerida — Notas Fiscais / Depósito</h1>
+      <p>Emitido em: ${new Date().toLocaleString("pt-BR")}</p><p>Filtros: ${esc(filtros)}</p>
+      <p>NFs: ${filtered.length} | Peso: ${totFiltro.peso.toLocaleString("pt-BR")} kg | Volumes: ${totFiltro.volumes.toLocaleString("pt-BR")} | Valor: ${totFiltro.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+      <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Permita pop-ups para imprimir"); return; }
+    w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => w.print(), 300);
+  }
+
   function startResize(e: React.MouseEvent, key: string) {
     e.preventDefault(); e.stopPropagation();
     const startX = e.clientX;
@@ -496,6 +517,7 @@ function NotasPage() {
               </>
             )}
             <Button onClick={exportExcel} variant="outline" size="sm" className="h-9"><FileDown className="h-4 w-4 mr-1" /> Exportar Excel</Button>
+            <Button onClick={printTable} variant="outline" size="sm" className="h-9"><Printer className="h-4 w-4 mr-1" /> Imprimir</Button>
           </>
         }
       />
