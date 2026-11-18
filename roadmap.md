@@ -46,3 +46,4 @@
 - [ ] Atualização consolidada 03–08: testes integrados e conferência da publicação
 
 - [x] Revisão 02: Clientes com Agendamento em Cadastros, colunas simplificadas, lembretes (amanhã/vencido/aguardando), pendências até entrega aprovada, desfazer/refazer em Agendamentos
+- [x] Corrigir visibilidade de fotos de todos os tipos em Entregas: quatro fotos reais abertas como administrador, classificação manual disponível, aprovação preserva vínculo ao motorista; 13 testes passaram. Nenhum envio foi alterado/aprovado e nada foi publicado.
