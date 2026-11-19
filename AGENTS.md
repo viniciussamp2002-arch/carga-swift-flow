@@ -15,3 +15,5 @@
 - Freight rules and per-note calculations are immutable version snapshots; only approved proofs enter the financial workflow, and closure blocks recalculation to preserve billed amounts.
 - XML product arrays are immutable fiscal snapshots keyed by nItem; legacy recovery matches the access key and only fills empty arrays, avoiding duplicate fiscal notes.
 - Item occurrences use the existing occurrence table and server-derived item identity; unloading receipts preserve payment and multimodal charge snapshots with server-recalculated totals.
+- Receiving occurrence reports snapshot existing occurrences with database-validated load links; private signed files are append-only versions tied to an issued receipt or report, so uploads cannot alter operational or monetary data.
+- Receiving reports total only the latest receipt version per load, excluding cancelled versions without reviving superseded receipts; reprints and signed attachments never add value.

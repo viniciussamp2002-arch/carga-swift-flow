@@ -20,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const items = isDriver ? [{ to: "/motorista", label: "Meus canhotos", icon: Camera }] : [
     { to: "/dashboard", label: "Início", icon: Home },
     ...MODULES,
+    { to: "/relatorios-recebimento", label: "Relatórios de Recebimento", icon: FileCheck },
     { to: "/veiculos", label: "Veículos", icon: Users },
     { to: "/motoristas", label: "Motoristas", icon: Users },
     { to: "/motorista", label: "Portal do Motorista", icon: Camera },

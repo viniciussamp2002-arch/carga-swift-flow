@@ -1,3 +1,7 @@
+- [x] Atualização recebimento 19/11: menu único de visualização; PDFs individuais/consolidados de ocorrências e anexos versionados; recibos assinados; central com filtros, totais e exportações.
+  - Validado como administrador: alternância individual/agrupada, emissão individual/consolidada, foto e PDF anexados, substituição preservando versões, leitura após recarga, consulta e download na central, exportações PDF/Excel, novembro/dezembro, cancelamento e reimpressão sem duplicação; 42 testes passaram, PDF longo de 12 páginas sem corte final. Motorista não lê nem envia anexos administrativos. Corrigida ambiguidade de variável UF que impedia cadastro de NF.
+  - Carga exclusiva VALIDACAO-ASSINADOS-191126 e NF/produto de teste com peso/valor zero mantidos para rastreabilidade; recibo de teste cancelado, anexos marcados sem assinatura real. Documentos originais preservados; recibos existentes somam R$300,00. Sem publicação.
+- [ ] Validação externa recebimento 19/11: fotografia por câmera e impressão física — depende de aparelho/impressora; seleção de imagem/PDF, impressão em PDF e apresentação móvel já conferidas no navegador.
 - [x] Etapa 1 Transmerida: visual do print, início com cartões, menu recolhível, páginas dos módulos
 - [x] Notas estilo Excel: edição na célula, colunas (ocultar/arrastar/largura), visualização salva, busca geral, totais, importar planilha, adicionar à carga
 - [x] Cargas de entrada + confirmação de chegada → depósito

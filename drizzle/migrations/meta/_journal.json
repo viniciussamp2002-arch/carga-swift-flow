@@ -176,6 +176,20 @@
       "when": 1794714813178,
       "tag": "0024_inbound_products_and_unloading_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795114667380,
+      "tag": "0025_receiving_signed_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795115013459,
+      "tag": "0026_qualify_freight_destination_variable",
+      "breakpoints": true
     }
   ]
 }

@@ -70,6 +70,70 @@ export type Database = {
           },
         ]
       }
+      anexos_recebimento_assinados: {
+        Row: {
+          carga_entrada_id: string
+          created_at: string
+          id: string
+          mime_type: string
+          nome_arquivo: string
+          recibo_id: string | null
+          registrado_por: string | null
+          registrado_por_nome: string | null
+          relatorio_id: string | null
+          storage_path: string
+          versao: number
+        }
+        Insert: {
+          carga_entrada_id: string
+          created_at?: string
+          id?: string
+          mime_type: string
+          nome_arquivo: string
+          recibo_id?: string | null
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          relatorio_id?: string | null
+          storage_path: string
+          versao?: number
+        }
+        Update: {
+          carga_entrada_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string
+          nome_arquivo?: string
+          recibo_id?: string | null
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+          relatorio_id?: string | null
+          storage_path?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_recebimento_assinados_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_recebimento_assinados_recibo_id_fkey"
+            columns: ["recibo_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_recebimento_assinados_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "relatorios_ocorrencias_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_tentativas: {
         Row: {
           chave: string
@@ -1283,6 +1347,106 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      recibo_recebimento_eventos: {
+        Row: {
+          created_at: string
+          id: string
+          motivo: string
+          recibo_id: string
+          registrado_por: string | null
+          registrado_por_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivo: string
+          recibo_id: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivo?: string
+          recibo_id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibo_recebimento_eventos_recibo_id_fkey"
+            columns: ["recibo_id"]
+            isOneToOne: true
+            referencedRelation: "documentos_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relatorio_ocorrencia_vinculos: {
+        Row: {
+          ocorrencia_id: string
+          relatorio_id: string
+        }
+        Insert: {
+          ocorrencia_id: string
+          relatorio_id: string
+        }
+        Update: {
+          ocorrencia_id?: string
+          relatorio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_ocorrencia_vinculos_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "ocorrencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorio_ocorrencia_vinculos_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "relatorios_ocorrencias_recebimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relatorios_ocorrencias_recebimento: {
+        Row: {
+          carga_entrada_id: string
+          created_at: string
+          dados: Json
+          id: string
+          registrado_por: string | null
+          registrado_por_nome: string | null
+        }
+        Insert: {
+          carga_entrada_id: string
+          created_at?: string
+          dados: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Update: {
+          carga_entrada_id?: string
+          created_at?: string
+          dados?: Json
+          id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_ocorrencias_recebimento_carga_entrada_id_fkey"
+            columns: ["carga_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "cargas_entrada"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tabelas_frete: {
         Row: {
