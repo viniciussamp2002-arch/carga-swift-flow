@@ -82,6 +82,52 @@ export function ReceivingOccurrenceDocuments({
       name: `ocorrencia-${load.numero_transporte}-${report.id.slice(0, 8)}.pdf`,
     });
   }
+  const [draft, setDraft] = useState<string[] | null>(null);
+  const [official, setOfficial] = useState<string | null>(null);
+  async function printOnly(selected: string[]) {
+    const v: Record<string, string> = {
+      motorista: load.motorista || "",
+      placa: load.placa || "",
+      cpf: driver.data || "",
+      data: load.data_chegada || "",
+      conferente: load.recebido_por_nome || "",
+    };
+    for (const k of Object.keys(v)) if (!v[k]) v[k] = supplement[k] || "";
+    const snapshot = {
+      transporte: load.numero_transporte,
+      transportadora: (load as { transportadora?: string | null }).transportadora || "",
+      ...v,
+      ocorrencia_ids: selected,
+      ocorrencias: rows
+        .filter((o) => selected.includes(o.id))
+        .map((o) => {
+          const n = notes.find((x) => x.id === o.nota_id) as
+            | { numero?: string; fornecedor?: string | null }
+            | undefined;
+          const r = o as unknown as Record<string, unknown>;
+          return {
+            id: o.id,
+            numero_nf: n?.numero || "",
+            fornecedor: n?.fornecedor || "",
+            produto_codigo: (r.produto_codigo as string | null) ?? null,
+            produto_descricao: (r.produto_descricao as string | null) ?? null,
+            quantidade: (r.quantidade as number | null) ?? null,
+            unidade: (r.unidade as string | null) ?? null,
+            tipo: o.tipo,
+            descricao: (r.descricao as string) || "",
+          };
+        }),
+    } as OccurrenceSnapshot;
+    try {
+      const blob = await occurrencePdf(snapshot, "", new Date().toISOString());
+      if (preview) URL.revokeObjectURL(preview.url);
+      setPreview({ url: URL.createObjectURL(blob), name: `ocorrencia-${load.numero_transporte}.pdf` });
+      setDraft(selected);
+      setOfficial(null);
+    } catch {
+      toast.error("Não foi possível gerar o PDF");
+    }
+  }
   async function emit(selected: string[]) {
     setBusy(true);
     try {
@@ -97,9 +143,11 @@ export function ReceivingOccurrenceDocuments({
       qc.invalidateQueries({ queryKey: ["occurrence-reports", load.id] });
       qc.invalidateQueries({ queryKey: ["receiving-reports"] });
       qc.invalidateQueries({ queryKey: ["receiving-history", load.id] });
-      await display(r.data);
+      setOfficial(r.data.id);
+      setDraft(null);
+      toast.success("Ocorrência oficializada. Anexe a via assinada abaixo.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao emitir ocorrência");
+      toast.error(e instanceof Error ? e.message : "Erro ao oficializar ocorrência");
     } finally {
       setBusy(false);
     }
@@ -142,7 +190,7 @@ export function ReceivingOccurrenceDocuments({
               size="sm"
               variant="outline"
               disabled={busy || driver.isPending}
-              onClick={() => emit(ids)}
+              onClick={() => printOnly(ids)}
             >
               <Printer className="h-4 w-4" />
               Imprimir Ocorrências Consolidadas
@@ -168,7 +216,7 @@ export function ReceivingOccurrenceDocuments({
                           size="sm"
                           variant="outline"
                           disabled={busy || driver.isPending}
-                          onClick={() => emit([o.id])}
+                          onClick={() => printOnly([o.id])}
                         >
                           <Printer className="h-4 w-4" />
                           Imprimir Ocorrência
@@ -181,6 +229,19 @@ export function ReceivingOccurrenceDocuments({
             </div>
           </>
         )}
+        {draft && canReceive && !readOnly && (
+          <div className="border rounded p-3 flex flex-wrap items-center gap-2 bg-muted/40">
+            <span className="text-sm flex-1">
+              Via impressa com {draft.length} ocorrência(s). Depois de assinada, oficialize para anexar.
+            </span>
+            <Button size="sm" disabled={busy} onClick={() => emit(draft)}>
+              Oficializar e anexar via assinada
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setDraft(null)}>
+              Cancelar
+            </Button>
+          </div>
+        )}
         {!rows.length && (
           <p className="text-muted-foreground text-sm">
             Nenhuma ocorrência de recebimento nesta carga.
@@ -192,7 +253,7 @@ export function ReceivingOccurrenceDocuments({
           </p>
         )}
         {(reports.data || []).map((report) => (
-          <section key={report.id} className="border-y py-3">
+          <section key={report.id} className={`border-y py-3 ${official === report.id ? "bg-accent/40" : ""}`}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs flex-1">
                 {(report.dados as unknown as OccurrenceSnapshot).ocorrencia_ids.length}{" "}
