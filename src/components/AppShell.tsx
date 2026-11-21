@@ -17,17 +17,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { const v = localStorage.getItem("tm-dense-tables") === "1"; setDense(v); document.documentElement.classList.toggle("dense-tables", v); }, []);
   const toggleDense = () => { const v = !dense; setDense(v); localStorage.setItem("tm-dense-tables", v ? "1" : "0"); document.documentElement.classList.toggle("dense-tables", v); };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = isDriver ? [{ to: "/motorista", label: "Meus canhotos", icon: Camera }] : [
-    { to: "/dashboard", label: "Início", icon: Home },
-    ...MODULES,
-    { to: "/relatorios-recebimento", label: "Relatórios de Recebimento", icon: FileCheck },
-    { to: "/notas-devolucao", label: "Notas de Devolução", icon: FileCheck },
-    { to: "/estoque-devolucoes", label: "Estoque de Devoluções", icon: FolderOpen },
-    { to: "/veiculos", label: "Veículos", icon: Users },
-    { to: "/motoristas", label: "Motoristas", icon: Users },
-    { to: "/motorista", label: "Portal do Motorista", icon: Camera },
-    { to: "/historico", label: "Histórico", icon: History },
-    ...(isAdmin ? [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck }] : []),
+  type NavItem = { to: string; label: string; icon: any; group: string };
+  const items: NavItem[] = isDriver ? [{ to: "/motorista", label: "Meus canhotos", icon: Camera, group: "" }] : [
+    { to: "/dashboard", label: "Início", icon: Home, group: "Operacional" },
+    ...MODULES.map((m: any) => ({ ...m, group: "Operacional" })),
+    { to: "/relatorios-recebimento", label: "Relatórios de Recebimento", icon: FileCheck, group: "Operacional" },
+    { to: "/motorista", label: "Portal do Motorista", icon: Camera, group: "Operacional" },
+    { to: "/notas-entregues", label: "Notas Entregues", icon: FileCheck, group: "Devoluções & Histórico" },
+    { to: "/notas-devolucao", label: "Notas de Devolução", icon: FileCheck, group: "Devoluções & Histórico" },
+    { to: "/estoque-devolucoes", label: "Estoque de Devoluções", icon: FolderOpen, group: "Devoluções & Histórico" },
+    { to: "/arquivos-complementares", label: "Arquivos Complementares", icon: FolderOpen, group: "Devoluções & Histórico" },
+    { to: "/historico", label: "Histórico", icon: History, group: "Devoluções & Histórico" },
+    ...(isAdmin ? [{ to: "/usuarios", label: "Usuários", icon: ShieldCheck, group: "Cadastros" }] : []),
+    { to: "/motoristas", label: "Motoristas", icon: Users, group: "Cadastros" },
+    { to: "/veiculos", label: "Veículos", icon: Truck, group: "Cadastros" },
+    { to: "/clientes-agendamento", label: "Clientes com Agendamento", icon: CalendarCheck, group: "Cadastros" },
+    { to: "/fornecedores", label: "Fornecedores", icon: Building2, group: "Cadastros" },
   ];
 
   return (
@@ -41,24 +46,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
            {!isDriver && <AgendaBell variant="header" />}
            {!isDriver && <Button size="icon" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={toggleDense} aria-label={dense ? "Visualização confortável" : "Visualização planilha (compacta)"} title={dense ? "Visualização confortável" : "Visualização planilha (compacta)"}>{dense ? <Rows3 className="h-5 w-5" /> : <Rows4 className="h-5 w-5" />}</Button>}
-           {!isDriver && <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Mais opções"><MoreVertical className="h-5 w-5" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to="/notas-entregues"><FileCheck className="h-4 w-4 mr-2" />Notas Entregues</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/arquivos-complementares"><FolderOpen className="h-4 w-4 mr-2" />Arquivos Complementares</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel>Cadastros</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/motoristas"><Users className="h-4 w-4 mr-2" />Motoristas</Link></DropdownMenuItem>{isAdmin && <DropdownMenuItem asChild><Link to="/usuarios"><ShieldCheck className="h-4 w-4 mr-2" />Usuários</Link></DropdownMenuItem>}<DropdownMenuItem asChild><Link to="/fornecedores"><Building2 className="h-4 w-4 mr-2" />Fornecedores</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/veiculos"><Truck className="h-4 w-4 mr-2" />Veículos</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/clientes-agendamento"><CalendarCheck className="h-4 w-4 mr-2" />Clientes com Agendamento</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
            <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
             <UserCircle className="h-4 w-4" />{isDriver ? "Motorista" : user?.email}
           </div>
         </div>
       </header>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 overflow-y-auto">
           <SheetHeader className="px-4 py-3 border-b"><SheetTitle className="text-primary">TRANSMERIDA</SheetTitle></SheetHeader>
           <nav className="p-2 space-y-0.5">
-            {items.map((n) => {
+            {items.map((n, i) => {
+              const header = n.group && n.group !== items[i - 1]?.group ? <div key={"g" + n.group} className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{n.group}</div> : null;
               const active = pathname === n.to || pathname.startsWith(n.to + "/");
-              return (
+              const link = (
                 <Link key={n.to} to={n.to} onClick={() => setOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${active ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-muted"}`}>
                   <n.icon className="h-4 w-4" />{n.label}
                 </Link>
               );
+              return header ? [header, link] : link;
             })}
           </nav>
           <div className="border-t p-3 mt-2">

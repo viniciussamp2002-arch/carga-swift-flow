@@ -33,7 +33,7 @@ function VeicPage() {
 
   const { data: veiculos = [] } = useQuery({
     queryKey: ["veiculos"],
-    queryFn: async () => (await supabase.from("veiculos").select("*").order("placa")).data ?? [],
+    queryFn: async () => (await supabase.from("veiculos").select("*, motoristas(nome)").order("placa")).data ?? [],
   });
 
   const upd = useMutation({
@@ -55,48 +55,34 @@ function VeicPage() {
           </Button>
         )}
       />
-      <div className="bg-card border rounded-md overflow-hidden">
-        <table className="table-erp">
-          <thead>
-            <tr>
-              <th>Placa</th><th>Marca / Modelo</th><th>Tipo</th>
-              <th className="text-right">Cap. (kg)</th><th>Ano</th><th>Situação</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {veiculos.map((v: any) => (
-              <tr key={v.id}>
-                <td className="font-mono font-semibold">{v.placa}</td>
-                <td>{v.marca} {v.modelo}</td>
-                <td>{v.tipo}</td>
-                <td className="text-right">{fmtNum(v.capacidade_kg, 0)}</td>
-                <td>{v.ano ?? "—"}</td>
-                <td>
-                  {canWrite && v.situacao !== "em_rota" ? (
-                    <Select value={v.situacao} onValueChange={(s) => upd.mutate({ id: v.id, situacao: s })}>
-                      <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(VEICULO_SIT_LABEL).filter(([k]) => k !== "em_rota").map(([k, l]) => (
-                          <SelectItem key={k} value={k}>{l}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <StatusBadge className={SIT_COLOR[v.situacao]}>{VEICULO_SIT_LABEL[v.situacao]}</StatusBadge>
-                  )}
-                </td>
-                <td>
-                  {canWrite && (
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEdit(v); setOpen(true); }}>
-                      Editar
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {veiculos.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum veículo</td></tr>}
-          </tbody>
-        </table>
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {veiculos.map((v: any) => (
+          <div key={v.id} className="bg-card border rounded-lg p-3 flex flex-col gap-2 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-2">
+              {canWrite && v.situacao !== "em_rota" ? (
+                <Select value={v.situacao} onValueChange={(s) => upd.mutate({ id: v.id, situacao: s })}>
+                  <SelectTrigger className={`h-7 text-xs w-32 border ${SIT_COLOR[v.situacao] ?? ""}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(VEICULO_SIT_LABEL).filter(([k]) => k !== "em_rota").map(([k, l]) => (
+                      <SelectItem key={k} value={k}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <StatusBadge className={SIT_COLOR[v.situacao]}>{VEICULO_SIT_LABEL[v.situacao]}</StatusBadge>
+              )}
+              {canWrite && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEdit(v); setOpen(true); }}>Editar</Button>}
+            </div>
+            <div className="my-1 rounded-md border-2 border-foreground/80 bg-background py-2 text-center font-mono text-2xl font-bold tracking-widest">{v.placa}</div>
+            <div className="text-sm font-semibold truncate">{[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}</div>
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              <div>Tipo: <span className="text-foreground">{v.tipo || "—"}</span></div>
+              <div>Cap.: <span className="text-foreground">{fmtNum(v.capacidade_kg, 0)} kg</span>{v.ano ? ` · Ano ${v.ano}` : ""}</div>
+              <div className="truncate">Motorista: <span className="text-foreground">{v.motoristas?.nome ?? "Sem vínculo"}</span></div>
+            </div>
+          </div>
+        ))}
+        {veiculos.length === 0 && <div className="col-span-full text-center py-8 text-muted-foreground bg-card border rounded-md">Nenhum veículo</div>}
       </div>
       <VeicDialog key={edit?.id ?? `new-${open}`} open={open} onOpenChange={setOpen} edit={edit} />
     </div>
@@ -112,7 +98,7 @@ function VeicDialog({ open, onOpenChange, edit }: any) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, motorista_id: form.motorista_id || null, capacidade_kg: Number(form.capacidade_kg) || 0, ano: form.ano ? Number(form.ano) : null };
+      const { motoristas: _m, ...rest } = form; const payload = { ...rest, motorista_id: form.motorista_id || null, capacidade_kg: Number(form.capacidade_kg) || 0, ano: form.ano ? Number(form.ano) : null };
       if (edit) {
         const { error } = await supabase.from("veiculos").update(payload).eq("id", edit.id);
         if (error) throw error;
