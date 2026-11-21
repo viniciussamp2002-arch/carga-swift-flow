@@ -107,7 +107,7 @@ function DriverPage() {
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Carregando...</div>;
   if (!me) return <div className="max-w-md mx-auto p-4 text-sm bg-card border rounded-md">Seu acesso ainda não está vinculado a um motorista. Peça ao escritório para vincular em <b>Usuários</b>.</div>;
 
-  const currentLoad = selectedLoad || loads[0]?.id || "";
+  const currentLoad = loads.some(l => l.id === selectedLoad) ? selectedLoad : loads[0]?.id || "";
   const loadProofs = provas.filter(p => p.carga_id === currentLoad);
   const noteRows = notas.filter(n => n.carga_id === currentLoad).map(n => {
     const proof = provas.find(p => (p.nota_id === n.id || p.nota_envio_id === n.id) && ["canhoto", "nao_identificado"].includes(p.tipo_documento));

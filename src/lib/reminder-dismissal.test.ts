@@ -1,0 +1,4 @@
+import { expect, it } from "vitest";
+import { reminderEventKey } from "./agenda-reminders";
+it("the same event remains dismissed after reload", () => { expect(reminderEventKey("ag1", "vencido", { status: "confirmado", data_agendada: "2026-11-20", updated_at: "2026-11-21" })).toBe("ag1:vencido:confirmado:2026-11-20:2026-11-21"); });
+it("a reschedule creates a new event rather than inheriting dismissal", () => { expect(reminderEventKey("ag1", "amanha", { status: "reagendado", data_agendada: "2026-11-22", updated_at: "new" })).not.toBe(reminderEventKey("ag1", "vencido", { status: "confirmado", data_agendada: "2026-11-20", updated_at: "old" })); });

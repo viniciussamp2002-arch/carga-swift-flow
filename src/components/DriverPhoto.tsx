@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { driverPhoto } from "@/lib/driver-photos.functions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ZoomIn, ZoomOut, ImageOff } from "lucide-react";
 
-// Authenticated downloads re-evaluate Storage RLS. Never issue reusable signed URLs to drivers.
+// Each request validates the current load; drivers never receive reusable storage URLs.
 export function DriverPhoto({ id, path, userId }: { id: string; path: string; userId: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const download = useServerFn(driverPhoto);
   const { data, error } = useQuery({ queryKey: ["driver-photo", userId, id], gcTime: 0, staleTime: 0, queryFn: async () => {
-    const r = await supabase.storage.from("comprovantes").download(path);
-    if (r.error) throw r.error;
-    return r.data;
+    const r = await download({ data: { id } });
+    const bytes = Uint8Array.from(atob(r.base64), c => c.charCodeAt(0));
+    return new Blob([bytes], { type: r.mime });
   } });
   useEffect(() => { if (!data) return; const next = URL.createObjectURL(data); setUrl(next); return () => URL.revokeObjectURL(next); }, [data]);
   return <><Button variant="outline" className="h-20 w-20 p-1 shrink-0" aria-label="Ampliar foto enviada" onClick={() => { setZoom(1); setOpen(true); }} disabled={!url || !!error}>

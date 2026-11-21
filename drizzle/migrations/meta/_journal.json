@@ -211,6 +211,27 @@
       "when": 1795277867691,
       "tag": "0029_financial_preview_city_contract_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795278261017,
+      "tag": "0030_document_triage_preserve_load_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795278419548,
+      "tag": "0031_driver_document_download_boundary",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795278625131,
+      "tag": "0032_freight_enabled_components_validation",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,2 @@
+ALTER POLICY comprovantes_obj_driver_select ON storage.objects USING(false);
+CREATE POLICY driver_proof_storage_boundary ON storage.objects AS RESTRICTIVE FOR SELECT TO authenticated USING(bucket_id<>'comprovantes' OR private.can_write(auth.uid()));

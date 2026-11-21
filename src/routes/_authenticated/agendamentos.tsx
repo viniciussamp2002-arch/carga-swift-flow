@@ -1,4 +1,5 @@
 import { pageHead } from "@/lib/page-head";
+import { schedulingClientName } from "@/lib/client-display";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -51,7 +52,7 @@ function AgendamentosPage() {
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes-ag"], queryFn: async () => {
     const r = await supabase.from("clientes_agendamento").select("cnpj,nome,apelido"); if (r.error) throw r.error; return r.data;
   } });
-  const clienteNome = (n: any) => clientes.find(c => c.cnpj.replace(/\D/g, "") === String(n.cnpj_destinatario ?? "").replace(/\D/g, ""))?.apelido?.trim() || n.cliente;
+  const clienteNome = (n: any) => schedulingClientName(n.cliente, n.cnpj_destinatario, clientes);
   const filtered = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return rows.filter((r: any) => (visao === "historico" ? isDelivered(r.nota.status) : !isDelivered(r.nota.status)) && (filtro === "todos" || r.status === filtro) &&

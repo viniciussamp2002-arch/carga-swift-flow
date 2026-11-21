@@ -50,7 +50,7 @@ export const reconhecerComprovante = createServerFn({ method: "POST" })
     const m = matchProof(reading, notes ?? []);
     const carga = m.status === "identificado" ? (notes ?? []).find((n: any) => n.id === m.nota_id)?.carga_id ?? null : null;
     await supabaseAdmin.from("comprovantes").update({
-      status: m.status, tipo_documento: reading.tipo ?? "nao_identificado", nota_id: null, carga_id: null,
+      status: m.status, tipo_documento: reading.tipo ?? "nao_identificado", nota_id: null,
       reconhecimento: { ...reading, nota_sugerida: m.status === "identificado" ? m.nota_id : null, carga_sugerida: carga, ...(m.status === "identificado" ? { criterio: m.criterio } : { motivo: m.motivo }) },
     }).eq("id", c.id).in("status", ["pendente", "nao_identificado"]);
     return { status: m.status };
