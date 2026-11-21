@@ -23,9 +23,9 @@ function Review({ d, close }: { d: any; close: () => void }) {
   const [tipo, setTipo] = useState(d.tipo_documento);
   const [situacao, setSituacao] = useState(d.triagem);
   const [obs, setObs] = useState(d.observacoes_documento);
-  const [nota, setNota] = useState("none");
-  const [carga, setCarga] = useState("none");
-  const [entrega, setEntrega] = useState("none");
+  const [nota, setNota] = useState(d.documento_vinculos?.[0]?.nota_id ?? d.nota_envio_id ?? "none");
+  const [carga, setCarga] = useState(d.documento_vinculos?.[0]?.carga_id ?? d.carga_id ?? "none");
+  const [entrega, setEntrega] = useState(d.documento_vinculos?.[0]?.entrega_id ?? "none");
   const [busy, setBusy] = useState(false);
   const { data: url } = useQuery({ queryKey: ["document-image", d.id], queryFn: async () => { const r = await supabase.storage.from("comprovantes").createSignedUrl(d.storage_path, 600); if (r.error) throw r.error; return r.data.signedUrl; } });
   const { data: ns = [] } = useQuery({ queryKey: ["document-notes"], queryFn: async () => (await supabase.from("notas_fiscais").select("id,numero,cliente")).data ?? [] });

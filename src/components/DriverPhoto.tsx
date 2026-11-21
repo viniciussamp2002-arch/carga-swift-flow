@@ -12,13 +12,13 @@ export function DriverPhoto({ id, path, userId }: { id: string; path: string; us
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const download = useServerFn(driverPhoto);
-  const { data, error } = useQuery({ queryKey: ["driver-photo", userId, id], gcTime: 0, staleTime: 0, queryFn: async () => {
+  const { data, error, refetch } = useQuery({ queryKey: ["driver-photo", userId, id], gcTime: 0, staleTime: 0, refetchInterval: 30000, queryFn: async () => {
     const r = await download({ data: { id } });
     const bytes = Uint8Array.from(atob(r.base64), c => c.charCodeAt(0));
     return new Blob([bytes], { type: r.mime });
   } });
   useEffect(() => { if (!data) return; const next = URL.createObjectURL(data); setUrl(next); return () => URL.revokeObjectURL(next); }, [data]);
-  return <><Button variant="outline" className="h-20 w-20 p-1 shrink-0" aria-label="Ampliar foto enviada" onClick={() => { setZoom(1); setOpen(true); }} disabled={!url || !!error}>
+  return <><Button variant="outline" className="h-20 w-20 p-1 shrink-0" aria-label="Ampliar foto enviada" onClick={async () => { const r = await refetch(); if (r.error) return; setZoom(1); setOpen(true); }} disabled={!url || !!error}>
     {url && !error ? <img src={url} alt="Foto enviada" className="h-full w-full object-contain" /> : error ? <ImageOff /> : "..."}
   </Button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-4xl"><DialogHeader><DialogTitle>Documento enviado</DialogTitle></DialogHeader>
     <div className="flex gap-2 items-center"><Button variant="outline" size="icon" aria-label="Diminuir foto" disabled={zoom <= 1} onClick={() => setZoom(z => Math.max(1, z - 0.5))}><ZoomOut /></Button><span>{Math.round(zoom * 100)}%</span><Button variant="outline" size="icon" aria-label="Aumentar foto" disabled={zoom >= 4} onClick={() => setZoom(z => Math.min(4, z + 0.5))}><ZoomIn /></Button></div>

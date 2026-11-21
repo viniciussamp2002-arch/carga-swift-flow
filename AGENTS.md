@@ -12,8 +12,12 @@
 - Driver receipt photos queue in IndexedDB per account and are removed locally only after the server row exists; only office RPCs (aprovar/rejeitar_comprovante) finalize proofs and create deliveries, so AI and drivers can never approve.
 - The office review queue includes every pending document type; explicit classification through the existing triage RPC precedes canhoto approval, preserving server validation of the driver's load.
 - CPF sign-in resolves a private random identifier on the server and approvals use a transactional administrator RPC; browser metadata must never grant access.
-- Freight rules and per-note calculations are immutable version snapshots; only approved proofs enter the financial workflow, and closure blocks recalculation to preserve billed amounts.
+- Freight rules and per-note calculations are immutable version snapshots; import-time financial previews are non-billable until office proof approval, and closure blocks recalculation to preserve billed amounts.
 - XML product arrays are immutable fiscal snapshots keyed by nItem; legacy recovery matches the access key and only fills empty arrays, avoiding duplicate fiscal notes.
 - Item occurrences use the existing occurrence table and server-derived item identity; unloading receipts preserve payment and multimodal charge snapshots with server-recalculated totals.
 - Receiving occurrence reports snapshot existing occurrences with database-validated load links; private signed files are append-only versions tied to an issued receipt or report, so uploads cannot alter operational or monetary data.
 - Receiving reports total only the latest receipt version per load, excluding cancelled versions without reviving superseded receipts; reprints and signed attachments never add value.
+- Driver images use an authenticated server function that validates ownership and an open load before delivering bytes; drivers cannot mint reusable Storage URLs, preventing finalized-load access.
+- Returns preserve fiscal item snapshots and use office-only transactional RPCs with item/load locks, idempotency keys and append-only movement ledgers; sending information never creates or withdraws physical stock.
+- Notification dismissals are user-owned durable event keys; schedule version/state changes create distinct events without deleting operational records.
+- Financial city simulation and persisted calculations share the same destination-rule resolver so disabled components and city replacement tariffs behave identically.

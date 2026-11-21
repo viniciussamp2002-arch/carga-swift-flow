@@ -53,10 +53,16 @@
 - [x] Corrigir visibilidade de fotos de todos os tipos em Entregas: quatro fotos reais abertas como administrador, classificação manual disponível, aprovação preserva vínculo ao motorista; 13 testes passaram. Nenhum envio foi alterado/aprovado e nada foi publicado.
 
 ## Atualização consolidada 21/11/2026
-- [ ] 01/07 Portal: fotos ampliadas por carga em andamento, acesso seguro e quatro situações visuais.
-- [ ] 02 Transportadora de origem na segunda coluna do depósito e filtros.
-- [ ] 03 Apelidos no cadastro/agendamentos; retirar observação da tabela.
-- [ ] 04 Dispensa persistente individual de notificações.
-- [ ] 05 Devoluções por produto, recebimento físico, pallets, etiquetas, prestação de contas e estoque com saídas/reservas seguras.
-- [ ] 06 Conferir e completar financeiro, distâncias, tabelas por fornecedor e simulação.
-- [ ] Verificar regras e fluxos administrativos/motorista; não publicar.
+- [x] 01/07 Portal: fotos ampliadas por carga em andamento, acesso seguro e quatro situações visuais.
+- [x] 02 Transportadora de origem na segunda coluna do depósito e filtros.
+- [x] 03 Apelidos no cadastro/agendamentos; retirar observação da tabela.
+- [x] 04 Dispensa persistente individual de notificações.
+- [x] 05 Devoluções por produto, recebimento físico, pallets, etiquetas, prestação de contas e estoque com saídas/reservas seguras.
+- [x] 06 Conferir e completar financeiro, distâncias, tabelas por fornecedor e simulação.
+- [x] Verificar regras e fluxos administrativos/motorista; não publicar.
+
+  - Executados: 44 testes locais e 5 testes no cálculo financeiro real (ad valorem, ICMS por dentro, limites das faixas, distância pendente, substituição/adicional por cidade e componente desativado).
+  - Navegador: depósito com transportadora, 26 produtos de XML existente carregados, devolução de teste por produto com falta sem estoque, recebimento 5 UN, pallets 3+2, retirada 2 UN, saldo 3 UN após recarga, reserva/liberação e repetição de retirada idempotente; saída acima do saldo bloqueada. Etiqueta PDF conferida com apenas saldo 1 UN no pallet 01/02.
+  - Fotos reais do motorista ampliadas a 150%; carga de teste finalizada bloqueia consulta de documento e função de foto, administração mantém o arquivo; motorista não consulta devoluções. Notificação dispensada permanece ausente após recarga. Telas sem erros de execução.
+  - Registros de teste identificados VALIDACAO-211126-SEM-VALOR e carga 92126 preservados para rastreabilidade; não representam recebimento ou retirada real. Documentos e valores reais não alterados.
+- [ ] Validação externa 21/11: câmera/impressora físicas e contratos comerciais reais — depende de aparelhos e parâmetros do escritório; nada publicado.
