@@ -21,12 +21,14 @@ import { Route as AuthenticatedClientesAgendamentoRouteImport } from './routes/_
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedEstoqueDevolucoesRouteImport } from './routes/_authenticated/estoque-devolucoes'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedMotoristaRouteImport } from './routes/_authenticated/motorista'
 import { Route as AuthenticatedMotoristasRouteImport } from './routes/_authenticated/motoristas'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
+import { Route as AuthenticatedNotasDevolucaoRouteImport } from './routes/_authenticated/notas-devolucao'
 import { Route as AuthenticatedNotasEntreguesRouteImport } from './routes/_authenticated/notas-entregues'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
@@ -98,6 +100,12 @@ const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   path: '/estoque',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstoqueDevolucoesRoute =
+  AuthenticatedEstoqueDevolucoesRouteImport.update({
+    id: '/estoque-devolucoes',
+    path: '/estoque-devolucoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -129,6 +137,12 @@ const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
   path: '/notas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotasDevolucaoRoute =
+  AuthenticatedNotasDevolucaoRouteImport.update({
+    id: '/notas-devolucao',
+    path: '/notas-devolucao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNotasEntreguesRoute =
   AuthenticatedNotasEntreguesRouteImport.update({
     id: '/notas-entregues',
@@ -180,12 +194,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-devolucoes': typeof AuthenticatedEstoqueDevolucoesRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
+  '/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -206,12 +222,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/estoque-devolucoes': typeof AuthenticatedEstoqueDevolucoesRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/motorista': typeof AuthenticatedMotoristaRoute
   '/motoristas': typeof AuthenticatedMotoristasRoute
   '/notas': typeof AuthenticatedNotasRoute
+  '/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -234,12 +252,14 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/estoque-devolucoes': typeof AuthenticatedEstoqueDevolucoesRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/motorista': typeof AuthenticatedMotoristaRoute
   '/_authenticated/motoristas': typeof AuthenticatedMotoristasRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
+  '/_authenticated/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/_authenticated/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -262,12 +282,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/entregas'
     | '/estoque'
+    | '/estoque-devolucoes'
     | '/financeiro'
     | '/fornecedores'
     | '/historico'
     | '/motorista'
     | '/motoristas'
     | '/notas'
+    | '/notas-devolucao'
     | '/notas-entregues'
     | '/ocorrencias'
     | '/relatorios'
@@ -288,12 +310,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/entregas'
     | '/estoque'
+    | '/estoque-devolucoes'
     | '/financeiro'
     | '/fornecedores'
     | '/historico'
     | '/motorista'
     | '/motoristas'
     | '/notas'
+    | '/notas-devolucao'
     | '/notas-entregues'
     | '/ocorrencias'
     | '/relatorios'
@@ -315,12 +339,14 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/entregas'
     | '/_authenticated/estoque'
+    | '/_authenticated/estoque-devolucoes'
     | '/_authenticated/financeiro'
     | '/_authenticated/fornecedores'
     | '/_authenticated/historico'
     | '/_authenticated/motorista'
     | '/_authenticated/motoristas'
     | '/_authenticated/notas'
+    | '/_authenticated/notas-devolucao'
     | '/_authenticated/notas-entregues'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/relatorios'
@@ -423,6 +449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/estoque-devolucoes': {
+      id: '/_authenticated/estoque-devolucoes'
+      path: '/estoque-devolucoes'
+      fullPath: '/estoque-devolucoes'
+      preLoaderRoute: typeof AuthenticatedEstoqueDevolucoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/financeiro': {
       id: '/_authenticated/financeiro'
       path: '/financeiro'
@@ -463,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/notas'
       fullPath: '/notas'
       preLoaderRoute: typeof AuthenticatedNotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notas-devolucao': {
+      id: '/_authenticated/notas-devolucao'
+      path: '/notas-devolucao'
+      fullPath: '/notas-devolucao'
+      preLoaderRoute: typeof AuthenticatedNotasDevolucaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notas-entregues': {
@@ -537,12 +577,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedEstoqueDevolucoesRoute: typeof AuthenticatedEstoqueDevolucoesRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedMotoristaRoute: typeof AuthenticatedMotoristaRoute
   AuthenticatedMotoristasRoute: typeof AuthenticatedMotoristasRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
+  AuthenticatedNotasDevolucaoRoute: typeof AuthenticatedNotasDevolucaoRoute
   AuthenticatedNotasEntreguesRoute: typeof AuthenticatedNotasEntreguesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
@@ -561,12 +603,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedEstoqueDevolucoesRoute: AuthenticatedEstoqueDevolucoesRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedMotoristaRoute: AuthenticatedMotoristaRoute,
   AuthenticatedMotoristasRoute: AuthenticatedMotoristasRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
+  AuthenticatedNotasDevolucaoRoute: AuthenticatedNotasDevolucaoRoute,
   AuthenticatedNotasEntreguesRoute: AuthenticatedNotasEntreguesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,

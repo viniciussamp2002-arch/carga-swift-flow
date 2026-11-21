@@ -1,4 +1,7 @@
 export type ReminderKind = "amanha" | "vencido" | "aguardando";
+export function reminderEventKey(id: string, kind: ReminderKind, ag: { status: string; data_agendada: string | null; updated_at: string }) {
+  return `${id}:${kind}:${ag.status}:${ag.data_agendada ?? "sem-data"}:${ag.updated_at}`;
+}
 export const REMINDER_LABEL: Record<ReminderKind, string> = {
   amanha: "Agendada para amanhã",
   vencido: "Agendamento vencido — entrega pendente",

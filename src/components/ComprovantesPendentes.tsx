@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { isAwaitingProofReview, PENDING_PROOF_STATUSES, PROOF_TYPES } from "@/lib/proof-review-rules";
+import { Link } from "@tanstack/react-router";
 
 /** Office review queue: approve (gives delivery) or reject receipt photos sent by drivers. */
 export function ComprovantesPendentes() {
@@ -20,7 +21,7 @@ export function ComprovantesPendentes() {
     queryFn: async () => {
       const result = await supabase.from("comprovantes").select("*, motoristas:motorista_id(nome), notas_fiscais:nota_id(numero,cliente), cargas:carga_id(numero)").in("status", PENDING_PROOF_STATUSES).order("capturado_em");
       if (result.error) throw result.error;
-      return (result.data ?? []).filter(isAwaitingProofReview);
+      return (result.data ?? []).filter(c => isAwaitingProofReview(c) && !(c.triagem === "analisado" && c.tipo_documento !== "canhoto"));
     },
     refetchInterval: 30000,
   });
@@ -83,7 +84,7 @@ function Review({ c, onClose }: { c: any; onClose: () => void }) {
   });
   const classificar = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("triar_documento", { _id: c.id, _tipo: tipo, _situacao: "analisado", _obs: c.observacoes_documento ?? "" });
+      const { error } = await supabase.rpc("triar_documento", { _id: c.id, _tipo: tipo, _situacao: "analisado", _obs: c.observacoes_documento ?? "", ...(nota ? { _nota: nota } : {}) });
       if (error) throw error;
       return tipo;
     },
@@ -126,6 +127,7 @@ function Review({ c, onClose }: { c: any; onClose: () => void }) {
             <div className="space-y-1"><Label className="text-xs">Data da entrega</Label><Input type="datetime-local" value={quando} onChange={(e) => setQuando(e.target.value)} /></div>
             {rejecting && <div className="space-y-1"><Label className="text-xs">Motivo da rejeição (obrigatório)</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>}
             <Button variant="link" size="sm" className="px-0" onClick={() => reler.mutate()} disabled={reler.isPending}>Refazer leitura automática</Button>
+            {savedTipo === "devolucao" && <Button variant="outline" asChild><Link to="/notas-devolucao">Tratar nota de devolução</Link></Button>}
           </div>
         </div>
         <DialogFooter>

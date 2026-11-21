@@ -54,6 +54,7 @@ interface ColDef {
 
 const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null), edit: { field: "data_chegada", type: "date" } },
+  { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
   { key: "ocorrencias", label: "Ocorrências", width: 170, options: true, get: n => n.ocorrencia_estado ?? "Sem ocorrência", render: n => <OcorrenciaBadge nota={n} allowCreate etapa="deposito" /> },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
@@ -112,7 +113,8 @@ function NotasPage() {
       const raw = localStorage.getItem(viewKey);
       if (raw) {
         const v = JSON.parse(raw) as View;
-        const order = [...v.order.filter((k) => COL_MAP[k]), ...COLS.map((c) => c.key).filter((k) => !v.order.includes(k))];
+        const existing = [...v.order.filter((k) => COL_MAP[k] && k !== "transportadora"), ...COLS.map((c) => c.key).filter((k) => k !== "transportadora" && !v.order.includes(k))];
+        const order = [...existing.slice(0, 1), "transportadora", ...existing.slice(1)];
         setView({ order, hidden: v.hidden ?? [], widths: v.widths ?? {} });
       }
     } catch { /* ignore */ }
@@ -128,7 +130,7 @@ function NotasPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("notas_fiscais")
-          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada)")
+          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada), entrada:carga_entrada_id(transportadora)")
           .eq("recebida", true)
           .neq("status", "entregue")
           .order("created_at", { ascending: false })

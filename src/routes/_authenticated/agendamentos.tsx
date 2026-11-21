@@ -48,11 +48,15 @@ function AgendamentosPage() {
     },
   });
 
+  const { data: clientes = [] } = useQuery({ queryKey: ["clientes-ag"], queryFn: async () => {
+    const r = await supabase.from("clientes_agendamento").select("cnpj,nome,apelido"); if (r.error) throw r.error; return r.data;
+  } });
+  const clienteNome = (n: any) => clientes.find(c => c.cnpj.replace(/\D/g, "") === String(n.cnpj_destinatario ?? "").replace(/\D/g, ""))?.apelido?.trim() || n.cliente;
   const filtered = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return rows.filter((r: any) => (visao === "historico" ? isDelivered(r.nota.status) : !isDelivered(r.nota.status)) && (filtro === "todos" || r.status === filtro) &&
-      (!t || [r.nota.numero, r.nota.cliente, r.nota.fornecedor, r.nota.cidade, r.protocolo].some((v) => String(v ?? "").toLowerCase().includes(t))));
-  }, [rows, filtro, busca, visao]);
+      (!t || [r.nota.numero, clienteNome(r.nota), r.nota.cliente, r.nota.fornecedor, r.nota.cidade, r.protocolo].some((v) => String(v ?? "").toLowerCase().includes(t))));
+  }, [rows, filtro, busca, visao, clientes]);
   const base = rows.filter((r: any) => (visao === "historico") === isDelivered(r.nota.status));
   const contagem = (s: string) => s === "todos" ? base.length : base.filter((r: any) => r.status === s).length;
 
@@ -96,7 +100,7 @@ function AgendamentosPage() {
 
   function exportar() {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r: any) => ({
-      "Nº NF": r.nota.numero, Fornecedor: r.nota.fornecedor, Cliente: r.nota.cliente,
+      "Nº NF": r.nota.numero, Fornecedor: r.nota.fornecedor, Cliente: clienteNome(r.nota),
       CNPJ: r.nota.cnpj_destinatario, "Cidade/UF": `${r.nota.cidade}/${r.nota.uf ?? ""}`, Peso: r.nota.peso, Volumes: r.nota.volumes,
       Valor: r.nota.valor, Recebimento: r.nota.data_chegada, Solicitação: r.data_solicitacao, Responsável: r.solicitante,
       "Data agendada": r.data_agendada, Horário: r.horario, Protocolo: r.protocolo, Status: AG_STATUS_LABEL[r.status],
@@ -143,14 +147,14 @@ function AgendamentosPage() {
             <th>Nº NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade/UF</th><th className="text-right">Peso</th>
             <th>Situação</th><th>Recebimento</th><th>Solicitação</th><th>Responsável</th>
             <th>Data agendada</th><th>Protocolo</th><th>Status agend.</th><th>Entrada cliente</th><th>Data entrada</th>
-            <th>Status entrega</th><th>Data entrega</th><th>Observações</th><th>Histórico</th>
+            <th>Status entrega</th><th>Data entrega</th><th>Histórico</th>
           </tr></thead>
           <tbody>
             {filtered.map((r: any) => { const n = r.nota; return (
               <tr key={r.id}>
                 <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}<OcorrenciaBadge nota={n} allowCreate etapa="deposito" /></td>
                 <td>{n.fornecedor}</td>
-                <td>{n.cliente}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
+                <td title={n.cliente}>{clienteNome(n)}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                 <td className="text-right">{fmtNum(n.peso, 3)}</td>
                 <td className="whitespace-nowrap">{operationalSituation(r, n.status, hoje)}</td>
                 <td>{fmtDate(n.data_chegada && n.data_chegada + "T12:00")}</td>
@@ -164,10 +168,9 @@ function AgendamentosPage() {
                 <td>{txt(r, "data_entrada", "Data entrada", "date", "w-36")}</td>
                 <td>{NOTA_STATUS_LABEL[n.status]}</td>
                 <td>{fmtDateTime(entrega(r))}</td>
-                <td>{txt(r, "observacoes", "Observações", "text", "w-48")}</td>
                 <td><HistoricoNota notaId={n.id} /></td>
               </tr>); })}
-            {filtered.length === 0 && <tr><td colSpan={18} className="text-center text-muted-foreground py-8">
+            {filtered.length === 0 && <tr><td colSpan={17} className="text-center text-muted-foreground py-8">
               Nenhum agendamento. Notas de clientes cadastrados em Cadastros › Clientes com Agendamento aparecem aqui ao serem recebidas.</td></tr>}
           </tbody>
         </table>

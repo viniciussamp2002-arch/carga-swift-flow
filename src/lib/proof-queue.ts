@@ -1,5 +1,5 @@
 // Local photo queue in IndexedDB, isolated per account (user id in the key).
-export interface QueuedProof { id: string; userId: string; blob: Blob; capturedAt: string; tries: number; lastError?: string }
+export interface QueuedProof { id: string; userId: string; blob: Blob; capturedAt: string; tries: number; lastError?: string; cargaId?: string; notaId?: string }
 const DB = "transmerida-canhotos", STORE = "fila";
 function open(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {

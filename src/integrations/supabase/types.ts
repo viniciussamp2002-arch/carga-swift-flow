@@ -401,6 +401,7 @@ export type Database = {
       }
       clientes_agendamento: {
         Row: {
+          apelido: string
           ativo: boolean
           cnpj: string
           created_at: string
@@ -409,6 +410,7 @@ export type Database = {
           observacoes: string | null
         }
         Insert: {
+          apelido?: string
           ativo?: boolean
           cnpj: string
           created_at?: string
@@ -417,6 +419,7 @@ export type Database = {
           observacoes?: string | null
         }
         Update: {
+          apelido?: string
           ativo?: boolean
           cnpj?: string
           created_at?: string
@@ -436,6 +439,7 @@ export type Database = {
           id: string
           motivo_rejeicao: string | null
           motorista_id: string
+          nota_envio_id: string | null
           nota_id: string | null
           observacoes_documento: string
           reconhecimento: Json
@@ -458,6 +462,7 @@ export type Database = {
           id: string
           motivo_rejeicao?: string | null
           motorista_id: string
+          nota_envio_id?: string | null
           nota_id?: string | null
           observacoes_documento?: string
           reconhecimento?: Json
@@ -480,6 +485,7 @@ export type Database = {
           id?: string
           motivo_rejeicao?: string | null
           motorista_id?: string
+          nota_envio_id?: string | null
           nota_id?: string | null
           observacoes_documento?: string
           reconhecimento?: Json
@@ -516,6 +522,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "comprovantes_nota_envio_id_fkey"
+            columns: ["nota_envio_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "comprovantes_nota_id_fkey"
             columns: ["nota_id"]
             isOneToOne: false
@@ -545,9 +558,387 @@ export type Database = {
         }
         Relationships: []
       }
+      devolucao_alocacoes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          pallet_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          pallet_id: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          pallet_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_alocacoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_alocacoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_alocacoes_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_pallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucao_itens: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string
+          devolucao_id: string
+          id: string
+          item_numero: string
+          lote: string
+          motivo: string
+          observacoes: string
+          quantidade: number
+          quantidade_original: number
+          retorno_fisico: boolean
+          unidade: string
+          unidade_original: string
+          validade: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao: string
+          devolucao_id: string
+          id?: string
+          item_numero: string
+          lote?: string
+          motivo: string
+          observacoes?: string
+          quantidade: number
+          quantidade_original: number
+          retorno_fisico?: boolean
+          unidade: string
+          unidade_original: string
+          validade?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          devolucao_id?: string
+          id?: string
+          item_numero?: string
+          lote?: string
+          motivo?: string
+          observacoes?: string
+          quantidade?: number
+          quantidade_original?: number
+          retorno_fisico?: boolean
+          unidade?: string
+          unidade_original?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_itens_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucao_movimentos: {
+        Row: {
+          created_at: string
+          data_movimento: string
+          id: string
+          item_id: string
+          motivo: string
+          observacoes: string
+          pallet_id: string | null
+          quantidade: number
+          registrado_por: string | null
+          reserva_id: string | null
+          retirado_por: string
+          tipo: string
+          unidade: string
+        }
+        Insert: {
+          created_at?: string
+          data_movimento?: string
+          id: string
+          item_id: string
+          motivo: string
+          observacoes?: string
+          pallet_id?: string | null
+          quantidade: number
+          registrado_por?: string | null
+          reserva_id?: string | null
+          retirado_por?: string
+          tipo: string
+          unidade: string
+        }
+        Update: {
+          created_at?: string
+          data_movimento?: string
+          id?: string
+          item_id?: string
+          motivo?: string
+          observacoes?: string
+          pallet_id?: string | null
+          quantidade?: number
+          registrado_por?: string | null
+          reserva_id?: string | null
+          retirado_por?: string
+          tipo?: string
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_movimentos_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_pallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_movimentos_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_movimentos_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_reservas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucao_pallets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          devolucao_id: string
+          id: string
+          localizacao: string
+          numero: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          devolucao_id: string
+          id?: string
+          localizacao?: string
+          numero: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          devolucao_id?: string
+          id?: string
+          localizacao?: string
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_pallets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_pallets_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucao_reservas: {
+        Row: {
+          coleta_ref: string | null
+          created_at: string
+          id: string
+          item_id: string
+          motivo: string
+          pallet_id: string | null
+          quantidade: number
+          registrado_por: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          coleta_ref?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          motivo: string
+          pallet_id?: string | null
+          quantidade: number
+          registrado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          coleta_ref?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          motivo?: string
+          pallet_id?: string | null
+          quantidade?: number
+          registrado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_reservas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_reservas_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao_pallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_reservas_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucoes: {
+        Row: {
+          comprovante_id: string
+          controle: number
+          created_at: string
+          created_by: string | null
+          data_documento: string | null
+          documental: string
+          enviada_em: string | null
+          enviada_por: string | null
+          id: string
+          nota_origem_id: string | null
+          numero_nf: string
+          observacoes: string
+          prestacao: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          comprovante_id: string
+          controle?: never
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          documental?: string
+          enviada_em?: string | null
+          enviada_por?: string | null
+          id?: string
+          nota_origem_id?: string | null
+          numero_nf?: string
+          observacoes?: string
+          prestacao?: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          comprovante_id?: string
+          controle?: never
+          created_at?: string
+          created_by?: string | null
+          data_documento?: string | null
+          documental?: string
+          enviada_em?: string | null
+          enviada_por?: string | null
+          id?: string
+          nota_origem_id?: string | null
+          numero_nf?: string
+          observacoes?: string
+          prestacao?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucoes_comprovante_id_fkey"
+            columns: ["comprovante_id"]
+            isOneToOne: true
+            referencedRelation: "comprovantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_enviada_por_fkey"
+            columns: ["enviada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_nota_origem_id_fkey"
+            columns: ["nota_origem_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distancias: {
         Row: {
           atualizado_em: string
+          atualizado_por: string | null
           cidade: string
           fonte: string
           ibge: string | null
@@ -557,6 +948,7 @@ export type Database = {
         }
         Insert: {
           atualizado_em?: string
+          atualizado_por?: string | null
           cidade: string
           fonte: string
           ibge?: string | null
@@ -566,6 +958,7 @@ export type Database = {
         }
         Update: {
           atualizado_em?: string
+          atualizado_por?: string | null
           cidade?: string
           fonte?: string
           ibge?: string | null
@@ -573,7 +966,15 @@ export type Database = {
           km?: number
           uf?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "distancias_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documento_vinculos: {
         Row: {
@@ -734,6 +1135,7 @@ export type Database = {
           id: string
           nota_fiscal_id: string
           observacoes: string | null
+          previsao: boolean
           regiao: string | null
           situacao: string
           updated_at: string
@@ -759,6 +1161,7 @@ export type Database = {
           id?: string
           nota_fiscal_id: string
           observacoes?: string | null
+          previsao?: boolean
           regiao?: string | null
           situacao?: string
           updated_at?: string
@@ -784,6 +1187,7 @@ export type Database = {
           id?: string
           nota_fiscal_id?: string
           observacoes?: string | null
+          previsao?: boolean
           regiao?: string | null
           situacao?: string
           updated_at?: string
@@ -1148,6 +1552,32 @@ export type Database = {
             columns: ["tabela_frete_id"]
             isOneToOne: false
             referencedRelation: "tabelas_frete"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacoes_dispensadas: {
+        Row: {
+          created_at: string
+          evento_chave: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evento_chave: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evento_chave?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_dispensadas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1585,6 +2015,15 @@ export type Database = {
         }
         Returns: string
       }
+      alocar_devolucao: {
+        Args: {
+          _item: string
+          _local?: string
+          _numero: number
+          _quantidade: number
+        }
+        Returns: string
+      }
       alterar_situacao_carga: {
         Args: { _acao: string; _id: string; _motivo: string; _tipo: string }
         Returns: Json
@@ -1622,7 +2061,19 @@ export type Database = {
         Returns: undefined
       }
       inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
+      liberar_reserva_devolucao: { Args: { _id: string }; Returns: undefined }
       limitar_acesso: { Args: { _chave: string }; Returns: boolean }
+      movimentar_devolucao: {
+        Args: {
+          _dados?: Json
+          _item: string
+          _operacao: string
+          _quantidade: number
+          _tipo: string
+        }
+        Returns: string
+      }
+      prestar_contas_devolucao: { Args: { _id: string }; Returns: undefined }
       recalcular_frete: {
         Args: { _motivo: string; _nota: string }
         Returns: string
@@ -1635,6 +2086,10 @@ export type Database = {
         Args: { _id: string; _motivo: string }
         Returns: undefined
       }
+      reservar_devolucao: {
+        Args: { _dados?: Json; _id: string; _item: string; _quantidade: number }
+        Returns: string
+      }
       reverter_aprovacao: {
         Args: { _id: string; _motivo: string }
         Returns: undefined
@@ -1642,6 +2097,14 @@ export type Database = {
       simular_frete: {
         Args: { _km?: number; _peso: number; _regras: Json; _valor: number }
         Returns: Json
+      }
+      simular_frete_cidade: {
+        Args: { _cidade: string; _peso: number; _regras: Json; _valor: number }
+        Returns: Json
+      }
+      tratar_devolucao: {
+        Args: { _dados: Json; _documento: string }
+        Returns: string
       }
       triar_documento: {
         Args: {

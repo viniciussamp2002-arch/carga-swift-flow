@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/clientes-agendamento")({
 function ClientesAgPage() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  const [cnpj, setCnpj] = useState(""); const [nome, setNome] = useState("");
+  const [cnpj, setCnpj] = useState(""); const [nome, setNome] = useState(""); const [apelido, setApelido] = useState("");
   const { data: rows = [] } = useQuery({
     queryKey: ["clientes-ag"],
     queryFn: async () => (await supabase.from("clientes_agendamento").select("*").order("nome")).data ?? [],
@@ -39,12 +39,12 @@ function ClientesAgPage() {
     mutationFn: async () => {
       const c = onlyDigits(cnpj);
       if (c.length !== 14 && c.length !== 11) throw new Error("Informe um CNPJ (14 dígitos) ou CPF válido");
-      const { error } = await supabase.from("clientes_agendamento").insert({ cnpj: c, nome: nome.trim() });
+      const { error } = await supabase.from("clientes_agendamento").insert({ cnpj: c, nome: nome.trim(), apelido: apelido.trim() });
       if (error) throw new Error(error.code === "23505" ? "Cliente já cadastrado" : error.message);
       // notas já no depósito desse cliente passam a ter vínculo de agendamento
       await supabase.from("notas_fiscais").update({ cnpj_destinatario: c }).eq("cnpj_destinatario", c).eq("recebida", true).in("status", ["disponivel", "separacao", "carregamento"]);
     },
-    onSuccess: () => { toast.success("Cliente adicionado"); setCnpj(""); setNome(""); refresh(); },
+    onSuccess: () => { toast.success("Cliente adicionado"); setCnpj(""); setNome(""); setApelido(""); refresh(); },
     onError: (e: any) => toast.error(e.message),
   });
   const toggle = async (r: any, ativo: boolean) => { const { error } = await supabase.from("clientes_agendamento").update({ ativo }).eq("id", r.id); if (error) toast.error(error.message); refresh(); };
@@ -63,17 +63,18 @@ function ClientesAgPage() {
             </select></div>
           <div><div className="text-[11px] mb-1">CNPJ*</div><Input className="h-9 w-48" value={cnpj} onChange={(e) => setCnpj(e.target.value)} /></div>
           <div className="flex-1 min-w-[200px]"><div className="text-[11px] mb-1">Nome (ex.: Sendas)</div><Input className="h-9" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+          <div><div className="text-[11px] mb-1">Apelido</div><Input aria-label="Apelido" className="h-9 w-48" value={apelido} onChange={e => setApelido(e.target.value)} /></div>
           <Button className="h-9" disabled={add.isPending || !cnpj} onClick={() => add.mutate()}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
         </div>
       ) : <p className="mb-3 text-sm text-muted-foreground">Somente administradores podem alterar esta lista.</p>}
       <div className="bg-card border rounded-md overflow-auto">
         <table className="table-erp">
-          <thead><tr><th>Cliente</th><th>CNPJ</th><th>Ativo</th><th></th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Apelido</th><th>CNPJ</th><th>Ativo</th><th></th></tr></thead>
           <tbody>
-            {rows.map((r: any) => <tr key={r.id}><td className="font-semibold">{r.nome || "—"}</td><td className="font-mono">{fmtC(r.cnpj)}</td>
+            {rows.map((r: any) => <tr key={r.id}><td className="font-semibold">{r.nome || "—"}</td><td><Input aria-label={`Apelido de ${r.nome}`} disabled={!isAdmin} defaultValue={r.apelido ?? ""} key={r.apelido} onBlur={async e => { if (e.target.value === (r.apelido ?? "")) return; const { error } = await supabase.from("clientes_agendamento").update({ apelido: e.target.value.trim() }).eq("id", r.id); if (error) toast.error(error.message); else refresh(); }} /></td><td className="font-mono">{fmtC(r.cnpj)}</td>
               <td><Switch checked={r.ativo} disabled={!isAdmin} onCheckedChange={(v) => toggle(r, v)} /></td>
               <td>{isAdmin && <button onClick={() => del(r)} className="text-destructive"><Trash2 className="h-4 w-4" /></button>}</td></tr>)}
-            {rows.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado</td></tr>}
           </tbody>
         </table>
       </div>

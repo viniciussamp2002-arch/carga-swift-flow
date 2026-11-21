@@ -21,6 +21,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { to: "/dashboard", label: "Início", icon: Home },
     ...MODULES,
     { to: "/relatorios-recebimento", label: "Relatórios de Recebimento", icon: FileCheck },
+    { to: "/notas-devolucao", label: "Notas de Devolução", icon: FileCheck },
+    { to: "/estoque-devolucoes", label: "Estoque de Devoluções", icon: FolderOpen },
     { to: "/veiculos", label: "Veículos", icon: Users },
     { to: "/motoristas", label: "Motoristas", icon: Users },
     { to: "/motorista", label: "Portal do Motorista", icon: Camera },

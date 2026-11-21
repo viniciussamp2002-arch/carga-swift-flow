@@ -190,6 +190,27 @@
       "when": 1795115013459,
       "tag": "0026_qualify_freight_destination_variable",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795277574944,
+      "tag": "0027_driver_photos_aliases_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795277677218,
+      "tag": "0028_returns_items_pallets_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795277867691,
+      "tag": "0029_financial_preview_city_contract_rules",
+      "breakpoints": true
     }
   ]
 }
