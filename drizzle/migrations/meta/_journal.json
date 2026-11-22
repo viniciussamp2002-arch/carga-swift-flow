@@ -232,6 +232,13 @@
       "when": 1795278625131,
       "tag": "0032_freight_enabled_components_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795306897876,
+      "tag": "0033_simplified_return_treatment",
+      "breakpoints": true
     }
   ]
 }

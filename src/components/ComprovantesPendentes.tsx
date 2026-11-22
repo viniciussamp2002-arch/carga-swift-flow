@@ -75,9 +75,11 @@ function Review({ c, onClose }: { c: any; onClose: () => void }) {
     return () => { active = false; };
   }, [c.storage_path]);
   const { data: notas = [], error: notasError } = useQuery({
-    queryKey: ["notas-motorista", c.motorista_id],
+    queryKey: ["notas-motorista", c.motorista_id, tipo === "devolucao"],
     queryFn: async () => {
-      const result = await supabase.from("notas_fiscais").select("id,numero,cliente,status,cargas:carga_id!inner(numero,motorista_id,situacao)").eq("cargas.motorista_id", c.motorista_id).eq("cargas.situacao", "ativa").neq("status", "entregue").order("numero");
+      let q = supabase.from("notas_fiscais").select("id,numero,cliente,status,cargas:carga_id!inner(numero,motorista_id,situacao)").eq("cargas.motorista_id", c.motorista_id);
+      if (tipo !== "devolucao") q = q.eq("cargas.situacao", "ativa").neq("status", "entregue");
+      const result = await q.order("numero");
       if (result.error) throw result.error;
       return result.data ?? [];
     },
