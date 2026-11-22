@@ -4,9 +4,13 @@ import { fmtNum } from "./format";
 export type PalletLabel = { pallet: string; controle: string; nfDevolucao: string; nfOrigem: string; fornecedor: string; cliente: string; motorista: string; recebimento: string; local: string };
 
 /** Horizontal pallet label: big bold DEVOLUÇÃO, origin NF and supplier readable from a distance. */
-export async function returnPalletPdf(h: PalletLabel, rows: string[][], format: "a4" | "a5" | "label") {
+export async function returnPalletPdf(h: PalletLabel, rows: string[][], format: "a4" | "a5" | "label", total = 1) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ orientation: "landscape", format: format === "label" ? [100, 150] : format });
+  const count = Math.max(1, Math.floor(total));
+  for (let n = 1; n <= count; n++) {
+  if (n > 1) doc.addPage();
+  if (count > 1 || !h.pallet) h = { ...h, pallet: `${String(n).padStart(2, "0")}/${String(count).padStart(2, "0")}` };
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const k = W / 297; // scale relative to A4 landscape
@@ -40,6 +44,8 @@ export async function returnPalletPdf(h: PalletLabel, rows: string[][], format: 
     doc.text(doc.splitTextToSize(line, W - 2 * m - 10 * k)[0], m + 5 * k, y); y += 5 * k;
   }
   doc.setFontSize(8 * k); doc.text(COMPANY.apresentacao, W - m - 4 * k, H - m - 3 * k, { align: "right" });
+  doc.setTextColor(0, 0, 0);
+  }
   return doc.output("blob");
 }
 
