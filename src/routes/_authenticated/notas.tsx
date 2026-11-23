@@ -230,8 +230,9 @@ function NotasPage() {
 
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("notas_fiscais").delete().in("id", ids);
+      const { data, error } = await supabase.from("notas_fiscais").delete().in("id", ids).select("id");
       if (error) throw error;
+      if ((data?.length ?? 0) < ids.length) throw new Error(`${ids.length - (data?.length ?? 0)} nota(s) não excluída(s): sem permissão`);
     },
     onSuccess: (_d, ids) => {
       toast.success(`${ids.length} nota(s) excluída(s)`);
