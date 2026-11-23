@@ -253,18 +253,8 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o && !importando) onClose(); }}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => { if (importando) e.preventDefault(); }}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto" onInteractOutside={(e) => e.preventDefault()} onFocusOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => { if (importando) e.preventDefault(); }}>
         {importando && <div role="status" className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 text-sm font-semibold">Importando XMLs, aguarde…</div>}
-        <Dialog open={!!resultado} onOpenChange={(o) => !o && setResultado(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Resultado da importação</DialogTitle></DialogHeader>
-            {resultado && <div className="space-y-2 text-sm">
-              <p><b>{resultado.importadas} nota(s) importada(s)</b></p>
-              {resultado.erros.length > 0 ? <><p className="text-destructive">{resultado.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-60 overflow-auto">{resultado.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></> : <p className="text-muted-foreground">Nenhum arquivo rejeitado.</p>}
-            </div>}
-            <Button onClick={() => setResultado(null)}>OK</Button>
-          </DialogContent>
-        </Dialog>
         <DialogHeader><DialogTitle>Carga de entrada {data?.numero_transporte || ""} {data && <StatusBadge className={STATUS_COLOR[data.status]}>{ENTRADA_STATUS_LABEL[data.status]}</StatusBadge>}</DialogTitle></DialogHeader>
         {data && <>
           <LoadStateInfo load={data} />
@@ -283,6 +273,10 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
           <Tabs defaultValue="notas" className="min-w-0">
           <div className="overflow-x-auto"><TabsList className="w-max"><TabsTrigger value="notas">Notas Fiscais</TabsTrigger><TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger><TabsTrigger value="recibo">Recibo de Descarga</TabsTrigger><TabsTrigger value="historico">Histórico</TabsTrigger></TabsList></div>
           <TabsContent value="notas" className="space-y-3">
+          {resultado && <div role="alert" className="rounded-md border bg-muted p-3 text-sm space-y-1">
+            <div className="flex items-center justify-between"><b>Resultado da importação: {resultado.importadas} nota(s) importada(s)</b><Button size="sm" variant="ghost" onClick={() => setResultado(null)}>Fechar aviso</Button></div>
+            {resultado.erros.length > 0 ? <><p className="text-destructive">{resultado.erros.length} arquivo(s) rejeitado(s):</p><ul className="list-disc pl-5 max-h-60 overflow-auto">{resultado.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></> : <p className="text-muted-foreground">Nenhum arquivo rejeitado.</p>}
+          </div>}
           {canWrite && <div className="flex flex-wrap gap-2">
             <input ref={xmlRef} type="file" accept=".xml" multiple className="hidden" onChange={(e) => { if (e.target.files) importar(e.target.files); e.target.value = ""; }} />
             {!fechada && <>
