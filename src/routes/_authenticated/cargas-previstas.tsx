@@ -244,8 +244,10 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   }
 
   async function remover(nid: string) {
-    const { error } = await supabase.from("notas_fiscais").delete().eq("id", nid).eq("recebida", false);
-    if (error) toast.error(error.message); else { setRemoveId(null); refresh(); }
+    const { data: del, error } = await supabase.from("notas_fiscais").delete().eq("id", nid).eq("recebida", false).select("id");
+    if (error) toast.error(error.message);
+    else if (!del?.length) toast.error("Nota não excluída: já recebida ou sem permissão");
+    else { toast.success("Nota excluída da carga"); setRemoveId(null); refresh(); }
   }
 
   const acoes = (n: any) => canWrite && !inativa && <div className="flex items-center gap-2 justify-end">

@@ -239,6 +239,13 @@
       "when": 1795306897876,
       "tag": "0033_simplified_return_treatment",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795443773276,
+      "tag": "0034_allow_delete_unreceived_note_preview_freight",
+      "breakpoints": true
     }
   ]
 }

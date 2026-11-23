@@ -1,0 +1,2 @@
+ALTER TABLE public.calculos_frete DROP CONSTRAINT calculos_frete_nota_id_fkey;
+ALTER TABLE public.calculos_frete ADD CONSTRAINT calculos_frete_nota_id_fkey FOREIGN KEY (nota_id) REFERENCES public.notas_fiscais(id) ON DELETE CASCADE;
