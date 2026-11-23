@@ -51,8 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(identity.user);
       } finally { if (active && current === generation) setLoading(false); }
     }
+    let hydratedUid: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "TOKEN_REFRESHED") { setSession(s); return; }
+      // Supabase re-emits SIGNED_IN when the tab regains focus (e.g. after a file picker);
+      // re-hydrating would unmount every open screen, so only refresh the token for the same user.
+      if (event === "SIGNED_IN" && s && hydratedUid === s.user.id) { setSession(s); return; }
+      hydratedUid = s?.user.id ?? null;
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         setLoading(true);
         setTimeout(() => { if (active) void hydrate(s); }, 0);

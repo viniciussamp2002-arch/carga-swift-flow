@@ -30,7 +30,7 @@ import { LoadLifecycleActions, LoadStateFilter, LoadStateInfo } from "@/componen
 import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ReceivingOccurrenceDocuments } from "@/components/ReceivingOccurrenceDocuments";
-import { useSearch } from "@tanstack/react-router";
+import { useSearch, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   validateSearch: (search: Record<string, unknown>) => ({ carga: typeof search.carga === "string" ? search.carga : undefined }),
@@ -53,7 +53,9 @@ function CargasEntradaPage() {
   const { canWrite } = useAuth();
   const search = useSearch({ from: "/_authenticated/cargas-previstas" });
   const [form, setForm] = useState<any>(null);
-  const [openId, setOpenId] = useState<string | null>(search.carga || null);
+  const navigate = useNavigate({ from: "/cargas-previstas" });
+  const openId = search.carga ?? null;
+  const setOpenId = (id: string | null) => navigate({ search: { carga: id ?? undefined }, replace: true });
   const [statusF, setStatusF] = useState("__all__");
   const [stateF, setStateF] = useState("ativa");
   const qc = useQueryClient();
@@ -286,10 +288,6 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
             {!inativa && <Button size="sm" variant="outline" onClick={() => onEdit(data)}>Editar dados</Button>}
             <LoadLifecycleActions id={id} kind="entrada" state={data.situacao} onDone={refresh} />
             {!fechada && notas.some((n) => !n.recebida) && <Button size="sm" className="ml-auto" onClick={() => setConfirmar(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Confirmar Chegada</Button>}
-          </div>}
-          {resultado && <div role="status" className="border rounded-md p-3 text-sm">
-            <b>{resultado.importadas} nota(s) importada(s)</b>
-            {resultado.erros.length > 0 && <><p className="text-destructive">{resultado.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-40 overflow-auto">{resultado.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></>}
           </div>}
           <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="h-8">Visualização <ChevronDown className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuRadioGroup value={modo} onValueChange={value => { if(value === "individual" || value === "agrupada") setModo(value); }}><DropdownMenuRadioItem value="individual">Visualização Individual</DropdownMenuRadioItem><DropdownMenuRadioItem value="agrupada">Visualização Agrupada por Cliente</DropdownMenuRadioItem></DropdownMenuRadioGroup></DropdownMenuContent></DropdownMenu>
           <div className="border rounded-md overflow-auto">
