@@ -1,9 +1,8 @@
 import { Rows3, Rows4 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera, MoreVertical, FolderOpen, Truck, Building2, FileCheck, CalendarCheck } from "lucide-react";
+import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera, FolderOpen, Truck, Building2, FileCheck, CalendarCheck } from "lucide-react";
 import { AgendaBell } from "./AgendaBell";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";

@@ -48,7 +48,7 @@ function VeicPage() {
     <div>
       <PageHeader
         title="Veículos"
-        subtitle={`${fmtNum(veiculos.length)} cadastrados`}
+        subtitle={`${fmtNum(veiculos.length)} cadastrados · ${veiculos.filter((v:any)=>v.situacao==="disponivel").length} disponíveis · ${veiculos.filter((v:any)=>v.situacao==="em_rota").length} em rota · ${veiculos.filter((v:any)=>v.situacao==="manutencao").length} em manutenção`}
         actions={canWrite && (
           <Button size="sm" onClick={() => { setEdit(null); setOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" />Novo
@@ -73,7 +73,7 @@ function VeicPage() {
               )}
               {canWrite && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEdit(v); setOpen(true); }}>Editar</Button>}
             </div>
-            <div className="my-1 rounded-md border-2 border-foreground/80 bg-background py-2 text-center font-mono text-2xl font-bold tracking-widest">{v.placa}</div>
+            <div className="my-1 rounded-md border-2 border-foreground/80 bg-background py-4 text-center font-mono text-3xl font-bold tracking-widest">{v.placa}</div>
             <div className="text-sm font-semibold truncate">{[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}</div>
             <div className="text-xs text-muted-foreground space-y-0.5">
               <div>Tipo: <span className="text-foreground">{v.tipo || "—"}</span></div>
