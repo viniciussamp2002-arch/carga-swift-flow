@@ -261,7 +261,7 @@ function NotasPage() {
       setModoXml(agrupado ? "agrupada" : "individual");
       setResultadoXml({ importadas, erros });
       qc.invalidateQueries({ queryKey: ["notas"] });
-    } finally { setImportando(false); }
+    } catch (e: any) { setResultadoXml({ importadas: 0, erros: [e?.message ?? "Falha ao ler os arquivos"] }); } finally { setImportando(false); }
   }
 
   async function importExcel(file: File) {
@@ -523,10 +523,17 @@ function NotasPage() {
         }
       />
 
-      {resultadoXml && <div role="status" className="mb-2 border rounded-md p-3 text-sm">
-        <b>{resultadoXml.importadas} nota(s) importada(s)</b>
-        {resultadoXml.erros.length > 0 && <><p className="text-destructive">{resultadoXml.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-40 overflow-auto">{resultadoXml.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></>}
-      </div>}
+      {importando && <div role="status" className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 text-sm font-semibold">Importando XMLs, aguarde…</div>}
+      <Dialog open={!!resultadoXml} onOpenChange={(o) => !o && setResultadoXml(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Resultado da importação</DialogTitle></DialogHeader>
+          {resultadoXml && <div className="space-y-2 text-sm">
+            <p><b>{resultadoXml.importadas} nota(s) importada(s)</b></p>
+            {resultadoXml.erros.length > 0 ? <><p className="text-destructive">{resultadoXml.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-60 overflow-auto">{resultadoXml.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></> : <p className="text-muted-foreground">Nenhum arquivo rejeitado.</p>}
+          </div>}
+          <Button onClick={() => setResultadoXml(null)}>OK</Button>
+        </DialogContent>
+      </Dialog>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Button size="sm" variant={modoXml === "individual" ? "default" : "outline"} onClick={() => setModoXml("individual")}>Individual</Button>
         <Button size="sm" variant={modoXml === "agrupada" ? "default" : "outline"} onClick={() => setModoXml("agrupada")}>Agrupada</Button>
