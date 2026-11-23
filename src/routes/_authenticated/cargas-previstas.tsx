@@ -235,9 +235,10 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
         else importadas++;
       }
       setModo(importMode.current);
+      if (importadas) toast.success(`${importadas} nota(s) importada(s)`); else if (erros.length) toast.error("Nenhuma nota importada");
       setResultado({ importadas, erros });
       refresh();
-    } finally { setImportando(false); }
+    } catch (e: any) { setResultado({ importadas: 0, erros: [e?.message ?? "Falha ao ler os arquivos"] }); } finally { setImportando(false); }
   }
 
   async function remover(nid: string) {
@@ -251,8 +252,19 @@ function DetalheCarga({ id, onClose, onEdit }: { id: string; onClose: () => void
   </div>;
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+    <Dialog open onOpenChange={(o) => { if (!o && !importando) onClose(); }}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => { if (importando) e.preventDefault(); }}>
+        {importando && <div role="status" className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 text-sm font-semibold">Importando XMLs, aguarde…</div>}
+        <Dialog open={!!resultado} onOpenChange={(o) => !o && setResultado(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Resultado da importação</DialogTitle></DialogHeader>
+            {resultado && <div className="space-y-2 text-sm">
+              <p><b>{resultado.importadas} nota(s) importada(s)</b></p>
+              {resultado.erros.length > 0 ? <><p className="text-destructive">{resultado.erros.length} arquivo(s) rejeitado(s)</p><ul className="list-disc pl-5 max-h-60 overflow-auto">{resultado.erros.map((e, i) => <li key={i}>{e}</li>)}</ul></> : <p className="text-muted-foreground">Nenhum arquivo rejeitado.</p>}
+            </div>}
+            <Button onClick={() => setResultado(null)}>OK</Button>
+          </DialogContent>
+        </Dialog>
         <DialogHeader><DialogTitle>Carga de entrada {data?.numero_transporte || ""} {data && <StatusBadge className={STATUS_COLOR[data.status]}>{ENTRADA_STATUS_LABEL[data.status]}</StatusBadge>}</DialogTitle></DialogHeader>
         {data && <>
           <LoadStateInfo load={data} />
