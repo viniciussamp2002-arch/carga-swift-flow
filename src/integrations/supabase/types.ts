@@ -1463,6 +1463,9 @@ export type Database = {
           origem: string
           peso: number
           peso_frete: number | null
+          previsao_entrega: string | null
+          previsao_entrega_na_baixa: string | null
+          previsao_entrega_original: string | null
           recebida: boolean
           recebida_em: string | null
           recebida_por: string | null
@@ -1504,6 +1507,9 @@ export type Database = {
           origem?: string
           peso?: number
           peso_frete?: number | null
+          previsao_entrega?: string | null
+          previsao_entrega_na_baixa?: string | null
+          previsao_entrega_original?: string | null
           recebida?: boolean
           recebida_em?: string | null
           recebida_por?: string | null
@@ -1545,6 +1551,9 @@ export type Database = {
           origem?: string
           peso?: number
           peso_frete?: number | null
+          previsao_entrega?: string | null
+          previsao_entrega_na_baixa?: string | null
+          previsao_entrega_original?: string | null
           recebida?: boolean
           recebida_em?: string | null
           recebida_por?: string | null
@@ -2078,6 +2087,10 @@ export type Database = {
           _quando: string
         }
         Returns: Database["public"]["Enums"]["entrada_status"]
+      }
+      definir_previsao_entrega: {
+        Args: { _data: string; _ids: string[]; _obs: string }
+        Returns: number
       }
       fechar_frete: {
         Args: {

@@ -274,6 +274,13 @@
       "when": 1795530271918,
       "tag": "0038_baixa_direta_entrega_fix_id",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795540099967,
+      "tag": "0039_previsao_entrega_cliente",
+      "breakpoints": true
     }
   ]
 }

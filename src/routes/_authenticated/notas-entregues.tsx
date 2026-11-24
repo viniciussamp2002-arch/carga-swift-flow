@@ -1,3 +1,4 @@
+import { resultadoEntrega } from "@/lib/deadline-rules";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -68,7 +69,7 @@ function NotasEntreguesPage() {
         {atual?.cnpj && <p className="text-xs text-muted-foreground mb-2">CNPJ {atual.cnpj}</p>}
         <div className="bg-card border rounded-md overflow-x-auto">
           <table className="table-erp">
-            <thead><tr><th>Canhoto</th><th>NF</th><th>Cliente</th><th>Cidade</th><th>Modalidade</th><th>Carga</th><th>Motorista</th><th>Placa</th><th>Entregue em</th><th className="text-right">Peso</th><th className="text-right">Valor</th></tr></thead>
+            <thead><tr><th>Canhoto</th><th>NF</th><th>Cliente</th><th>Cidade</th><th>Modalidade</th><th>Carga</th><th>Motorista</th><th>Placa</th><th>Entregue em</th><th>Prazo</th><th className="text-right">Peso</th><th className="text-right">Valor</th></tr></thead>
             <tbody>
               {lista.map((n) => (
                 <tr key={n.id}>
@@ -81,10 +82,11 @@ function NotasEntreguesPage() {
                   <td>{direta ? e.motoristas?.nome ?? "—" : n.cargas?.motoristas?.nome ?? "—"}</td>
                   <td>{direta ? e.veiculos?.placa ?? "—" : "—"}</td></>; })()}
                   <td>{dataEntrega(n) ? fmtDate(dataEntrega(n)) : "—"}</td>
+                  <td title={n.previsao_entrega_original ? `Primeira previsão: ${fmtDate(n.previsao_entrega_original + "T12:00:00")}` : undefined}>{resultadoEntrega(n.previsao_entrega_na_baixa ?? n.previsao_entrega, dataEntrega(n))}</td>
                   <td className="text-right">{fmtKg(n.peso)}</td><td className="text-right">{fmtBRL(n.valor)}</td>
                 </tr>
               ))}
-              {lista.length === 0 && <tr><td colSpan={11} className="text-center py-6 text-muted-foreground">Nenhuma nota encontrada</td></tr>}
+              {lista.length === 0 && <tr><td colSpan={12} className="text-center py-6 text-muted-foreground">Nenhuma nota encontrada</td></tr>}
             </tbody>
           </table>
         </div>

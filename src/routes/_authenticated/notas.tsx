@@ -27,6 +27,8 @@ import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
 import { toast } from "sonner";
+import { classificarPrazo, hojeTeresina, permanencia, PRAZO_CLASS, PRAZO_LABEL, type Prazo } from "@/lib/deadline-rules";
+import { AlertTriangle, CalendarClock, ListChecks } from "lucide-react";
 import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer, CheckCircle2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -54,7 +56,7 @@ interface ColDef {
 }
 
 const COLS: ColDef[] = [
-  { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null), edit: { field: "data_chegada", type: "date" } },
+  { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => <span title={permanencia(n.data_chegada, hojeTeresina())}>{fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null)} <span className="text-[10px] text-muted-foreground">· {permanencia(n.data_chegada, hojeTeresina()).replace("Recebida hoje", "hoje").replace(/ dias? no depósito/, "d").replace("Sem data de recebimento", "")}</span></span>, edit: { field: "data_chegada", type: "date" } },
   { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
   { key: "ocorrencias", label: "Ocorrências", width: 170, options: true, get: n => n.ocorrencia_estado ?? "Sem ocorrência", render: n => <OcorrenciaBadge nota={n} allowCreate etapa="deposito" /> },
@@ -66,7 +68,13 @@ const COLS: ColDef[] = [
   { key: "volumes", label: "Volumes", width: 80, align: "right", get: (n) => Number(n.volumes ?? 0), edit: { field: "volumes", type: "int" } },
   { key: "valor", label: "Valor NF", width: 120, align: "right", get: (n) => Number(n.valor ?? 0), render: (n) => fmtBRL(n.valor) },
   { key: "transporte", label: "Transporte", width: 100, get: (n) => (n.cargas ? `Carga #${n.cargas.numero}` : "") },
-  { key: "data_limite", label: "Previsão entrega", width: 130, get: (n) => n.data_limite ?? "", render: (n) => fmtDate(n.data_limite ? n.data_limite + "T12:00:00" : null), edit: { field: "data_limite", type: "date" } },
+  { key: "previsao_entrega", label: "Previsão entrega", width: 170, get: (n) => n.previsao_entrega ?? "9999-12-31",
+    render: (n) => { const c = classificarPrazo(n.previsao_entrega, hojeTeresina());
+      const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
+      const diverge = n.previsao_entrega && a?.status === "confirmado" && a.data_agendada && n.previsao_entrega > a.data_agendada;
+      return <span className={PRAZO_CLASS[c.prazo]} title={c.texto}>
+        {n.previsao_entrega ? `${fmtDate(n.previsao_entrega + "T12:00:00")} · ` : ""}{c.texto === "No prazo" ? `${c.dias}d` : c.texto}
+        {diverge && <AlertTriangle aria-label="Previsão depois do agendamento confirmado" className="inline h-3 w-3 ml-1 text-destructive" />}</span>; } },
   { key: "status", label: "Status", width: 110, get: (n) => NOTA_STATUS_LABEL[n.status] ?? n.status, options: true, render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge> },
   { key: "agendamento", label: "Agendamento", width: 150, options: true,
     get: (n) => { const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
@@ -99,6 +107,12 @@ function NotasPage() {
   const [openBulkDate, setOpenBulkDate] = useState(false);
   const [openBulkDelete, setOpenBulkDelete] = useState(false);
   const [bulkDate, setBulkDate] = useState("");
+  const [prazoFiltro, setPrazoFiltro] = useState<Prazo | null>(null);
+  const [openPrev, setOpenPrev] = useState(false);
+  const [prevData, setPrevData] = useState("");
+  const [prevObs, setPrevObs] = useState("");
+  const [hoje, setHoje] = useState(() => hojeTeresina());
+  useEffect(() => { const t = setInterval(() => setHoje(hojeTeresina()), 60000); return () => clearInterval(t); }, []);
   const [sortKey, setSortKey] = useState<string | null>("data_chegada");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -150,7 +164,7 @@ function NotasPage() {
   const optionsFor = (k: string) =>
     Array.from(new Set(notas.map((n: any) => String(COL_MAP[k].get(n))).filter(Boolean))).sort();
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     const term = busca.trim().toLowerCase();
     let rows = notas.filter((n: any) => {
       if (term && !COLS.some((c) => String(c.get(n)).toLowerCase().includes(term))) return false;
@@ -172,9 +186,20 @@ function NotasPage() {
       });
     }
     return rows;
-  }, [notas, filters, sortKey, sortDir, busca]);
+  }, [notas, filters, sortKey, sortDir, busca, hoje]);
+  const prazoCount = useMemo(() => { const c: Record<Prazo, number> = { no_prazo: 0, proximo: 0, vencido: 0, sem_previsao: 0 };
+    baseFiltered.forEach((n: any) => { c[classificarPrazo(n.previsao_entrega, hoje).prazo]++; }); return c; }, [baseFiltered, hoje]);
+  const filtered = useMemo(() => prazoFiltro ? baseFiltered.filter((n: any) => classificarPrazo(n.previsao_entrega, hoje).prazo === prazoFiltro) : baseFiltered, [baseFiltered, prazoFiltro, hoje]);
+  const salvarPrevisao = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("definir_previsao_entrega", { _ids: Array.from(selected), _data: prevData, _obs: prevObs });
+      if (error) throw error; return data as number;
+    },
+    onSuccess: (n) => { toast.success(`Previsão salva em ${n} nota(s)`); setOpenPrev(false); setSelected(new Set()); qc.invalidateQueries({ queryKey: ["notas"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
-  useEffect(() => { setPage(0); }, [filters, busca, sortKey, sortDir]);
+  useEffect(() => { setPage(0); }, [filters, busca, sortKey, sortDir, prazoFiltro]);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
   const pageRows = filtered.slice(page * PAGE, page * PAGE + PAGE);
 
@@ -544,6 +569,21 @@ function NotasPage() {
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar em todas as colunas..." className="bg-transparent outline-none text-sm flex-1" />
         </div>
+        {canWrite && <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button size="sm" className="h-9"><ListChecks className="h-4 w-4 mr-1" />AÇÕES{selected.size > 0 ? ` (${selected.size})` : ""}<ChevronDown className="h-3.5 w-3.5 ml-1" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuLabel className="text-[11px]">{selected.size} nota(s) selecionada(s)</DropdownMenuLabel>
+            <DropdownMenuItem disabled={selected.size === 0} onClick={() => { setPrevData(""); setPrevObs(""); setOpenPrev(true); }}><CalendarClock className="h-4 w-4 mr-2" />Definir previsão de entrega</DropdownMenuItem>
+            <DropdownMenuItem disabled={selectedNotes.length !== 1 || selectedNotes[0]?.status === "entregue" || !!selectedNotes[0]?.carga_id} onClick={() => setBaixaNota(selectedNotes[0])}><CheckCircle2 className="h-4 w-4 mr-2" />Dar baixa de entrega</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>}
+        <select aria-label="Ordenar" className="h-9 rounded-md border bg-card px-2 text-sm" value={`${sortKey}:${sortDir}`}
+          onChange={(e) => { const [k, d] = e.target.value.split(":"); setSortKey(k || null); setSortDir((d as SortDir) || null); }}>
+          <option value="previsao_entrega:asc">Previsão mais próxima / maior atraso</option>
+          <option value="data_chegada:asc">Recebimento mais antigo</option>
+          <option value="data_chegada:desc">Recebimento mais recente</option>
+          {!["previsao_entrega:asc", "data_chegada:asc", "data_chegada:desc"].includes(`${sortKey}:${sortDir}`) && <option value={`${sortKey}:${sortDir}`}>Ordenação da coluna</option>}
+        </select>
         {hasFilters && <Button size="sm" variant="ghost" className="h-9" onClick={() => { setFilters({}); setBusca(""); }}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="h-9 ml-auto"><Columns3 className="h-4 w-4 mr-1" />Colunas</Button></DropdownMenuTrigger>
@@ -561,6 +601,31 @@ function NotasPage() {
         </DropdownMenu>
       </div>
 
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+        {(["no_prazo", "proximo", "vencido", "sem_previsao"] as Prazo[]).map((k) => (
+          <button key={k} type="button" aria-pressed={prazoFiltro === k} onClick={() => setPrazoFiltro(prazoFiltro === k ? null : k)}
+            className={`rounded-full border px-2.5 py-0.5 ${prazoFiltro === k ? "ring-2 ring-primary" : ""}`}>
+            <span className={PRAZO_CLASS[k]}>{PRAZO_LABEL[k]}</span> <b>{prazoCount[k]}</b>
+          </button>))}
+        {prazoFiltro && <button type="button" className="underline text-muted-foreground" onClick={() => setPrazoFiltro(null)}>Mostrar todas</button>}
+      </div>
+      <Dialog open={openPrev} onOpenChange={setOpenPrev}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Definir previsão de entrega ({selected.size})</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="max-h-24 overflow-auto text-muted-foreground">{selectedNotes.map((n: any) => `NF ${n.numero} – ${n.cliente}`).join("; ")}</p>
+            {selectedNotes.some((n: any) => n.previsao_entrega) && <p className="rounded border border-warning/50 bg-warning/15 p-2">{selectedNotes.filter((n: any) => n.previsao_entrega).length} nota(s) já têm previsão; a data existente será substituída.</p>}
+            <label className="block">Previsão de entrega ao cliente<input type="date" className="mt-1 h-9 w-full rounded-md border bg-background px-2" value={prevData} onChange={(e) => setPrevData(e.target.value)} /></label>
+            <label className="block">Observação (opcional)<input className="mt-1 h-9 w-full rounded-md border bg-background px-2" value={prevObs} onChange={(e) => setPrevObs(e.target.value)} /></label>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpenPrev(false)}>Cancelar</Button>
+              <Button disabled={!prevData || salvarPrevisao.isPending} onClick={() => {
+                if (selectedNotes.some((n: any) => n.previsao_entrega) && !confirm("Substituir as previsões existentes?")) return;
+                salvarPrevisao.mutate(); }}>Salvar previsão</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {baixaNota && user && <BaixaDiretaDialog nota={baixaNota} open userId={user.id} onClose={() => { setBaixaNota(null); setSelected(new Set()); }} />}
       {canWrite && selected.size > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
@@ -573,10 +638,6 @@ function NotasPage() {
             <Button size="sm" className="h-8" disabled={!selectedNotes.every((n: any) => n.status === "disponivel" && !n.carga_id)}
               title="Somente notas disponíveis e sem carga" onClick={() => setOpenCarga(true)}>
               <PackagePlus className="h-3.5 w-3.5 mr-1" /> Adicionar à carga
-            </Button>
-            <Button size="sm" variant="outline" className="h-8" disabled={selectedNotes.length !== 1 || selectedNotes[0]?.status === "entregue" || !!selectedNotes[0]?.carga_id}
-              title="Selecione uma nota sem carga de saída" onClick={() => setBaixaNota(selectedNotes[0])}>
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Dar baixa de entrega
             </Button>
             <Button size="sm" variant="outline" className="h-8" onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}><CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data</Button>
             <Button size="sm" variant="destructive" className="h-8" onClick={() => setOpenBulkDelete(true)}><Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir</Button>
