@@ -281,6 +281,13 @@
       "when": 1795540099967,
       "tag": "0039_previsao_entrega_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795541725915,
+      "tag": "0040_fix_definir_previsao_entrega",
+      "breakpoints": true
     }
   ]
 }
