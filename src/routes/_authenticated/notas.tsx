@@ -25,8 +25,9 @@ import { lerXmls } from "@/lib/nfe-import";
 import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
+import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
 import { toast } from "sonner";
-import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer } from "lucide-react";
+import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer, CheckCircle2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -92,6 +93,7 @@ function NotasPage() {
   const [importando, setImportando] = useState(false);
   const [resultadoXml, setResultadoXml] = useState<{ importadas: number; erros: string[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [baixaNota, setBaixaNota] = useState<any>(null);
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
   const [openBulkDate, setOpenBulkDate] = useState(false);
@@ -559,6 +561,7 @@ function NotasPage() {
         </DropdownMenu>
       </div>
 
+      {baixaNota && user && <BaixaDiretaDialog nota={baixaNota} open userId={user.id} onClose={() => { setBaixaNota(null); setSelected(new Set()); }} />}
       {canWrite && selected.size > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">
           <span className="font-semibold">{selected.size} selecionada(s)</span>
@@ -570,6 +573,10 @@ function NotasPage() {
             <Button size="sm" className="h-8" disabled={!selectedNotes.every((n: any) => n.status === "disponivel" && !n.carga_id)}
               title="Somente notas disponíveis e sem carga" onClick={() => setOpenCarga(true)}>
               <PackagePlus className="h-3.5 w-3.5 mr-1" /> Adicionar à carga
+            </Button>
+            <Button size="sm" variant="outline" className="h-8" disabled={selectedNotes.length !== 1 || selectedNotes[0]?.status === "entregue" || !!selectedNotes[0]?.carga_id}
+              title="Selecione uma nota sem carga de saída" onClick={() => setBaixaNota(selectedNotes[0])}>
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Dar baixa de entrega
             </Button>
             <Button size="sm" variant="outline" className="h-8" onClick={() => { setBulkDate(""); setOpenBulkDate(true); }}><CalendarCog className="h-3.5 w-3.5 mr-1" /> Editar data</Button>
             <Button size="sm" variant="destructive" className="h-8" onClick={() => setOpenBulkDelete(true)}><Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir</Button>

@@ -1076,33 +1076,45 @@ export type Database = {
           created_at: string
           data_evento: string
           id: string
+          modalidade: string
           motivo: string | null
+          motorista_id: string | null
           nota_id: string
           observacao: string | null
           registrado_por: string | null
+          registrado_por_nome: string | null
           resultado: Database["public"]["Enums"]["entrega_resultado"]
+          veiculo_id: string | null
         }
         Insert: {
           carga_id?: string | null
           created_at?: string
           data_evento?: string
           id?: string
+          modalidade?: string
           motivo?: string | null
+          motorista_id?: string | null
           nota_id: string
           observacao?: string | null
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           resultado: Database["public"]["Enums"]["entrega_resultado"]
+          veiculo_id?: string | null
         }
         Update: {
           carga_id?: string | null
           created_at?: string
           data_evento?: string
           id?: string
+          modalidade?: string
           motivo?: string | null
+          motorista_id?: string | null
           nota_id?: string
           observacao?: string | null
           registrado_por?: string | null
+          registrado_por_nome?: string | null
           resultado?: Database["public"]["Enums"]["entrega_resultado"]
+          veiculo_id?: string | null
         }
         Relationships: [
           {
@@ -1113,10 +1125,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entregas_nota_id_fkey"
             columns: ["nota_id"]
             isOneToOne: false
             referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -2030,6 +2056,17 @@ export type Database = {
       }
       aprovar_comprovante: {
         Args: { _data_entrega: string; _id: string; _nota: string }
+        Returns: string
+      }
+      baixa_direta_entrega: {
+        Args: {
+          _data: string
+          _motorista: string
+          _nota: string
+          _obs: string
+          _path: string
+          _veiculo: string
+        }
         Returns: string
       }
       calcular_descarga: { Args: { _linhas: Json }; Returns: Json }

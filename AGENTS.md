@@ -21,3 +21,4 @@
 - Returns preserve fiscal item snapshots and use office-only transactional RPCs with item/load locks, idempotency keys and append-only movement ledgers; sending information never creates or withdraws physical stock.
 - Notification dismissals are user-owned durable event keys; schedule version/state changes create distinct events without deleting operational records.
 - Financial city simulation and persisted calculations share the same destination-rule resolver so disabled components and city replacement tariffs behave identically.
+- Office direct delivery uses the transactional baixa_direta_entrega RPC, which requires an uploaded canhoto and reuses proof approval triggers; no fictitious outbound load is created, keeping finance and Notas Entregues consistent.

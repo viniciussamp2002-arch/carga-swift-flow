@@ -25,7 +25,7 @@ function NotasEntreguesPage() {
       const all: any[] = [];
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase.from("notas_fiscais")
-          .select("*, cargas:carga_id(numero, motoristas:motorista_id(nome)), entregas(data_evento, resultado)")
+          .select("*, cargas:carga_id(numero, motoristas:motorista_id(nome)), entregas(data_evento, resultado, observacao, modalidade, registrado_por_nome, motoristas:motorista_id(nome), veiculos:veiculo_id(placa))")
           .eq("status", "entregue").order("updated_at", { ascending: false }).range(from, from + 999);
         if (error) throw error;
         all.push(...(data ?? [])); if (!data || data.length < 1000) break;
@@ -46,6 +46,7 @@ function NotasEntreguesPage() {
   const atual = grupos.find(g => g.key === aba) ?? grupos[0];
   const s = q.trim().toLowerCase();
   const lista = (atual?.notas ?? []).filter((n) => !s || [n.numero, n.cliente, n.cidade].some((v) => String(v ?? "").toLowerCase().includes(s)));
+  const ent = (n: any) => (n.entregas ?? []).filter((x: any) => x.resultado === "entregue").sort((a: any, b: any) => b.data_evento.localeCompare(a.data_evento))[0];
   const dataEntrega = (n: any) => {
     const e = (n.entregas ?? []).filter((x: any) => x.resultado === "entregue").sort((a: any, b: any) => b.data_evento.localeCompare(a.data_evento))[0];
     return canhotos.get(n.id)?.data_entrega ?? e?.data_evento;
@@ -67,20 +68,23 @@ function NotasEntreguesPage() {
         {atual?.cnpj && <p className="text-xs text-muted-foreground mb-2">CNPJ {atual.cnpj}</p>}
         <div className="bg-card border rounded-md overflow-x-auto">
           <table className="table-erp">
-            <thead><tr><th>Canhoto</th><th>NF</th><th>Cliente</th><th>Cidade</th><th>Carga</th><th>Motorista</th><th>Entregue em</th><th className="text-right">Peso</th><th className="text-right">Valor</th></tr></thead>
+            <thead><tr><th>Canhoto</th><th>NF</th><th>Cliente</th><th>Cidade</th><th>Modalidade</th><th>Carga</th><th>Motorista</th><th>Placa</th><th>Entregue em</th><th className="text-right">Peso</th><th className="text-right">Valor</th></tr></thead>
             <tbody>
               {lista.map((n) => (
                 <tr key={n.id}>
                   <td><CanhotoButtons canhoto={canhotos.get(n.id)} numero={n.numero} /></td>
                   <td className="font-mono">{n.numero}<OcorrenciaBadge nota={n} /></td>
                   <td>{n.cliente}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
+                  {(() => { const e = ent(n); const direta = e?.modalidade === "baixa_direta"; return <>
+                  <td title={direta && e.registrado_por_nome ? `Baixa por ${e.registrado_por_nome}${e.observacao ? " — " + e.observacao : ""}` : undefined}>{direta ? "Baixa direta (escritório)" : "Carga de saída"}</td>
                   <td>{n.cargas?.numero ? `#${n.cargas.numero}` : "—"}</td>
-                  <td>{n.cargas?.motoristas?.nome ?? "—"}</td>
+                  <td>{direta ? e.motoristas?.nome ?? "—" : n.cargas?.motoristas?.nome ?? "—"}</td>
+                  <td>{direta ? e.veiculos?.placa ?? "—" : "—"}</td></>; })()}
                   <td>{dataEntrega(n) ? fmtDate(dataEntrega(n)) : "—"}</td>
                   <td className="text-right">{fmtKg(n.peso)}</td><td className="text-right">{fmtBRL(n.valor)}</td>
                 </tr>
               ))}
-              {lista.length === 0 && <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">Nenhuma nota encontrada</td></tr>}
+              {lista.length === 0 && <tr><td colSpan={11} className="text-center py-6 text-muted-foreground">Nenhuma nota encontrada</td></tr>}
             </tbody>
           </table>
         </div>
