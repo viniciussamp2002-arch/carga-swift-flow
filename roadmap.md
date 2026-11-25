@@ -66,3 +66,12 @@
   - Fotos reais do motorista ampliadas a 150%; carga de teste finalizada bloqueia consulta de documento e função de foto, administração mantém o arquivo; motorista não consulta devoluções. Notificação dispensada permanece ausente após recarga. Telas sem erros de execução.
   - Registros de teste identificados VALIDACAO-211126-SEM-VALOR e carga 92126 preservados para rastreabilidade; não representam recebimento ou retirada real. Documentos e valores reais não alterados.
 - [ ] Validação externa 21/11: câmera/impressora físicas e contratos comerciais reais — depende de aparelhos e parâmetros do escritório; nada publicado.
+
+## Atualização consolidada 25/11/2026
+- [x] 01 Pedidos Rancheiro: importação (Excel/CSV/colar) com mapeamento e prévia, manual, lead time, filtros, totais, impressão, faturamento por XML direto ao Depósito
+- [x] 02 Impressão de cargas de entrada selecionadas
+- [x] 03 Filtros por coluna em Cargas de Entrada, Agendamentos e Pedidos Rancheiro (tabelas internas da carga não alteradas)
+- [x] 04 Estoque genérico fora do menu
+- [x] 05 Nova devolução manual sem gerar estoque
+- [x] 06 Ações → Adicionar à rota de entrega; cargas em montagem visíveis em Entregas
+- [ ] Teste pela tela com XML real do Rancheiro e planilha real — depende dos arquivos do escritório
