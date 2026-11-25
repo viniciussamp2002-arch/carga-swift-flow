@@ -1,6 +1,5 @@
 import { pageHead } from "@/lib/page-head";
 import { schedulingClientName } from "@/lib/client-display";
-import { OcorrenciaBadge } from "@/components/Ocorrencias";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AgendaBell } from "@/components/AgendaBell";
@@ -32,6 +31,7 @@ function AgendamentosPage() {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
+  const [colF, setColF] = useState<Record<string, string>>({});
   const [visao, setVisao] = useState<"pendentes" | "historico">("pendentes");
   const { nf } = Route.useSearch();
   useEffect(() => { if (nf) { setBusca(nf); setFiltro("todos"); setVisao("pendentes"); } }, [nf]);
@@ -58,6 +58,14 @@ function AgendamentosPage() {
     return rows.filter((r: any) => (visao === "historico" ? isDelivered(r.nota.status) : !isDelivered(r.nota.status)) && (filtro === "todos" || r.status === filtro) &&
       (!t || [r.nota.numero, clienteNome(r.nota), r.nota.cliente, r.nota.fornecedor, r.nota.cidade, r.protocolo].some((v) => String(v ?? "").toLowerCase().includes(t))));
   }, [rows, filtro, busca, visao, clientes]);
+  const colGet: Record<string, (r: any) => string> = {
+    nf: (r) => String(r.nota.numero ?? ""), forn: (r) => r.nota.fornecedor ?? "", cli: (r) => clienteNome(r.nota) ?? "",
+    cid: (r) => `${r.nota.cidade ?? ""}/${r.nota.uf ?? ""}`, data: (r) => r.data_agendada ? fmtDate(r.data_agendada + "T12:00") : "",
+    prot: (r) => r.protocolo ?? "", st: (r) => AG_STATUS_LABEL[r.status] ?? "", ent: (r) => REC_CLIENTE_LABEL[r.status_recebimento] ?? "",
+  };
+  const visible = useMemo(() => filtered.filter((r: any) => Object.entries(colF).every(([k, v]) => !v.trim() || (colGet[k]?.(r) ?? "").toLowerCase().includes(v.trim().toLowerCase())))
+    .sort((a: any, b: any) => (a.data_agendada ?? "9999").localeCompare(b.data_agendada ?? "9999")), [filtered, colF, clientes]);
+  const fIn = (k: string) => <input value={colF[k] ?? ""} onChange={(e) => setColF({ ...colF, [k]: e.target.value })} placeholder="Filtrar" className="h-6 w-full min-w-[60px] rounded border bg-background px-1 text-xs font-normal" />;
   const base = rows.filter((r: any) => (visao === "historico") === isDelivered(r.nota.status));
   const contagem = (s: string) => s === "todos" ? base.length : base.filter((r: any) => r.status === s).length;
 
@@ -103,9 +111,9 @@ function AgendamentosPage() {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r: any) => ({
       "Nº NF": r.nota.numero, Fornecedor: r.nota.fornecedor, Cliente: clienteNome(r.nota),
       CNPJ: r.nota.cnpj_destinatario, "Cidade/UF": `${r.nota.cidade}/${r.nota.uf ?? ""}`, Peso: r.nota.peso, Volumes: r.nota.volumes,
-      Valor: r.nota.valor, Recebimento: r.nota.data_chegada, Solicitação: r.data_solicitacao, Responsável: r.solicitante,
+      Valor: r.nota.valor, Recebimento: r.nota.data_chegada ,
       "Data agendada": r.data_agendada, Horário: r.horario, Protocolo: r.protocolo, Status: AG_STATUS_LABEL[r.status],
-      "Entrada cliente": REC_CLIENTE_LABEL[r.status_recebimento], "Data entrada": r.data_entrada,
+      "Entrada cliente": REC_CLIENTE_LABEL[r.status_recebimento],
       "Status entrega": NOTA_STATUS_LABEL[r.nota.status], "Data entrega": entrega(r), Observações: r.observacoes,
     })));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
@@ -146,32 +154,31 @@ function AgendamentosPage() {
         <table className="table-erp">
           <thead><tr>
             <th>Nº NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade/UF</th><th className="text-right">Peso</th>
-            <th>Situação</th><th>Recebimento</th><th>Solicitação</th><th>Responsável</th>
-            <th>Data agendada</th><th>Protocolo</th><th>Status agend.</th><th>Entrada cliente</th><th>Data entrada</th>
+            <th>Situação</th><th>Recebimento</th>
+            <th>Data agendada</th><th>Protocolo</th><th>Status agend.</th><th>Entrada cliente</th>
             <th>Status entrega</th><th>Data entrega</th><th>Histórico</th>
+          </tr><tr>
+            <th>{fIn("nf")}</th><th>{fIn("forn")}</th><th>{fIn("cli")}</th><th>{fIn("cid")}</th><th /><th /><th />
+            <th>{fIn("data")}</th><th>{fIn("prot")}</th><th>{fIn("st")}</th><th>{fIn("ent")}</th><th /><th /><th />
           </tr></thead>
           <tbody>
-            {filtered.map((r: any) => { const n = r.nota; return (
+            {visible.map((r: any) => { const n = r.nota; return (
               <tr key={r.id}>
-                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}<OcorrenciaBadge nota={n} allowCreate etapa="deposito" /></td>
+                <td className="font-mono font-semibold">{n.numeros_agrupados?.length ? n.numeros_agrupados.join(" + ") : n.numero}</td>
                 <td>{n.fornecedor}</td>
                 <td title={n.cliente}>{clienteNome(n)}</td><td>{n.cidade}{n.uf && `/${n.uf}`}</td>
                 <td className="text-right">{fmtNum(n.peso, 3)}</td>
                 <td className="whitespace-nowrap">{operationalSituation(r, n.status, hoje)}</td>
                 <td>{fmtDate(n.data_chegada && n.data_chegada + "T12:00")}</td>
-                <td>{r.data_solicitacao ? fmtDateTime(r.data_solicitacao) : canWrite
-                  ? <Button size="sm" variant="outline" className="h-7" onClick={() => solicitar(r)}><Send className="h-3 w-3 mr-1" />Solicitar</Button> : "—"}</td>
-                <td>{txt(r, "solicitante", "Responsável", "text", "w-40")}</td>
                 <td>{txt(r, "data_agendada", "Data agendada", "date", "w-36")}</td>
                 <td>{txt(r, "protocolo", "Protocolo")}</td>
                 <td>{sel(r, "status", "Status", AG_STATUS_LABEL)}</td>
                 <td>{sel(r, "status_recebimento", "Entrada cliente", REC_CLIENTE_LABEL)}</td>
-                <td>{txt(r, "data_entrada", "Data entrada", "date", "w-36")}</td>
                 <td>{NOTA_STATUS_LABEL[n.status]}</td>
                 <td>{fmtDateTime(entrega(r))}</td>
                 <td><HistoricoNota notaId={n.id} /></td>
               </tr>); })}
-            {filtered.length === 0 && <tr><td colSpan={17} className="text-center text-muted-foreground py-8">
+            {visible.length === 0 && <tr><td colSpan={14} className="text-center text-muted-foreground py-8">
               Nenhum agendamento. Notas de clientes cadastrados em Cadastros › Clientes com Agendamento aparecem aqui ao serem recebidas.</td></tr>}
           </tbody>
         </table>

@@ -59,7 +59,6 @@ const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => <span title={permanencia(n.data_chegada, hojeTeresina())}>{fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null)} <span className="text-[10px] text-muted-foreground">· {permanencia(n.data_chegada, hojeTeresina()).replace("Recebida hoje", "hoje").replace(/ dias? no depósito/, "d").replace("Sem data de recebimento", "")}</span></span>, edit: { field: "data_chegada", type: "date" } },
   { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
-  { key: "ocorrencias", label: "Ocorrências", width: 170, options: true, get: n => n.ocorrencia_estado ?? "Sem ocorrência", render: n => <OcorrenciaBadge nota={n} allowCreate etapa="deposito" /> },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
   { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
   { key: "cidade", label: "Cidade", width: 140, get: (n) => n.cidade ?? "", options: true, edit: { field: "cidade", type: "text" } },
@@ -440,7 +439,7 @@ function NotasPage() {
         </Popover>
       );
     } else content = col.render ? col.render(n) : (String(col.get(n)) || "—");
-    if (col.key === "numero") content = <>{content}<OcorrenciaBadge nota={n} /></>;
+    if (col.key === "numero") content = <>{content}{n.observacoes ? <span title={n.observacoes} aria-label="Tem observação" className="ml-1 inline-block h-2 w-2 rounded-full bg-primary align-middle" /> : null}</>;
     return (
       <td
         key={col.key}
