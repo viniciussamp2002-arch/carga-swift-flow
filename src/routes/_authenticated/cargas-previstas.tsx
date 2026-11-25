@@ -202,7 +202,6 @@ function FornecedorSelect({ value, onChange }: { value: string; onChange: (v: st
 }
 
 function CargaForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
-  const {data:vehicles=[]}=useQuery({queryKey:["inbound-vehicles"],queryFn:async()=> (await supabase.from("veiculos").select("id,placa,motoristas(nome)").neq("situacao","inativo").order("placa")).data??[]});
   const inp = (k: string, type = "text") => <Input type={type} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />;
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -211,7 +210,6 @@ function CargaForm({ form, setForm }: { form: any; setForm: (f: any) => void }) 
       <F label="Fornecedor / embarcador" className="col-span-2"><FornecedorSelect value={form.fornecedor ?? ""} onChange={(v) => setForm({ ...form, fornecedor: v })} /></F>
       <F label="Motorista">{inp("motorista")}</F>
       <F label="Placa">{inp("placa")}</F>
-      <F label="Veículo cadastrado" className="col-span-2"><Select value={form.veiculo_id||"none"} onValueChange={v=>{const vehicle=vehicles.find(x=>x.id===v);setForm({...form,veiculo_id:v==="none"?null:v,placa:vehicle?.placa??form.placa,motorista:vehicle?.motoristas?.nome??form.motorista});}}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">Sem vínculo</SelectItem>{vehicles.map(v=><SelectItem key={v.id} value={v.id}>{v.placa}</SelectItem>)}</SelectContent></Select></F>
       <F label="Data de carregamento na origem">{inp("data_carregamento", "date")}</F>
       <F label="Previsão de chegada">{inp("previsao_chegada", "date")}</F>
       <F label="Status">
