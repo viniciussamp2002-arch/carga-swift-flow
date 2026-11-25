@@ -854,52 +854,73 @@ export type Database = {
       }
       devolucoes: {
         Row: {
-          comprovante_id: string
+          anexo_path: string | null
+          cliente: string
+          comprovante_id: string | null
           controle: number
           created_at: string
           created_by: string | null
           data_documento: string | null
+          data_recebimento: string | null
           documental: string
           enviada_em: string | null
           enviada_por: string | null
+          fornecedor: string
           id: string
+          motorista_id: string | null
           nota_origem_id: string | null
           numero_nf: string
+          numero_origem: string
           observacoes: string
+          origem: string
           prestacao: string
           updated_at: string
           versao: number
         }
         Insert: {
-          comprovante_id: string
+          anexo_path?: string | null
+          cliente?: string
+          comprovante_id?: string | null
           controle?: never
           created_at?: string
           created_by?: string | null
           data_documento?: string | null
+          data_recebimento?: string | null
           documental?: string
           enviada_em?: string | null
           enviada_por?: string | null
+          fornecedor?: string
           id?: string
+          motorista_id?: string | null
           nota_origem_id?: string | null
           numero_nf?: string
+          numero_origem?: string
           observacoes?: string
+          origem?: string
           prestacao?: string
           updated_at?: string
           versao?: number
         }
         Update: {
-          comprovante_id?: string
+          anexo_path?: string | null
+          cliente?: string
+          comprovante_id?: string | null
           controle?: never
           created_at?: string
           created_by?: string | null
           data_documento?: string | null
+          data_recebimento?: string | null
           documental?: string
           enviada_em?: string | null
           enviada_por?: string | null
+          fornecedor?: string
           id?: string
+          motorista_id?: string | null
           nota_origem_id?: string | null
           numero_nf?: string
+          numero_origem?: string
           observacoes?: string
+          origem?: string
           prestacao?: string
           updated_at?: string
           versao?: number
@@ -924,6 +945,13 @@ export type Database = {
             columns: ["enviada_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucoes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "motoristas"
             referencedColumns: ["id"]
           },
           {
@@ -1780,6 +1808,117 @@ export type Database = {
           },
         ]
       }
+      pedido_notas: {
+        Row: {
+          created_at: string
+          nota_id: string
+          pedido_id: string
+          registrado_por: string | null
+          registrado_por_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          nota_id: string
+          pedido_id: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          nota_id?: string
+          pedido_id?: string
+          registrado_por?: string | null
+          registrado_por_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_notas_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_notas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_fornecedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_fornecedor: {
+        Row: {
+          cidade: string
+          cliente: string
+          cnpj: string
+          created_at: string
+          created_by: string | null
+          data_faturamento: string | null
+          data_tela: string | null
+          faturado_em: string | null
+          faturado_por: string | null
+          faturado_por_nome: string | null
+          fornecedor: string
+          id: string
+          m3: number
+          numero_pedido: string
+          observacoes: string
+          peso: number
+          rota: string
+          status: string
+          status_fornecedor: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cidade?: string
+          cliente?: string
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          data_faturamento?: string | null
+          data_tela?: string | null
+          faturado_em?: string | null
+          faturado_por?: string | null
+          faturado_por_nome?: string | null
+          fornecedor?: string
+          id?: string
+          m3?: number
+          numero_pedido: string
+          observacoes?: string
+          peso?: number
+          rota?: string
+          status?: string
+          status_fornecedor?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cidade?: string
+          cliente?: string
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          data_faturamento?: string | null
+          data_tela?: string | null
+          faturado_em?: string | null
+          faturado_por?: string | null
+          faturado_por_nome?: string | null
+          fornecedor?: string
+          id?: string
+          m3?: number
+          numero_pedido?: string
+          observacoes?: string
+          peso?: number
+          rota?: string
+          status?: string
+          status_fornecedor?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2039,6 +2178,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adicionar_rota_entrega: {
+        Args: {
+          _carga: string
+          _confirmar_em_rota?: boolean
+          _data: string
+          _motorista: string
+          _notas: string[]
+          _obs: string
+          _veiculo: string
+        }
+        Returns: Json
+      }
       ajustar_parametros_frete: {
         Args: {
           _cidade: string
@@ -2088,9 +2239,20 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["entrada_status"]
       }
+      criar_devolucao_manual: { Args: { _dados: Json }; Returns: string }
       definir_previsao_entrega: {
         Args: { _data: string; _ids: string[]; _obs: string }
         Returns: number
+      }
+      faturar_pedidos: {
+        Args: {
+          _completos: string[]
+          _data_fisica: string
+          _disponivel: boolean
+          _notas: Json
+          _vinculos: Json
+        }
+        Returns: Json
       }
       fechar_frete: {
         Args: {
@@ -2111,6 +2273,10 @@ export type Database = {
         Returns: undefined
       }
       inspecionar_carga: { Args: { _id: string; _tipo: string }; Returns: Json }
+      liberar_notas_pedido: {
+        Args: { _data: string; _notas: string[] }
+        Returns: number
+      }
       liberar_reserva_devolucao: { Args: { _id: string }; Returns: undefined }
       limitar_acesso: { Args: { _chave: string }; Returns: boolean }
       movimentar_devolucao: {

@@ -288,6 +288,20 @@
       "when": 1795541725915,
       "tag": "0040_fix_definir_previsao_entrega",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795620114564,
+      "tag": "0041_pedidos_rota_devolucao_manual",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795620160250,
+      "tag": "0042_fix_pedidos_nome_ambiguo",
+      "breakpoints": true
     }
   ]
 }

@@ -31,6 +31,7 @@ import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedNotasDevolucaoRouteImport } from './routes/_authenticated/notas-devolucao'
 import { Route as AuthenticatedNotasEntreguesRouteImport } from './routes/_authenticated/notas-entregues'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
+import { Route as AuthenticatedPedidosRancheiroRouteImport } from './routes/_authenticated/pedidos-rancheiro'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRelatoriosRecebimentoRouteImport } from './routes/_authenticated/relatorios-recebimento'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -155,6 +156,12 @@ const AuthenticatedOcorrenciasRoute =
     path: '/ocorrencias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPedidosRancheiroRoute =
+  AuthenticatedPedidosRancheiroRouteImport.update({
+    id: '/pedidos-rancheiro',
+    path: '/pedidos-rancheiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
@@ -204,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/pedidos-rancheiro': typeof AuthenticatedPedidosRancheiroRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-recebimento': typeof AuthenticatedRelatoriosRecebimentoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -232,6 +240,7 @@ export interface FileRoutesByTo {
   '/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/pedidos-rancheiro': typeof AuthenticatedPedidosRancheiroRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/relatorios-recebimento': typeof AuthenticatedRelatoriosRecebimentoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -262,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/notas-devolucao': typeof AuthenticatedNotasDevolucaoRoute
   '/_authenticated/notas-entregues': typeof AuthenticatedNotasEntreguesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/_authenticated/pedidos-rancheiro': typeof AuthenticatedPedidosRancheiroRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/relatorios-recebimento': typeof AuthenticatedRelatoriosRecebimentoRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/notas-devolucao'
     | '/notas-entregues'
     | '/ocorrencias'
+    | '/pedidos-rancheiro'
     | '/relatorios'
     | '/relatorios-recebimento'
     | '/usuarios'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/notas-devolucao'
     | '/notas-entregues'
     | '/ocorrencias'
+    | '/pedidos-rancheiro'
     | '/relatorios'
     | '/relatorios-recebimento'
     | '/usuarios'
@@ -349,6 +361,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notas-devolucao'
     | '/_authenticated/notas-entregues'
     | '/_authenticated/ocorrencias'
+    | '/_authenticated/pedidos-rancheiro'
     | '/_authenticated/relatorios'
     | '/_authenticated/relatorios-recebimento'
     | '/_authenticated/usuarios'
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcorrenciasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pedidos-rancheiro': {
+      id: '/_authenticated/pedidos-rancheiro'
+      path: '/pedidos-rancheiro'
+      fullPath: '/pedidos-rancheiro'
+      preLoaderRoute: typeof AuthenticatedPedidosRancheiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorios': {
       id: '/_authenticated/relatorios'
       path: '/relatorios'
@@ -587,6 +607,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotasDevolucaoRoute: typeof AuthenticatedNotasDevolucaoRoute
   AuthenticatedNotasEntreguesRoute: typeof AuthenticatedNotasEntreguesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
+  AuthenticatedPedidosRancheiroRoute: typeof AuthenticatedPedidosRancheiroRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRelatoriosRecebimentoRoute: typeof AuthenticatedRelatoriosRecebimentoRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
@@ -613,6 +634,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotasDevolucaoRoute: AuthenticatedNotasDevolucaoRoute,
   AuthenticatedNotasEntreguesRoute: AuthenticatedNotasEntreguesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
+  AuthenticatedPedidosRancheiroRoute: AuthenticatedPedidosRancheiroRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRelatoriosRecebimentoRoute:
     AuthenticatedRelatoriosRecebimentoRoute,

@@ -26,9 +26,10 @@ import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
 import { useAuth } from "@/hooks/useAuth";
 import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
+import { RotaEntregaDialog } from "@/components/RotaEntregaDialog";
 import { toast } from "sonner";
 import { classificarPrazo, hojeTeresina, permanencia, PRAZO_CLASS, PRAZO_LABEL, type Prazo } from "@/lib/deadline-rules";
-import { AlertTriangle, CalendarClock, ListChecks } from "lucide-react";
+import { AlertTriangle, CalendarClock, ListChecks, Truck } from "lucide-react";
 import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer, CheckCircle2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -101,6 +102,7 @@ function NotasPage() {
   const [resultadoXml, setResultadoXml] = useState<{ importadas: number; erros: string[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [baixaNota, setBaixaNota] = useState<any>(null);
+  const [rotaOpen, setRotaOpen] = useState(false);
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
   const [openBulkDate, setOpenBulkDate] = useState(false);
@@ -574,6 +576,7 @@ function NotasPage() {
             <DropdownMenuLabel className="text-[11px]">{selected.size} nota(s) selecionada(s)</DropdownMenuLabel>
             <DropdownMenuItem disabled={selected.size === 0} onClick={() => { setPrevData(""); setPrevObs(""); setOpenPrev(true); }}><CalendarClock className="h-4 w-4 mr-2" />Definir previsão de entrega</DropdownMenuItem>
             <DropdownMenuItem disabled={selectedNotes.length !== 1 || selectedNotes[0]?.status === "entregue" || !!selectedNotes[0]?.carga_id} onClick={() => setBaixaNota(selectedNotes[0])}><CheckCircle2 className="h-4 w-4 mr-2" />Dar baixa de entrega</DropdownMenuItem>
+            <DropdownMenuItem disabled={selected.size === 0} onClick={() => setRotaOpen(true)}><Truck className="h-4 w-4 mr-2" />Adicionar à rota de entrega</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>}
         <select aria-label="Ordenar" className="h-9 rounded-md border bg-card px-2 text-sm" value={`${sortKey}:${sortDir}`}
@@ -625,6 +628,7 @@ function NotasPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {rotaOpen && <RotaEntregaDialog notas={selectedNotes} onClose={(ok) => { setRotaOpen(false); if (ok) setSelected(new Set()); }} />}
       {baixaNota && user && <BaixaDiretaDialog nota={baixaNota} open userId={user.id} onClose={() => { setBaixaNota(null); setSelected(new Set()); }} />}
       {canWrite && selected.size > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border bg-accent/40 px-3 py-2 text-sm">

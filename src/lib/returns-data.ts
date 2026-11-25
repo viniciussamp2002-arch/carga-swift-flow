@@ -10,7 +10,7 @@ async function all(query: any) {
   }
 }
 export const returnsOptions = queryOptions({ queryKey: ["returns-workspace"], queryFn: async () => {
-  const [docs, returns, items, pallets, allocations, moves, reservations, notes, profiles] = await Promise.all([
+  const [docs, returns, items, pallets, allocations, moves, reservations, notes, profiles, fornecedores, motoristas] = await Promise.all([
     all(supabase.from("comprovantes").select("*,motoristas(nome),cargas(numero)").eq("tipo_documento", "devolucao").order("capturado_em", { ascending: false })),
     all(supabase.from("devolucoes").select("*").order("controle")),
     all(supabase.from("devolucao_itens").select("*").eq("ativo", true).order("created_at")),
@@ -20,6 +20,8 @@ export const returnsOptions = queryOptions({ queryKey: ["returns-workspace"], qu
     all(supabase.from("devolucao_reservas").select("*").order("created_at")),
     all(supabase.from("notas_fiscais").select("id,numero,chave_nfe,fornecedor,cliente,cidade,uf,itens_xml").order("numero")),
     all(supabase.from("profiles").select("id,nome").order("nome")),
+    all(supabase.from("fornecedores").select("id,nome").order("nome")),
+    all(supabase.from("motoristas").select("id,nome").order("nome")),
   ]);
-  return { docs, returns, items, pallets, allocations, moves, reservations, notes, profiles };
+  return { docs, returns, items, pallets, allocations, moves, reservations, notes, profiles, fornecedores, motoristas };
 } });

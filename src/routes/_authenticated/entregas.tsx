@@ -1,6 +1,6 @@
 import { pageHead } from "@/lib/page-head";
 import { OcorrenciaBadge } from "@/components/Ocorrencias";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import { ComprovantesPendentes } from "@/components/ComprovantesPendentes";
 import { CanhotoButtons, useCanhotosAprovados } from "@/components/Canhoto";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtNum, fmtBRL } from "@/lib/format";
 
 const searchSchema = z.object({ carga: z.string().optional() }).optional();
 export const Route = createFileRoute("/_authenticated/entregas")({
@@ -50,6 +50,7 @@ function EntregasPage() {
 
   return (
     <div>
+      <CargasEmMontagem />
       <PageHeader
         title="Entregas em Rota"
         subtitle={`${notas.length} nota(s) aguardando entrega`}
@@ -204,6 +205,25 @@ function EntregasConcluidas() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function CargasEmMontagem() {
+  const { data = [] } = useQuery({
+    queryKey: ["cargas-montagem"],
+    queryFn: async () => (await supabase.from("cargas").select("id,numero,status,data_prevista_saida,motoristas:motorista_id(nome),veiculos:veiculo_id(placa),notas_fiscais(id,peso,volumes,valor,cliente,cidade)").eq("situacao", "ativa").in("status", ["separacao", "carregamento"]).order("numero", { ascending: false })).data ?? [],
+  });
+  if (!data.length) return null;
+  return (
+    <div className="mb-4 rounded-md border bg-card p-3">
+      <div className="mb-2 text-sm font-semibold">Cargas em montagem (ainda não saíram) — {data.length}</div>
+      <div className="overflow-auto"><table className="table-erp"><thead><tr><th>Carga</th><th>Motorista</th><th>Placa</th><th>Data</th><th className="text-right">NFs</th><th className="text-right">Peso</th><th className="text-right">Volumes</th><th className="text-right">Valor</th><th>Destinos</th><th /></tr></thead>
+        <tbody>{data.map((c: any) => { const ns = c.notas_fiscais ?? []; const t = ns.reduce((a: any, n: any) => ({ p: a.p + Number(n.peso ?? 0), v: a.v + Number(n.volumes ?? 0), r: a.r + Number(n.valor ?? 0) }), { p: 0, v: 0, r: 0 });
+          return <tr key={c.id}><td className="font-semibold">#{c.numero}</td><td>{c.motoristas?.nome ?? "—"}</td><td>{c.veiculos?.placa ?? "—"}</td><td>{c.data_prevista_saida ? fmtDate(c.data_prevista_saida + "T12:00") : "—"}</td>
+            <td className="text-right">{ns.length}</td><td className="text-right">{fmtNum(t.p, 3)}</td><td className="text-right">{fmtNum(t.v)}</td><td className="text-right">{fmtBRL(t.r)}</td>
+            <td className="max-w-[260px] truncate" title={[...new Set(ns.map((n: any) => `${n.cliente} (${n.cidade})`))].join("; ")}>{[...new Set(ns.map((n: any) => n.cidade))].join(", ")}</td>
+            <td><Link to="/cargas/$id" params={{ id: c.id }} className="text-primary underline text-xs">Abrir / iniciar rota</Link></td></tr>; })}</tbody></table></div>
     </div>
   );
 }

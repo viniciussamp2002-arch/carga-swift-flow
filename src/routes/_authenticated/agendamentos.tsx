@@ -17,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Search, Send, FileDown, Undo2, Redo2, History } from "lucide-react";
 import * as XLSX from "xlsx";
+import { FilterTh } from "@/components/ColumnFilter";
+import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({
   head: () => pageHead("Agendamentos", "Agendamento das notas de clientes com agendamento obrigatório"),
@@ -31,7 +33,8 @@ function AgendamentosPage() {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
-  const [colF, setColF] = useState<Record<string, string>>({});
+  const [colF, setColF] = useState<ColFilters>({});
+  const [sort, setSort] = useState<ColSort>(null);
   const [visao, setVisao] = useState<"pendentes" | "historico">("pendentes");
   const { nf } = Route.useSearch();
   useEffect(() => { if (nf) { setBusca(nf); setFiltro("todos"); setVisao("pendentes"); } }, [nf]);
@@ -58,14 +61,24 @@ function AgendamentosPage() {
     return rows.filter((r: any) => (visao === "historico" ? isDelivered(r.nota.status) : !isDelivered(r.nota.status)) && (filtro === "todos" || r.status === filtro) &&
       (!t || [r.nota.numero, clienteNome(r.nota), r.nota.cliente, r.nota.fornecedor, r.nota.cidade, r.protocolo].some((v) => String(v ?? "").toLowerCase().includes(t))));
   }, [rows, filtro, busca, visao, clientes]);
+  const entrega = (r: any) => {
+    const e = (r.nota.entregas ?? []).filter((x: any) => x.resultado === "entregue").sort((a: any, b: any) => b.data_evento.localeCompare(a.data_evento))[0];
+    return e?.data_evento ?? null;
+  };
+
   const colGet: Record<string, (r: any) => string> = {
     nf: (r) => String(r.nota.numero ?? ""), forn: (r) => r.nota.fornecedor ?? "", cli: (r) => clienteNome(r.nota) ?? "",
     cid: (r) => `${r.nota.cidade ?? ""}/${r.nota.uf ?? ""}`, data: (r) => r.data_agendada ? fmtDate(r.data_agendada + "T12:00") : "",
     prot: (r) => r.protocolo ?? "", st: (r) => AG_STATUS_LABEL[r.status] ?? "", ent: (r) => REC_CLIENTE_LABEL[r.status_recebimento] ?? "",
   };
-  const visible = useMemo(() => filtered.filter((r: any) => Object.entries(colF).every(([k, v]) => !v.trim() || (colGet[k]?.(r) ?? "").toLowerCase().includes(v.trim().toLowerCase())))
-    .sort((a: any, b: any) => (a.data_agendada ?? "9999").localeCompare(b.data_agendada ?? "9999")), [filtered, colF, clientes]);
-  const fIn = (k: string) => <input value={colF[k] ?? ""} onChange={(e) => setColF({ ...colF, [k]: e.target.value })} placeholder="Filtrar" className="h-6 w-full min-w-[60px] rounded border bg-background px-1 text-xs font-normal" />;
+  colGet.peso = (r) => fmtNum(r.nota.peso, 3); colGet.sit = (r) => operationalSituation(r, r.nota.status, hoje); colGet.rec = (r) => r.nota.data_chegada ? fmtDate(r.nota.data_chegada + "T12:00") : "";
+  colGet.stn = (r) => NOTA_STATUS_LABEL[r.nota.status] ?? ""; colGet.dent = (r) => fmtDateTime(entrega(r)) ?? "";
+  const visible = useMemo(() => {
+    const base = applyColumnFilters(filtered, colF, colGet);
+    return sort ? sortRows(base, sort, colGet, { peso: (r: any) => Number(r.nota.peso ?? 0), data: (r: any) => Date.parse(r.data_agendada ?? "9999-12-31"), rec: (r: any) => Date.parse(r.nota.data_chegada ?? "9999-12-31") })
+      : [...base].sort((a: any, b: any) => (a.data_agendada ?? "9999").localeCompare(b.data_agendada ?? "9999"));
+  }, [filtered, colF, sort, clientes]);
+  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(filtered, colGet[k]!)} filters={colF} setFilters={setColF} sort={sort} setSort={setSort} />;
   const base = rows.filter((r: any) => (visao === "historico") === isDelivered(r.nota.status));
   const contagem = (s: string) => s === "todos" ? base.length : base.filter((r: any) => r.status === s).length;
 
@@ -101,11 +114,6 @@ function AgendamentosPage() {
   });
 
   const solicitar = (r: any) => upd.mutate({ r, campo: "status", valor: "solicitado", label: "Status" });
-
-  const entrega = (r: any) => {
-    const e = (r.nota.entregas ?? []).filter((x: any) => x.resultado === "entregue").sort((a: any, b: any) => b.data_evento.localeCompare(a.data_evento))[0];
-    return e?.data_evento ?? null;
-  };
 
   function exportar() {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r: any) => ({
@@ -145,6 +153,7 @@ function AgendamentosPage() {
       <div className="mb-2 flex flex-wrap gap-2 items-center">
         {FILTROS.map((f) => <Button key={f} size="sm" variant={filtro === f ? "default" : "outline"} className="h-8" onClick={() => setFiltro(f)}>
           {f === "todos" ? "Todos" : AG_STATUS_LABEL[f]} ({contagem(f)})</Button>)}
+        {(hasActiveFilters(colF) || sort) && <Button size="sm" variant="ghost" className="h-8" onClick={() => { setColF({}); setSort(null); }}>Limpar filtros</Button>}
         <div className="flex items-center gap-2 border rounded-md px-2 h-8 bg-card ml-auto min-w-[220px]">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Pesquisar..." className="bg-transparent outline-none text-sm flex-1" />
@@ -153,13 +162,10 @@ function AgendamentosPage() {
       <div className="bg-card border rounded-md max-h-[calc(100vh-280px)] overflow-auto">
         <table className="table-erp">
           <thead><tr>
-            <th>Nº NF</th><th>Fornecedor</th><th>Cliente</th><th>Cidade/UF</th><th className="text-right">Peso</th>
-            <th>Situação</th><th>Recebimento</th>
-            <th>Data agendada</th><th>Protocolo</th><th>Status agend.</th><th>Entrada cliente</th>
-            <th>Status entrega</th><th>Data entrega</th><th>Histórico</th>
-          </tr><tr>
-            <th>{fIn("nf")}</th><th>{fIn("forn")}</th><th>{fIn("cli")}</th><th>{fIn("cid")}</th><th /><th /><th />
-            <th>{fIn("data")}</th><th>{fIn("prot")}</th><th>{fIn("st")}</th><th>{fIn("ent")}</th><th /><th /><th />
+            {th("nf", "Nº NF")}{th("forn", "Fornecedor")}{th("cli", "Cliente")}{th("cid", "Cidade/UF")}{th("peso", "Peso", "text-right")}
+            {th("sit", "Situação")}{th("rec", "Recebimento")}
+            {th("data", "Data agendada")}{th("prot", "Protocolo")}{th("st", "Status agend.")}{th("ent", "Entrada cliente")}
+            {th("stn", "Status entrega")}{th("dent", "Data entrega")}<th>Histórico</th>
           </tr></thead>
           <tbody>
             {visible.map((r: any) => { const n = r.nota; return (

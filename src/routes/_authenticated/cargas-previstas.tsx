@@ -31,6 +31,10 @@ import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ReceivingOccurrenceDocuments } from "@/components/ReceivingOccurrenceDocuments";
 import { useSearch, useNavigate } from "@tanstack/react-router";
+import { FilterTh } from "@/components/ColumnFilter";
+import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
+import { openReport, tableHtml } from "@/lib/print-report";
+import { Printer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   validateSearch: (search: Record<string, unknown>) => ({ carga: typeof search.carga === "string" ? search.carga : undefined }),
@@ -69,7 +73,45 @@ function CargasEntradaPage() {
       return data ?? [];
     },
   });
-  const rows = cargas.filter(c => (statusF === "__all__" || c.status === statusF) && (stateF === "todas" || c.situacao === stateF));
+  const [cf, setCf] = useState<ColFilters>({});
+  const [sort, setSort] = useState<ColSort>(null);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [printing, setPrinting] = useState(false);
+  const base = cargas.filter(c => (statusF === "__all__" || c.status === statusF) && (stateF === "todas" || c.situacao === stateF));
+  const get: Record<string, (c: any) => string> = {
+    transp: (c) => c.numero_transporte ?? "", transportadora: (c) => c.transportadora ?? "", forn: (c) => c.fornecedor ?? "",
+    mot: (c) => [c.motorista, c.placa].filter(Boolean).join(" • "), carreg: (c) => fmtDate(c.data_carregamento && c.data_carregamento + "T12:00") ?? "",
+    prev: (c) => fmtDate(c.previsao_chegada && c.previsao_chegada + "T12:00") ?? "", cheg: (c) => fmtDateTime(c.data_chegada) ?? "",
+    notas: (c) => String(sum(c.notas_fiscais ?? []).notas), peso: (c) => fmtNum(sum(c.notas_fiscais ?? []).peso, 3), vol: (c) => fmtNum(sum(c.notas_fiscais ?? []).volumes),
+    valor: (c) => fmtBRL(sum(c.notas_fiscais ?? []).valor), status: (c) => ENTRADA_STATUS_LABEL[c.status] ?? c.status, sit: (c) => LOAD_STATE_LABEL[c.situacao] ?? c.situacao,
+  };
+  const numeric: Record<string, (c: any) => number> = { notas: (c) => sum(c.notas_fiscais ?? []).notas, peso: (c) => sum(c.notas_fiscais ?? []).peso, vol: (c) => sum(c.notas_fiscais ?? []).volumes, valor: (c) => sum(c.notas_fiscais ?? []).valor,
+    carreg: (c) => Date.parse(c.data_carregamento ?? "9999-12-31"), prev: (c) => Date.parse(c.previsao_chegada ?? "9999-12-31"), cheg: (c) => Date.parse(c.data_chegada ?? "9999-12-31") };
+  const rows = sortRows(applyColumnFilters(base, cf, get), sort, get, numeric);
+  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(base, get[k]!)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
+  async function imprimirCargas() {
+    const list = rows.filter((c: any) => sel.has(c.id));
+    setPrinting(true);
+    try {
+      const { data: ns, error } = await supabase.from("notas_fiscais").select("id,carga_entrada_id,numero,fornecedor,cliente,cidade,uf,peso,volumes,valor").in("carga_entrada_id", list.map((c: any) => c.id)).order("numero");
+      if (error) throw error;
+      let body = ""; const all = new Map<string, any>();
+      for (const c of list) {
+        const notas = [...new Map((ns ?? []).filter((n) => n.carga_entrada_id === c.id).map((n) => [n.id, n])).values()];
+        notas.forEach((n) => all.set(n.id, n));
+        const t = sum(notas);
+        body += `<h2>Carga ${c.numero_transporte || "—"} — ${ENTRADA_STATUS_LABEL[c.status] ?? c.status}${c.situacao !== "ativa" ? ` (${LOAD_STATE_LABEL[c.situacao]})` : ""}</h2>
+          <p>Transportadora: ${c.transportadora || "—"} | Motorista: ${c.motorista || "—"} | Placa: ${c.placa || "—"} | Carregamento: ${fmtDate(c.data_carregamento && c.data_carregamento + "T12:00") || "—"} | Previsão de chegada: ${fmtDate(c.previsao_chegada && c.previsao_chegada + "T12:00") || "—"}</p>`
+          + tableHtml(["NF", "Fornecedor", "Cliente", "Cidade", "UF", "Peso (kg)", "Volumes", "Valor NF"], notas.map((n) => [n.numero, n.fornecedor, n.cliente, n.cidade, n.uf ?? "", fmtNum(n.peso, 3), fmtNum(n.volumes), fmtBRL(n.valor)]), [5, 6, 7])
+          + `<p><b>Subtotal: ${t.notas} NF | ${fmtNum(t.peso, 3)} kg | ${fmtNum(t.volumes)} volumes | ${fmtBRL(t.valor)}</b></p>`;
+      }
+      const g = sum([...all.values()]);
+      const emTransito = list.filter((c: any) => c.status === "em_transito").length;
+      const ok = openReport("Relatório de Cargas de Entrada em Trânsito", [`Cargas selecionadas: ${list.length} (${emTransito} em trânsito; demais com a situação real indicada em cada carga)`],
+        body + `<h2>Total geral</h2><p><b>${list.length} carga(s) | ${g.notas} NF | ${fmtNum(g.peso, 3)} kg | ${fmtNum(g.volumes)} volumes | ${fmtBRL(g.valor)}</b></p>`);
+      if (!ok) toast.error("Permita pop-ups para imprimir");
+    } catch (e: any) { toast.error(e.message); } finally { setPrinting(false); }
+  }
 
   const salvar = useMutation({
     mutationFn: async (f: any) => {
@@ -93,18 +135,22 @@ function CargasEntradaPage() {
             <SelectContent><SelectItem value="__all__">Todos os status</SelectItem>
               {Object.entries(ENTRADA_STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
           </Select>
+          {hasActiveFilters(cf) || sort ? <Button size="sm" variant="ghost" className="h-9" onClick={() => { setCf({}); setSort(null); }}>Limpar filtros</Button> : null}
+          <Button size="sm" variant="outline" className="h-9" disabled={!sel.size || printing} onClick={imprimirCargas}><Printer className="h-4 w-4 mr-1" />IMPRIMIR CARGAS{sel.size ? ` (${sel.size})` : ""}</Button>
           {canWrite && <Button size="sm" className="h-9" onClick={() => setForm({ ...EMPTY })}><Plus className="h-4 w-4 mr-1" />Nova carga de entrada</Button>}
         </>} />
       <div className="bg-card border rounded-md overflow-auto">
         <table className="table-erp">
           <thead><tr>
-            <th>Transporte</th><th>Transportadora</th><th>Fornecedor</th><th>Motorista / Placa</th><th>Carregamento</th>
-            <th>Previsão</th><th>Chegada</th><th className="text-right">Notas</th><th className="text-right">Peso (kg)</th>
-            <th className="text-right">Volumes</th><th className="text-right">Valor</th><th>Status</th><th>Situação</th><th>Ações</th>
+            <th className="w-8"><Checkbox aria-label="Selecionar todas as cargas filtradas" checked={rows.length > 0 && rows.every((c: any) => sel.has(c.id))} onCheckedChange={(v) => setSel(v === true ? new Set(rows.map((c: any) => c.id)) : new Set())} /></th>
+            {th("transp", "Transporte")}{th("transportadora", "Transportadora")}{th("forn", "Fornecedor")}{th("mot", "Motorista / Placa")}{th("carreg", "Carregamento")}
+            {th("prev", "Previsão")}{th("cheg", "Chegada")}{th("notas", "Notas", "text-right")}{th("peso", "Peso (kg)", "text-right")}
+            {th("vol", "Volumes", "text-right")}{th("valor", "Valor", "text-right")}{th("status", "Status")}{th("sit", "Situação")}<th>Ações</th>
           </tr></thead>
           <tbody>
             {rows.map((c: any) => { const t = sum(c.notas_fiscais ?? []); return (
-              <tr key={c.id} className="cursor-pointer" onClick={() => setOpenId(c.id)}>
+              <tr key={c.id} className={`cursor-pointer ${sel.has(c.id) ? "bg-accent/40" : ""}`} onClick={() => setOpenId(c.id)}>
+                <td onClick={e => e.stopPropagation()}><Checkbox aria-label={`Selecionar carga ${c.numero_transporte}`} checked={sel.has(c.id)} onCheckedChange={(v) => { const s = new Set(sel); if (v === true) s.add(c.id); else s.delete(c.id); setSel(s); }} /></td>
                 <td className="font-semibold">{c.numero_transporte || "—"}</td><td>{c.transportadora || "—"}</td><td>{c.fornecedor || "—"}</td>
                 <td>{[c.motorista, c.placa].filter(Boolean).join(" • ") || "—"}</td>
                 <td>{fmtDate(c.data_carregamento && c.data_carregamento + "T12:00")}</td><td>{fmtDate(c.previsao_chegada && c.previsao_chegada + "T12:00")}</td>
@@ -115,7 +161,7 @@ function CargasEntradaPage() {
                 <td>{LOAD_STATE_LABEL[c.situacao]}</td>
                 <td onClick={e => e.stopPropagation()}><LoadLifecycleActions id={c.id} kind="entrada" state={c.situacao} /></td>
               </tr>); })}
-            {rows.length === 0 && <tr><td colSpan={14} className="text-center text-muted-foreground py-8">Nenhuma carga nesta situação</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={15} className="text-center text-muted-foreground py-8">Nenhuma carga nesta situação</td></tr>}
           </tbody>
         </table>
       </div>
