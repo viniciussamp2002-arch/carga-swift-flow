@@ -1,4 +1,4 @@
-import { Rows3, Rows4 } from "lucide-react";
+import { Rows3, Rows4, Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Home, Users, History, ShieldCheck, LogOut, UserCircle, Camera, FolderOpen, Truck, Building2, FileCheck, CalendarCheck } from "lucide-react";
@@ -14,6 +14,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [dense, setDense] = useState(false);
   useEffect(() => { const v = localStorage.getItem("tm-dense-tables") === "1"; setDense(v); document.documentElement.classList.toggle("dense-tables", v); }, []);
+  const [dark, setDark] = useState(false);
+  useEffect(() => { const v = localStorage.getItem("tm-theme") === "dark"; setDark(v); document.documentElement.classList.toggle("dark", v); }, []);
+  const toggleDark = () => { const v = !dark; setDark(v); localStorage.setItem("tm-theme", v ? "dark" : "light"); document.documentElement.classList.toggle("dark", v); };
   const toggleDense = () => { const v = !dense; setDense(v); localStorage.setItem("tm-dense-tables", v ? "1" : "0"); document.documentElement.classList.toggle("dense-tables", v); };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   type NavItem = { to: string; label: string; icon: any; group: string };
@@ -45,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 flex justify-center text-foreground">{!isDriver && <GlobalSearch />}</div>
            {!isDriver && <AgendaBell variant="header" />}
            {!isDriver && <Button size="icon" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={toggleDense} aria-label={dense ? "Visualização confortável" : "Visualização planilha (compacta)"} title={dense ? "Visualização confortável" : "Visualização planilha (compacta)"}>{dense ? <Rows3 className="h-5 w-5" /> : <Rows4 className="h-5 w-5" />}</Button>}
+           <Button size="icon" variant="ghost" className="hover:bg-primary-foreground/10 hover:text-primary-foreground" onClick={toggleDark} aria-label={dark ? "Modo claro" : "Modo noturno"} title={dark ? "Modo claro" : "Modo noturno"}>{dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</Button>
            <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-90">
             <UserCircle className="h-4 w-4" />{isDriver ? "Motorista" : user?.email}
           </div>
