@@ -28,13 +28,14 @@ import { useOcorrencias } from "@/components/Ocorrencias";
 import { InboundOccurrenceItems } from "@/components/InboundOccurrenceItems";
 import { LoadLifecycleActions, LoadStateFilter, LoadStateInfo } from "@/components/LoadLifecycle";
 import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ReceivingOccurrenceDocuments } from "@/components/ReceivingOccurrenceDocuments";
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { FilterTh } from "@/components/ColumnFilter";
 import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
-import { openReport, tableHtml } from "@/lib/print-report";
-import { Printer } from "lucide-react";
+import { esc, openReport, tableHtml } from "@/lib/print-report";
+import { Printer, Columns3 } from "lucide-react";
+import { DEFAULT_INBOUND_PRINT_COLUMNS, INBOUND_PRINT_COLUMNS, inboundPrintData } from "@/lib/inbound-print-columns";
 
 export const Route = createFileRoute("/_authenticated/cargas-previstas")({
   validateSearch: (search: Record<string, unknown>) => ({ carga: typeof search.carga === "string" ? search.carga : undefined }),
@@ -77,6 +78,7 @@ function CargasEntradaPage() {
   const [sort, setSort] = useState<ColSort>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
+  const [printColumns, setPrintColumns] = useState<string[]>(DEFAULT_INBOUND_PRINT_COLUMNS);
   const base = cargas.filter(c => (statusF === "__all__" || c.status === statusF) && (stateF === "todas" || c.situacao === stateF));
   const get: Record<string, (c: any) => string> = {
     transp: (c) => c.numero_transporte ?? "", transportadora: (c) => c.transportadora ?? "", forn: (c) => c.fornecedor ?? "",
@@ -91,6 +93,7 @@ function CargasEntradaPage() {
   const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(base, get[k]!)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
   async function imprimirCargas() {
     const list = rows.filter((c: any) => sel.has(c.id));
+    if (!list.length || !printColumns.length) return;
     setPrinting(true);
     try {
       const { data: ns, error } = await supabase.from("notas_fiscais").select("id,carga_entrada_id,numero,fornecedor,cliente,cidade,uf,peso,volumes,valor").in("carga_entrada_id", list.map((c: any) => c.id)).order("numero");
@@ -100,9 +103,9 @@ function CargasEntradaPage() {
         const notas = [...new Map((ns ?? []).filter((n) => n.carga_entrada_id === c.id).map((n) => [n.id, n])).values()];
         notas.forEach((n) => all.set(n.id, n));
         const t = sum(notas);
-        body += `<h2>Carga ${c.numero_transporte || "—"} — ${ENTRADA_STATUS_LABEL[c.status] ?? c.status}${c.situacao !== "ativa" ? ` (${LOAD_STATE_LABEL[c.situacao]})` : ""}</h2>
-          <p>Transportadora: ${c.transportadora || "—"} | Motorista: ${c.motorista || "—"} | Placa: ${c.placa || "—"} | Carregamento: ${fmtDate(c.data_carregamento && c.data_carregamento + "T12:00") || "—"} | Previsão de chegada: ${fmtDate(c.previsao_chegada && c.previsao_chegada + "T12:00") || "—"}</p>`
-          + tableHtml(["NF", "Fornecedor", "Cliente", "Cidade", "UF", "Peso (kg)", "Volumes", "Valor NF"], notas.map((n) => [n.numero, n.fornecedor, n.cliente, n.cidade, n.uf ?? "", fmtNum(n.peso, 3), fmtNum(n.volumes), fmtBRL(n.valor)]), [5, 6, 7])
+        const printed = inboundPrintData(printColumns, c, notas);
+        body += `<h2>Carga ${esc(c.numero_transporte || "—")} — ${esc(ENTRADA_STATUS_LABEL[c.status] ?? c.status)}${c.situacao !== "ativa" ? ` (${esc(LOAD_STATE_LABEL[c.situacao])})` : ""}</h2>`
+          + tableHtml(printed.headers, printed.rows, printed.right)
           + `<p><b>Subtotal: ${t.notas} NF | ${fmtNum(t.peso, 3)} kg | ${fmtNum(t.volumes)} volumes | ${fmtBRL(t.valor)}</b></p>`;
       }
       const g = sum([...all.values()]);
@@ -136,7 +139,21 @@ function CargasEntradaPage() {
               {Object.entries(ENTRADA_STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
           </Select>
           {hasActiveFilters(cf) || sort ? <Button size="sm" variant="ghost" className="h-9" onClick={() => { setCf({}); setSort(null); }}>Limpar filtros</Button> : null}
-          <Button size="sm" variant="outline" className="h-9" disabled={!sel.size || printing} onClick={imprimirCargas}><Printer className="h-4 w-4 mr-1" />IMPRIMIR CARGAS{sel.size ? ` (${sel.size})` : ""}</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="h-9" disabled={printing}><Columns3 className="h-4 w-4 mr-1" />Colunas da impressão</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {INBOUND_PRINT_COLUMNS.map((column) => <DropdownMenuCheckboxItem key={column.key}
+                checked={printColumns.includes(column.key)} onSelect={(e) => e.preventDefault()}
+                disabled={printColumns.length === 1 && printColumns.includes(column.key)}
+                onCheckedChange={(checked) => setPrintColumns((current) => checked ? [...current, column.key] : current.filter((key) => key !== column.key))}>
+                {column.label}
+              </DropdownMenuCheckboxItem>)}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setPrintColumns(INBOUND_PRINT_COLUMNS.map((column) => column.key))}>Selecionar todas</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setPrintColumns(DEFAULT_INBOUND_PRINT_COLUMNS)}>Restaurar padrão</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" variant="outline" className="h-9" disabled={!rows.some((c) => sel.has(c.id)) || !printColumns.length || printing} onClick={imprimirCargas}><Printer className="h-4 w-4 mr-1" />IMPRIMIR CARGAS{sel.size ? ` (${sel.size})` : ""}</Button>
           {canWrite && <Button size="sm" className="h-9" onClick={() => setForm({ ...EMPTY })}><Plus className="h-4 w-4 mr-1" />Nova carga de entrada</Button>}
         </>} />
       <div className="bg-card border rounded-md overflow-auto">

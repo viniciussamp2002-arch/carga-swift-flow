@@ -22,3 +22,4 @@
 - Notification dismissals are user-owned durable event keys; schedule version/state changes create distinct events without deleting operational records.
 - Financial city simulation and persisted calculations share the same destination-rule resolver so disabled components and city replacement tariffs behave identically.
 - Office direct delivery uses the transactional baixa_direta_entrega RPC, which requires an uploaded canhoto and reuses proof approval triggers; no fictitious outbound load is created, keeping finance and Notas Entregues consistent.
+- Inbound printing projects load and fiscal-note fields through a shared browser-safe column registry so column selection changes only the report, never operational records.
