@@ -60,6 +60,7 @@ interface ColDef {
 const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => <span title={permanencia(n.data_chegada, hojeTeresina())}>{fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null)} <span className="text-[10px] text-muted-foreground">· {permanencia(n.data_chegada, hojeTeresina()).replace("Recebida hoje", "hoje").replace(/ dias? no depósito/, "d").replace("Sem data de recebimento", "")}</span></span>, edit: { field: "data_chegada", type: "date" } },
   { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
+  { key: "transporte", label: "Transporte", width: 130, options: true, get: (n) => n.entrada?.numero_transporte ?? "", render: (n) => n.entrada?.numero_transporte || "—" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
   { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
@@ -68,7 +69,6 @@ const COLS: ColDef[] = [
   { key: "peso", label: "Peso (kg)", width: 110, align: "right", get: (n) => Number(n.peso ?? 0), render: (n) => fmtNum(n.peso, 3), edit: { field: "peso", type: "number" } },
   { key: "volumes", label: "Volumes", width: 80, align: "right", get: (n) => Number(n.volumes ?? 0), edit: { field: "volumes", type: "int" } },
   { key: "valor", label: "Valor NF", width: 120, align: "right", get: (n) => Number(n.valor ?? 0), render: (n) => fmtBRL(n.valor) },
-  { key: "transporte", label: "Transporte", width: 100, get: (n) => (n.cargas ? `Carga #${n.cargas.numero}` : "") },
   { key: "previsao_entrega", label: "Previsão entrega", width: 170, get: (n) => n.previsao_entrega ?? "9999-12-31",
     render: (n) => { const c = classificarPrazo(n.previsao_entrega, hojeTeresina());
       const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
@@ -131,8 +131,8 @@ function NotasPage() {
       const raw = localStorage.getItem(viewKey);
       if (raw) {
         const v = JSON.parse(raw) as View;
-        const existing = [...v.order.filter((k) => COL_MAP[k] && k !== "transportadora"), ...COLS.map((c) => c.key).filter((k) => k !== "transportadora" && !v.order.includes(k))];
-        const order = [...existing.slice(0, 1), "transportadora", ...existing.slice(1)];
+        const existing = [...v.order.filter((k) => COL_MAP[k] && k !== "transportadora" && k !== "transporte"), ...COLS.map((c) => c.key).filter((k) => k !== "transportadora" && k !== "transporte" && !v.order.includes(k))];
+        const order = [...existing.slice(0, 1), "transportadora", "transporte", ...existing.slice(1)];
         setView({ order, hidden: v.hidden ?? [], widths: v.widths ?? {} });
       }
     } catch { /* ignore */ }
@@ -148,7 +148,7 @@ function NotasPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("notas_fiscais")
-          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada), entrada:carga_entrada_id(transportadora)")
+          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada), entrada:carga_entrada_id(transportadora, numero_transporte)")
           .eq("recebida", true)
           .neq("status", "entregue")
           .order("created_at", { ascending: false })
