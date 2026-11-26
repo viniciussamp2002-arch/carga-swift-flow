@@ -24,6 +24,7 @@ import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } 
 import { lerXmls } from "@/lib/nfe-import";
 import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
+import { rowsPassingOtherFilters, valueCounts } from "@/lib/column-option-counts";
 import { useAuth } from "@/hooks/useAuth";
 import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
 import { RotaEntregaDialog } from "@/components/RotaEntregaDialog";
@@ -165,18 +166,28 @@ function NotasPage() {
   const optionsFor = (k: string) =>
     Array.from(new Set(notas.map((n: any) => String(COL_MAP[k].get(n))).filter(Boolean))).sort();
 
+  const matchesColumnFilter = (n: any, k: string, v: string) => {
+    if (k === "ocorrencias" && v === "Histórico de ocorrência") return n.ocorrencia_estado !== "Sem ocorrência";
+    const col = COL_MAP[k];
+    if (!col) return true;
+    const cell = String(col.get(n) ?? "").toLowerCase();
+    return col.options ? cell === v.toLowerCase() : cell.includes(v.toLowerCase());
+  };
+  const matchesSearch = (n: any, term: string) => !term || COLS.some((c) => String(c.get(n)).toLowerCase().includes(term));
+
+  /** Quantas notas cada opção do filtro devolve: busca, prazo e demais filtros, sem o filtro da própria coluna. */
+  const countsFor = (k: string) => {
+    const term = busca.trim().toLowerCase();
+    const base = notas.filter((n: any) => matchesSearch(n, term)
+      && (!prazoFiltro || classificarPrazo(n.previsao_entrega, hoje).prazo === prazoFiltro));
+    const rows = rowsPassingOtherFilters(base, filters, k, matchesColumnFilter);
+    return { total: rows.length, counts: valueCounts(rows, (n: any) => String(COL_MAP[k]?.get(n) ?? "")) };
+  };
+
   const baseFiltered = useMemo(() => {
     const term = busca.trim().toLowerCase();
-    let rows = notas.filter((n: any) => {
-      if (term && !COLS.some((c) => String(c.get(n)).toLowerCase().includes(term))) return false;
-      for (const [k, v] of Object.entries(filters)) {
-        if (!v) continue;
-        if (k === "ocorrencias" && v === "Histórico de ocorrência") { if (n.ocorrencia_estado === "Sem ocorrência") return false; continue; }
-        const cell = String(COL_MAP[k].get(n) ?? "").toLowerCase();
-        if (COL_MAP[k].options ? cell !== v.toLowerCase() : !cell.includes(v.toLowerCase())) return false;
-      }
-      return true;
-    });
+    let rows = notas.filter((n: any) => matchesSearch(n, term)
+      && Object.entries(filters).every(([k, v]) => !v || matchesColumnFilter(n, k, v)));
     if (sortKey && sortDir) {
       const dir = sortDir === "asc" ? 1 : -1;
       const g = COL_MAP[sortKey].get;
@@ -477,13 +488,9 @@ function NotasPage() {
               <DropdownMenuLabel className="text-[11px]">Filtrar</DropdownMenuLabel>
               <div className="p-2 pt-1" onKeyDown={(e) => e.stopPropagation()}>
                 {col.options ? (
-                  <Select value={filters[col.key] || "__all__"} onValueChange={(v) => setFilters({ ...filters, [col.key]: v === "__all__" ? "" : v })}>
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">Todos</SelectItem>
-                      {(col.key === "ocorrencias" ? ["Sem ocorrência", "Ocorrência aberta", "Ocorrência resolvida", "Histórico de ocorrência"] : optionsFor(col.key)).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ColumnFilterOptions options={optionsFor(col.key)} countsFor={() => countsFor(col.key)}
+                    value={filters[col.key] ?? ""}
+                    onChange={(v) => setFilters({ ...filters, [col.key]: v === "__all__" ? "" : v })} />
                 ) : (
                   <Input value={filters[col.key] ?? ""} onChange={(e) => setFilters({ ...filters, [col.key]: e.target.value })} className="h-8" placeholder="Contém..." />
                 )}
@@ -743,6 +750,30 @@ function NotasPage() {
   );
 }
 
+
+/** Opções de filtro com a quantidade de notas que cada uma devolve; a contagem só roda com o menu aberto. */
+function ColumnFilterOptions({ options, countsFor, value, onChange }: {
+  options: string[];
+  countsFor: () => { total: number; counts: Map<string, number> };
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { total, counts } = countsFor();
+  return (
+    <Select value={value || "__all__"} onValueChange={onChange}>
+      <SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__all__">Todos <span className="ml-1 text-muted-foreground tabular-nums">({total})</span></SelectItem>
+        {options.map((o) => (
+          <SelectItem key={o} value={o}>
+            <span className="truncate">{o}</span>
+            <span className="ml-1 text-muted-foreground tabular-nums">({counts.get(o) ?? 0})</span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();

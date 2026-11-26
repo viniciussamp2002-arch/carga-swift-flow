@@ -75,3 +75,7 @@
 - [x] 05 Nova devolução manual sem gerar estoque
 - [x] 06 Ações → Adicionar à rota de entrega; cargas em montagem visíveis em Entregas
 - [ ] Teste pela tela com XML real do Rancheiro e planilha real — depende dos arquivos do escritório
+
+## Ajustes 26/11/2026
+- [x] Contagem de notas em cada opção do filtro de coluna no Depósito (Fornecedor, Cidade, Transportadora, Status, Agendamento, Motorista): nome + número entre parênteses, sem a palavra "notas"
+  - Validado como escritório: Fornecedor com 12 opções somando 92 (ITAMBE 15, Laticinios Bela Vista 57); ao filtrar Itambé a tabela mostra 15 e o filtro de Cidade passa a listar Todos (15) com TERESINA 8, PICOS 3, PARNAIBA 2, PEDRO II 2; "Limpar" devolve 92. 8 testes de contagem/filtro passaram, typecheck limpo, build OK. Nada publicado.
