@@ -24,7 +24,8 @@ import { NOTA_STATUS_LABEL, NOTA_STATUS_COLOR, fmtKg, fmtNum, fmtDate, fmtBRL } 
 import { lerXmls } from "@/lib/nfe-import";
 import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
-import { rowsPassingOtherFilters, valueCounts } from "@/lib/column-option-counts";
+import { EMPTY_VALUE } from "@/lib/column-filters";
+import { FilterPopover } from "@/components/ColumnFilter";
 import { useAuth } from "@/hooks/useAuth";
 import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
 import { RotaEntregaDialog } from "@/components/RotaEntregaDialog";
@@ -117,7 +118,7 @@ function NotasPage() {
   useEffect(() => { const t = setInterval(() => setHoje(hojeTeresina()), 60000); return () => clearInterval(t); }, []);
   const [sortKey, setSortKey] = useState<string | null>("data_chegada");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [busca, setBusca] = useState(q ?? "");
   const [page, setPage] = useState(0);
   const [view, setView] = useState<View>(DEFAULT_VIEW);
@@ -163,31 +164,30 @@ function NotasPage() {
 
   const notas = useMemo(() => fiscalNotes.map(n => ({ ...n, ocorrencia_estado: occurrenceState(occurrenceMap.get(n.id)) })), [fiscalNotes, occurrenceMap]);
 
-  const optionsFor = (k: string) =>
-    Array.from(new Set(notas.map((n: any) => String(COL_MAP[k].get(n))).filter(Boolean))).sort();
-
-  const matchesColumnFilter = (n: any, k: string, v: string) => {
-    if (k === "ocorrencias" && v === "Histórico de ocorrência") return n.ocorrencia_estado !== "Sem ocorrência";
-    const col = COL_MAP[k];
-    if (!col) return true;
-    const cell = String(col.get(n) ?? "").toLowerCase();
-    return col.options ? cell === v.toLowerCase() : cell.includes(v.toLowerCase());
+  const cellValue = (n: any, k: string) => String(COL_MAP[k]?.get(n) ?? "").trim() || EMPTY_VALUE;
+  const matchesColumnFilter = (n: any, k: string, vals: string[]) => {
+    if (!vals?.length || !COL_MAP[k]) return true;
+    if (k === "ocorrencias" && vals.includes("Histórico de ocorrência") && n.ocorrencia_estado !== "Sem ocorrência") return true;
+    return vals.includes(cellValue(n, k));
   };
   const matchesSearch = (n: any, term: string) => !term || COLS.some((c) => String(c.get(n)).toLowerCase().includes(term));
 
   /** Quantas notas cada opção do filtro devolve: busca, prazo e demais filtros, sem o filtro da própria coluna. */
-  const countsFor = (k: string) => {
+  const optionsFor = (k: string) => {
     const term = busca.trim().toLowerCase();
-    const base = notas.filter((n: any) => matchesSearch(n, term)
-      && (!prazoFiltro || classificarPrazo(n.previsao_entrega, hoje).prazo === prazoFiltro));
-    const rows = rowsPassingOtherFilters(base, filters, k, matchesColumnFilter);
-    return { total: rows.length, counts: valueCounts(rows, (n: any) => String(COL_MAP[k]?.get(n) ?? "")) };
+    const rows = notas.filter((n: any) => matchesSearch(n, term)
+      && (!prazoFiltro || classificarPrazo(n.previsao_entrega, hoje).prazo === prazoFiltro)
+      && Object.entries(filters).every(([fk, v]) => fk === k || matchesColumnFilter(n, fk, v)));
+    const counts = new Map<string, number>();
+    for (const n of rows) { const v = cellValue(n, k); counts.set(v, (counts.get(v) ?? 0) + 1); }
+    for (const v of filters[k] ?? []) if (!counts.has(v)) counts.set(v, 0);
+    return { total: rows.length, options: [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true })) };
   };
 
   const baseFiltered = useMemo(() => {
     const term = busca.trim().toLowerCase();
     let rows = notas.filter((n: any) => matchesSearch(n, term)
-      && Object.entries(filters).every(([k, v]) => !v || matchesColumnFilter(n, k, v)));
+      && Object.entries(filters).every(([k, v]) => matchesColumnFilter(n, k, v)));
     if (sortKey && sortDir) {
       const dir = sortDir === "asc" ? 1 : -1;
       const g = COL_MAP[sortKey].get;
@@ -358,7 +358,7 @@ function NotasPage() {
   function printTable() {
     const esc = (v: any) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" } as any)[c]);
     const fmt = (v: any) => typeof v === "number" ? v.toLocaleString("pt-BR") : v;
-    const filtros = [busca.trim() && `Busca: ${busca.trim()}`, ...Object.entries(filters).filter(([, v]) => v).map(([k, v]) => `${COL_MAP[k]?.label ?? k}: ${v}`)].filter(Boolean).join(" | ") || "Nenhum";
+    const filtros = [busca.trim() && `Busca: ${busca.trim()}`, ...Object.entries(filters).filter(([, v]) => v.length).map(([k, v]) => `${COL_MAP[k]?.label ?? k}: ${v.join(", ")}`)].filter(Boolean).join(" | ") || "Nenhum";
     const head = cols.map((c) => `<th>${esc(c.label)}</th>`).join("");
     const body = filtered.map((n: any) => `<tr>${cols.map((c) => `<td>${esc(fmt(c.get(n)))}</td>`).join("")}</tr>`).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Notas Fiscais</title><style>
@@ -466,7 +466,7 @@ function NotasPage() {
   }
 
   function ColHeader({ col }: { col: ColDef }) {
-    const activeF = filters[col.key];
+    const activeF = (filters[col.key]?.length ?? 0) > 0;
     const isSorted = sortKey === col.key;
     const w = view.widths[col.key] ?? col.width;
     return (
@@ -475,43 +475,20 @@ function NotasPage() {
         <div className={`flex items-center gap-1 ${col.align === "right" ? "justify-end" : ""}`}>
           <span className="truncate cursor-grab">{col.label}</span>
           {isSorted && (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={`p-0.5 rounded hover:bg-accent ${activeF || isSorted ? "text-primary" : "text-muted-foreground"}`}>
-                <Filter className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuItem onClick={() => { setSortKey(col.key); setSortDir("asc"); }}><ArrowUp className="h-3.5 w-3.5 mr-2" /> Ordem crescente</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setSortKey(col.key); setSortDir("desc"); }}><ArrowDown className="h-3.5 w-3.5 mr-2" /> Ordem decrescente</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-[11px]">Filtrar</DropdownMenuLabel>
-              <div className="p-2 pt-1" onKeyDown={(e) => e.stopPropagation()}>
-                {col.options ? (
-                  <ColumnFilterOptions options={optionsFor(col.key)} countsFor={() => countsFor(col.key)}
-                    value={filters[col.key] ?? ""}
-                    onChange={(v) => setFilters({ ...filters, [col.key]: v === "__all__" ? "" : v })} />
-                ) : (
-                  <Input value={filters[col.key] ?? ""} onChange={(e) => setFilters({ ...filters, [col.key]: e.target.value })} className="h-8" placeholder="Contém..." />
-                )}
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => saveView({ ...view, hidden: [...view.hidden, col.key] })}><EyeOff className="h-3.5 w-3.5 mr-2" /> Ocultar coluna</DropdownMenuItem>
-              {(activeF || isSorted) && (
-                <DropdownMenuItem onClick={() => {
-                  const f = { ...filters }; delete f[col.key]; setFilters(f);
-                  if (isSorted) { setSortKey(null); setSortDir(null); }
-                }}><X className="h-3.5 w-3.5 mr-2" /> Limpar</DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FilterPopover selected={filters[col.key] ?? []} options={() => optionsFor(col.key)} sorted={isSorted}
+            onApply={(vals) => { const f = { ...filters }; if (vals.length) f[col.key] = vals; else delete f[col.key]; setFilters(f); }}
+            onSort={(dir) => { setSortKey(col.key); setSortDir(dir); }}
+            extra={(close) => <div className="mt-2 border-t pt-2 flex gap-1">
+              <Button size="sm" variant="ghost" className="h-7 flex-1" onClick={() => { saveView({ ...view, hidden: [...view.hidden, col.key] }); close(); }}><EyeOff className="h-3 w-3 mr-1" />Ocultar coluna</Button>
+              {isSorted && <Button size="sm" variant="ghost" className="h-7" onClick={() => { setSortKey(null); setSortDir(null); close(); }}><X className="h-3 w-3 mr-1" />Sem ordem</Button>}
+            </div>} />
         </div>
         <span onMouseDown={(e) => startResize(e, col.key)} className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/40" />
       </th>
     );
   }
 
-  const hasFilters = busca || Object.values(filters).some(Boolean);
+  const hasFilters = busca || Object.values(filters).some((v) => v.length > 0);
   const displayGroups = new Map<string, any[]>();
   for (const n of pageRows) {
     const key = modoXml === "agrupada" && n.grupo_importacao ? `${n.grupo_importacao}:${recipientGroupKey(n)}` : `nota:${n.id}`;
@@ -750,30 +727,6 @@ function NotasPage() {
   );
 }
 
-
-/** Opções de filtro com a quantidade de notas que cada uma devolve; a contagem só roda com o menu aberto. */
-function ColumnFilterOptions({ options, countsFor, value, onChange }: {
-  options: string[];
-  countsFor: () => { total: number; counts: Map<string, number> };
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const { total, counts } = countsFor();
-  return (
-    <Select value={value || "__all__"} onValueChange={onChange}>
-      <SelectTrigger className="h-8"><SelectValue placeholder="Todos" /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">Todos <span className="ml-1 text-muted-foreground tabular-nums">({total})</span></SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o} value={o}>
-            <span className="truncate">{o}</span>
-            <span className="ml-1 text-muted-foreground tabular-nums">({counts.get(o) ?? 0})</span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 function ManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();

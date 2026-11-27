@@ -23,3 +23,4 @@
 - Financial city simulation and persisted calculations share the same destination-rule resolver so disabled components and city replacement tariffs behave identically.
 - Office direct delivery uses the transactional baixa_direta_entrega RPC, which requires an uploaded canhoto and reuses proof approval triggers; no fictitious outbound load is created, keeping finance and Notas Entregues consistent.
 - Inbound printing projects load and fiscal-note fields through a shared browser-safe column registry so column selection changes only the report, never operational records.
+- Table column filters use the shared Excel-style `FilterPopover`/`FilterTh` (src/components/ColumnFilter.tsx) with `cascadeOptions`: options come only from rows passing the other active filters, so every screen filters the same way.

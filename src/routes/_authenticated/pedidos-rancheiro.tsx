@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Upload, Printer, Receipt, AlertTriangle, History, X } from "lucide-react";
 import { fmtBRL, fmtDate, fmtDateTime, fmtNum } from "@/lib/format";
-import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
+import { applyColumnFilters, cascadeOptions, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
 import { PEDIDO_FIELDS, PEDIDO_STATUS_LABEL, buildPedido, guessMapping, leadTime, splitPasted, type PedidoFieldKey, type PedidoRow } from "@/lib/pedidos-rules";
 import { hojeTeresina } from "@/lib/deadline-rules";
 import { parseNFeXml, type ParsedNFe } from "@/lib/xml-parser";
@@ -76,7 +76,7 @@ function PedidosPage() {
   const pendentesFisicos = pedidos.flatMap((p: any) => (p.pedido_notas ?? []).map((v: any) => v.notas_fiscais)).filter((n: any) => n && !n.recebida);
   const pendUnicas = [...new Map(pendentesFisicos.map((n: any) => [n.id, n])).values()];
 
-  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(base, get[k]!)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
+  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} options={() => cascadeOptions(base, cf, get, k)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
 
   function imprimir() {
     const list = selRows.length ? selRows : rows;

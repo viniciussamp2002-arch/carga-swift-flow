@@ -25,3 +25,18 @@ export function sortRows<T>(rows: T[], sort: ColSort, get: Getters<T>, numeric: 
 }
 
 export const hasActiveFilters = (f: ColFilters) => Object.values(f).some((v) => v.length > 0);
+
+export type FilterOption = { value: string; count: number };
+
+/** Excel-style cascade: options of one column come only from rows passing every other active filter; selected values stay listed. */
+export function cascadeOptions<T>(rows: T[], filters: ColFilters, get: Getters<T>, key: string): { total: number; options: FilterOption[] } {
+  const g = get[key];
+  if (!g) return { total: 0, options: [] };
+  const others = Object.fromEntries(Object.entries(filters).filter(([k]) => k !== key));
+  const visible = applyColumnFilters(rows, others, get);
+  const counts = new Map<string, number>();
+  for (const r of visible) { const v = norm(g(r)); counts.set(v, (counts.get(v) ?? 0) + 1); }
+  for (const v of filters[key] ?? []) if (!counts.has(v)) counts.set(v, 0);
+  const options = [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true }));
+  return { total: visible.length, options };
+}

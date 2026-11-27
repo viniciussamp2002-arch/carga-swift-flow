@@ -32,7 +32,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ReceivingOccurrenceDocuments } from "@/components/ReceivingOccurrenceDocuments";
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { FilterTh } from "@/components/ColumnFilter";
-import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
+import { applyColumnFilters, cascadeOptions, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
 import { esc, openReport, tableHtml } from "@/lib/print-report";
 import { Printer, Columns3 } from "lucide-react";
 import { DEFAULT_INBOUND_PRINT_COLUMNS, INBOUND_PRINT_COLUMNS, inboundPrintData } from "@/lib/inbound-print-columns";
@@ -90,7 +90,7 @@ function CargasEntradaPage() {
   const numeric: Record<string, (c: any) => number> = { notas: (c) => sum(c.notas_fiscais ?? []).notas, peso: (c) => sum(c.notas_fiscais ?? []).peso, vol: (c) => sum(c.notas_fiscais ?? []).volumes, valor: (c) => sum(c.notas_fiscais ?? []).valor,
     carreg: (c) => Date.parse(c.data_carregamento ?? "9999-12-31"), prev: (c) => Date.parse(c.previsao_chegada ?? "9999-12-31"), cheg: (c) => Date.parse(c.data_chegada ?? "9999-12-31") };
   const rows = sortRows(applyColumnFilters(base, cf, get), sort, get, numeric);
-  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(base, get[k]!)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
+  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} options={() => cascadeOptions(base, cf, get, k)} filters={cf} setFilters={setCf} sort={sort} setSort={setSort} />;
   async function imprimirCargas() {
     const list = rows.filter((c: any) => sel.has(c.id));
     if (!list.length || !printColumns.length) return;

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Search, Send, FileDown, Undo2, Redo2, History } from "lucide-react";
 import * as XLSX from "xlsx";
 import { FilterTh } from "@/components/ColumnFilter";
-import { applyColumnFilters, distinctValues, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
+import { applyColumnFilters, cascadeOptions, hasActiveFilters, sortRows, type ColFilters, type ColSort } from "@/lib/column-filters";
 
 export const Route = createFileRoute("/_authenticated/agendamentos")({
   head: () => pageHead("Agendamentos", "Agendamento das notas de clientes com agendamento obrigatório"),
@@ -78,7 +78,7 @@ function AgendamentosPage() {
     return sort ? sortRows(base, sort, colGet, { peso: (r: any) => Number(r.nota.peso ?? 0), data: (r: any) => Date.parse(r.data_agendada ?? "9999-12-31"), rec: (r: any) => Date.parse(r.nota.data_chegada ?? "9999-12-31") })
       : [...base].sort((a: any, b: any) => (a.data_agendada ?? "9999").localeCompare(b.data_agendada ?? "9999"));
   }, [filtered, colF, sort, clientes]);
-  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} values={distinctValues(filtered, colGet[k]!)} filters={colF} setFilters={setColF} sort={sort} setSort={setSort} />;
+  const th = (k: string, label: string, cls = "") => <FilterTh label={label} colKey={k} className={cls} options={() => cascadeOptions(filtered, colF, colGet, k)} filters={colF} setFilters={setColF} sort={sort} setSort={setSort} />;
   const base = rows.filter((r: any) => (visao === "historico") === isDelivered(r.nota.status));
   const contagem = (s: string) => s === "todos" ? base.length : base.filter((r: any) => r.status === s).length;
 
