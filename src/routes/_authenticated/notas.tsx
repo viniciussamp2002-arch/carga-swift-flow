@@ -60,9 +60,8 @@ interface ColDef {
 
 const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => <span title={permanencia(n.data_chegada, hojeTeresina())}>{fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null)} <span className="text-[10px] text-muted-foreground">· {permanencia(n.data_chegada, hojeTeresina()).replace("Recebida hoje", "hoje").replace(/ dias? no depósito/, "d").replace("Sem data de recebimento", "")}</span></span>, edit: { field: "data_chegada", type: "date" } },
-  { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "transporte", label: "Transporte", width: 130, options: true, get: (n) => n.entrada?.numero_transporte ?? "", render: (n) => n.entrada?.numero_transporte || "—" },
-  { key: "carga", label: "Carga", width: 100, options: true, get: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "", render: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "—" },
+  { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
   { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
@@ -79,6 +78,7 @@ const COLS: ColDef[] = [
         {n.previsao_entrega ? `${fmtDate(n.previsao_entrega + "T12:00:00")} · ` : ""}{c.texto === "No prazo" ? `${c.dias}d` : c.texto}
         {diverge && <AlertTriangle aria-label="Previsão depois do agendamento confirmado" className="inline h-3 w-3 ml-1 text-destructive" />}</span>; } },
   { key: "status", label: "Status", width: 110, get: (n) => NOTA_STATUS_LABEL[n.status] ?? n.status, options: true, render: (n) => <StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge> },
+  { key: "carga", label: "Carga", width: 100, options: true, get: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "", render: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "—" },
   { key: "agendamento", label: "Agendamento", width: 150, options: true,
     get: (n) => { const a = Array.isArray(n.agendamentos) ? n.agendamentos[0] : n.agendamentos;
       return a ? `${AG_STATUS_LABEL[a.status]}${a.data_agendada ? " " + a.data_agendada.split("-").reverse().join("/") : ""}` : n.agendamento ? "Sim" : "Não"; },
@@ -133,9 +133,15 @@ function NotasPage() {
       const raw = localStorage.getItem(viewKey);
       if (raw) {
         const v = JSON.parse(raw) as View;
-        const pinned = ["transportadora", "transporte", "carga"];
-        const existing = [...v.order.filter((k) => COL_MAP[k] && !pinned.includes(k)), ...COLS.map((c) => c.key).filter((k) => !pinned.includes(k) && !v.order.includes(k))];
-        const order = [...existing.slice(0, 1), ...pinned, ...existing.slice(1)];
+        const saved = v.order.filter((k) => COL_MAP[k]);
+        const order = [...saved, ...COLS.map((c) => c.key).filter((k) => !saved.includes(k))];
+        const place = (key: string, after: string) => {
+          const at = order.indexOf(after);
+          order.splice(order.indexOf(key), 1);
+          order.splice(at < 0 ? order.length : order.indexOf(after) + 1, 0, key);
+        };
+        place("transporte", "data_chegada");
+        place("carga", "status");
         setView({ order, hidden: v.hidden ?? [], widths: v.widths ?? {} });
       }
     } catch { /* ignore */ }

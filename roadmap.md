@@ -87,3 +87,4 @@
 - [x] Carga #15 excluída da operação pela tela administrativa; NFs 20786, 250406 e 249692 voltaram como disponíveis e sem carga, com recebimento, agendamentos e financeiro preservados. Histórico e carga tombstone mantidos.
 - [x] Depósito: coluna Carga com número da viagem, filtro em cascata, ordenação, Excel e impressão.
   - Validado como escritório: 20 testes passaram; edição da carga em rota #14 abriu com JOSIMAR e RSR2J71, exclusão em rota desabilitada, janela de remoção individual com motivo, edição e remoção temporárias no banco revertidas sem persistir testes. Bloqueios de reversão e retirada direta em rota confirmados. Build OK e navegação sem erros. Nada publicado.
+- [x] Ordem das colunas no Depósito: Transporte logo após Recebimento e Carga ao lado de Status; preferência salva no navegador migra sozinha.
