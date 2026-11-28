@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canEditOutboundLoad, canRemoveOutboundNotes, canUndoOutboundLoad, validateLoadAction, type LoadInspection } from "./load-lifecycle";
+import { canAddNotesToOutboundLoad, canEditOutboundLoad, canRemoveOutboundNotes, canUndoOutboundLoad, notesRemovableFromOutboundLoad, validateLoadAction, type LoadInspection } from "./load-lifecycle";
 const empty: LoadInspection = { numero: "TESTE", notas: 0, status: "prevista", situacao: "ativa", bloqueios: [], pode_excluir: true };
 describe("preservação de cargas", () => {
   it("permite excluir carga sem movimentação mediante justificativa", () => expect(() => validateLoadAction("excluir", "Cadastro incorreto", empty)).not.toThrow());
@@ -36,5 +36,35 @@ describe("montagem de cargas de saída", () => {
     expect(canUndoOutboundLoad({ status: "em_rota", situacao: "ativa" })).toBe(false);
     expect(canUndoOutboundLoad({ status: "finalizada", situacao: "ativa" })).toBe(false);
     expect(canUndoOutboundLoad({ status: "separacao", situacao: "excluida" })).toBe(false);
+  });
+});
+describe("adicionar e retirar notas de uma carga pela tela do depósito", () => {
+  const livre = { status: "disponivel", carga_id: null };
+  const naCarga = (status: string, situacao: string, notaStatus = "separacao") =>
+    ({ status: notaStatus, carga_id: "c1", cargas: { status, situacao } });
+  it("monta carga apenas com notas livres do depósito", () => {
+    expect(canAddNotesToOutboundLoad([livre])).toBe(true);
+    expect(canAddNotesToOutboundLoad([])).toBe(false);
+    expect(canAddNotesToOutboundLoad([livre, naCarga("separacao", "ativa")])).toBe(false);
+    expect(canAddNotesToOutboundLoad([{ status: "separacao", carga_id: null }])).toBe(false);
+  });
+  it("retira nota de carga ativa em separação ou carregamento", () => {
+    expect(notesRemovableFromOutboundLoad([naCarga("separacao", "ativa")])).toHaveLength(1);
+    expect(notesRemovableFromOutboundLoad([naCarga("carregamento", "ativa")])).toHaveLength(1);
+  });
+  it("não retira nota de carga em rota, finalizada ou cancelada", () => {
+    expect(notesRemovableFromOutboundLoad([naCarga("em_rota", "ativa")])).toHaveLength(0);
+    expect(notesRemovableFromOutboundLoad([naCarga("finalizada", "ativa")])).toHaveLength(0);
+    expect(notesRemovableFromOutboundLoad([naCarga("separacao", "cancelada")])).toHaveLength(0);
+    expect(notesRemovableFromOutboundLoad([naCarga("separacao", "excluida")])).toHaveLength(0);
+  });
+  it("não retira nota que já está no depósito nem nota em outro estágio", () => {
+    expect(notesRemovableFromOutboundLoad([livre])).toHaveLength(0);
+    expect(notesRemovableFromOutboundLoad([naCarga("separacao", "ativa", "entregue")])).toHaveLength(0);
+  });
+  it("retira somente as notas permitidas quando a seleção é mista", () => {
+    const permitido = naCarga("separacao", "ativa");
+    const resultado = notesRemovableFromOutboundLoad([livre, permitido, naCarga("em_rota", "ativa")]);
+    expect(resultado).toEqual([permitido]);
   });
 });

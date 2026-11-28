@@ -25,13 +25,14 @@ import { lerXmls } from "@/lib/nfe-import";
 import { occurrenceState } from "@/lib/occurrence-rules";
 import { recipientGroupKey } from "@/lib/nfe-rules";
 import { EMPTY_VALUE } from "@/lib/column-filters";
+import { canAddNotesToOutboundLoad, notesRemovableFromOutboundLoad } from "@/lib/load-lifecycle";
 import { FilterPopover } from "@/components/ColumnFilter";
 import { useAuth } from "@/hooks/useAuth";
 import { BaixaDiretaDialog } from "@/components/BaixaDiretaDialog";
 import { RotaEntregaDialog } from "@/components/RotaEntregaDialog";
 import { toast } from "sonner";
 import { classificarPrazo, hojeTeresina, permanencia, PRAZO_CLASS, PRAZO_LABEL, type Prazo } from "@/lib/deadline-rules";
-import { AlertTriangle, CalendarClock, ListChecks, Truck } from "lucide-react";
+import { AlertTriangle, CalendarClock, ListChecks, Truck, PackageX } from "lucide-react";
 import { Upload, Plus, PackagePlus, X, ArrowUp, ArrowDown, Filter, FileDown, ChevronDown, Trash2, CalendarCog, Search, EyeOff, Columns3, Printer, CheckCircle2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -108,6 +109,7 @@ function NotasPage() {
   const [rotaOpen, setRotaOpen] = useState(false);
   const [openManual, setOpenManual] = useState(false);
   const [openCarga, setOpenCarga] = useState(false);
+  const [openRetirar, setOpenRetirar] = useState(false);
   const [openBulkDate, setOpenBulkDate] = useState(false);
   const [openBulkDelete, setOpenBulkDelete] = useState(false);
   const [bulkDate, setBulkDate] = useState("");
@@ -157,7 +159,7 @@ function NotasPage() {
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("notas_fiscais")
-          .select("*, cargas:carga_id(numero, status, motoristas:motorista_id(nome)), agendamentos(status, data_agendada), entrada:carga_entrada_id(transportadora, numero_transporte)")
+          .select("*, cargas:carga_id(numero, status, situacao, motoristas:motorista_id(nome)), agendamentos(status, data_agendada), entrada:carga_entrada_id(transportadora, numero_transporte)")
           .eq("recebida", true)
           .neq("status", "entregue")
           .order("created_at", { ascending: false })
@@ -230,6 +232,8 @@ function NotasPage() {
   const selectedNotes = notas.filter((n: any) => selected.has(n.id));
   const totSel = sum(selectedNotes);
   const cidadesSel = Array.from(new Set(selectedNotes.map((n: any) => `${n.cidade}${n.uf ? "/" + n.uf : ""}`).filter(Boolean)));
+  const podeMontarCarga = canAddNotesToOutboundLoad(selectedNotes);
+  const notasEmCargaAberta = notesRemovableFromOutboundLoad(selectedNotes);
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -569,6 +573,9 @@ function NotasPage() {
             <DropdownMenuItem disabled={selected.size === 0} onClick={() => { setPrevData(""); setPrevObs(""); setOpenPrev(true); }}><CalendarClock className="h-4 w-4 mr-2" />Definir previsão de entrega</DropdownMenuItem>
             <DropdownMenuItem disabled={selectedNotes.length !== 1 || selectedNotes[0]?.status === "entregue" || !!selectedNotes[0]?.carga_id} onClick={() => setBaixaNota(selectedNotes[0])}><CheckCircle2 className="h-4 w-4 mr-2" />Dar baixa de entrega</DropdownMenuItem>
             <DropdownMenuItem disabled={selected.size === 0} onClick={() => setRotaOpen(true)}><Truck className="h-4 w-4 mr-2" />Adicionar à rota de entrega</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!podeMontarCarga} title={podeMontarCarga ? "Criar uma nova carga ou adicionar a uma carga em aberto" : "Selecione apenas notas disponíveis e sem carga"} onClick={() => setOpenCarga(true)}><PackagePlus className="h-4 w-4 mr-2" />Montar carga</DropdownMenuItem>
+            <DropdownMenuItem disabled={notasEmCargaAberta.length === 0} title={notasEmCargaAberta.length ? "Devolver as notas selecionadas ao Depósito" : "Selecione notas de uma carga em separação ou carregamento"} onClick={() => setOpenRetirar(true)}><PackageX className="h-4 w-4 mr-2" />Retirar da carga</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>}
         <select aria-label="Ordenar" className="h-9 rounded-md border bg-card px-2 text-sm" value={`${sortKey}:${sortDir}`}
@@ -630,7 +637,7 @@ function NotasPage() {
           <span>Valor <b>{fmtBRL(totSel.valor)}</b></span>
           <span className="truncate max-w-[320px]" title={cidadesSel.join(", ")}>Cidades <b>{cidadesSel.length}</b>: {cidadesSel.slice(0, 4).join(", ")}{cidadesSel.length > 4 ? "…" : ""}</span>
           <div className="ml-auto flex gap-2">
-            <Button size="sm" className="h-8" disabled={!selectedNotes.every((n: any) => n.status === "disponivel" && !n.carga_id)}
+            <Button size="sm" className="h-8" disabled={!podeMontarCarga}
               title="Somente notas disponíveis e sem carga" onClick={() => setOpenCarga(true)}>
               <PackagePlus className="h-3.5 w-3.5 mr-1" /> Adicionar à carga
             </Button>
@@ -707,6 +714,7 @@ function NotasPage() {
       <GerarCargaDialog open={openCarga}
         onOpenChange={(o) => { setOpenCarga(o); if (!o) setSelected(new Set()); }}
         notaIds={Array.from(selected)} />
+      <RetirarCargaDialog open={openRetirar} onOpenChange={setOpenRetirar} notas={notasEmCargaAberta} />
 
       <Dialog open={openBulkDate} onOpenChange={setOpenBulkDate}>
         <DialogContent className="max-w-sm">
@@ -806,7 +814,7 @@ function GerarCargaDialog({
   const [existente, setExistente] = useState("__nova__");
   const { data: cargasAbertas = [] } = useQuery({
     queryKey: ["cargas-abertas"],
-    queryFn: async () => (await supabase.from("cargas").select("id,numero,status").eq("situacao", "ativa").in("status", ["separacao", "carregamento"]).order("numero")).data ?? [],
+    queryFn: async () => (await supabase.from("cargas").select("id,numero,status,notas_fiscais(count)").eq("situacao", "ativa").in("status", ["separacao", "carregamento"]).order("numero")).data ?? [],
     enabled: open,
   });
 
@@ -869,7 +877,9 @@ function GerarCargaDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__nova__">Nova carga</SelectItem>
-                {cargasAbertas.map((c: any) => <SelectItem key={c.id} value={c.id}>Carga #{String(c.numero).padStart(2, "0")} (em aberto)</SelectItem>)}
+                {cargasAbertas.map((c: any) => <SelectItem key={c.id} value={c.id}>
+                  Carga #{String(c.numero).padStart(2, "0")} · {c.status === "separacao" ? "em separação" : "em carregamento"} · {c.notas_fiscais?.[0]?.count ?? 0} nota(s)
+                </SelectItem>)}
               </SelectContent>
             </Select>
           </Field>
@@ -893,6 +903,65 @@ function GerarCargaDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => mut.mutate()} disabled={mut.isPending}>{existente === "__nova__" ? "Criar carga" : "Adicionar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RetirarCargaDialog({
+  open, onOpenChange, notas,
+}: { open: boolean; onOpenChange: (o: boolean) => void; notas: any[] }) {
+  const qc = useQueryClient();
+  const [motivo, setMotivo] = useState("");
+  const cargas = useMemo(() => {
+    const byLoad = new Map<string, { numero: string; notas: any[] }>();
+    for (const n of notas) {
+      const key = String(n.carga_id);
+      const entry = byLoad.get(key) ?? { numero: String(n.cargas?.numero ?? ""), notas: [] };
+      entry.notas.push(n);
+      byLoad.set(key, entry);
+    }
+    return [...byLoad.entries()];
+  }, [notas]);
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      for (const [cargaId, entry] of cargas) {
+        const r = await supabase.rpc("remover_notas_carga_saida", {
+          _carga: cargaId, _notas: entry.notas.map((n: any) => n.id), _motivo: motivo.trim(),
+        });
+        if (r.error) throw r.error;
+      }
+      return notas.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} nota(s) devolvida(s) ao Depósito`);
+      setMotivo("");
+      qc.invalidateQueries();
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!mut.isPending) onOpenChange(o); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Retirar da carga ({notas.length} nota(s))</DialogTitle></DialogHeader>
+        <div className="space-y-3 text-sm">
+          <p className="max-h-28 overflow-auto rounded border bg-muted/40 p-2 text-muted-foreground">
+            {cargas.map(([id, e]) => `Carga #${e.numero}: ${e.notas.map((n: any) => `NF ${n.numero}`).join(", ")}`).join(" — ")}
+          </p>
+          <p>As notas voltam ao Depósito como disponíveis. Recebimento, agendamento, observações e histórico são preservados.</p>
+          <Field label="Motivo">
+            <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} placeholder="Ex.: nota não sairá nesta viagem" />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mut.isPending}>Voltar</Button>
+          <Button variant="destructive" disabled={!motivo.trim() || mut.isPending} onClick={() => mut.mutate()}>
+            {mut.isPending ? "Retirando..." : "Retirar e liberar nota(s)"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
