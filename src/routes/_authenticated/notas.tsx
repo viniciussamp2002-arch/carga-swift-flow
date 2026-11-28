@@ -62,6 +62,7 @@ const COLS: ColDef[] = [
   { key: "data_chegada", label: "Recebimento", width: 120, get: (n) => n.data_chegada ?? "", render: (n) => <span title={permanencia(n.data_chegada, hojeTeresina())}>{fmtDate(n.data_chegada ? n.data_chegada + "T12:00:00" : null)} <span className="text-[10px] text-muted-foreground">· {permanencia(n.data_chegada, hojeTeresina()).replace("Recebida hoje", "hoje").replace(/ dias? no depósito/, "d").replace("Sem data de recebimento", "")}</span></span>, edit: { field: "data_chegada", type: "date" } },
   { key: "transportadora", label: "Transportadora", width: 180, options: true, get: (n) => n.entrada?.transportadora ?? "" },
   { key: "transporte", label: "Transporte", width: 130, options: true, get: (n) => n.entrada?.numero_transporte ?? "", render: (n) => n.entrada?.numero_transporte || "—" },
+  { key: "carga", label: "Carga", width: 100, options: true, get: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "", render: (n) => n.cargas?.numero ? `#${n.cargas.numero}` : "—" },
   { key: "numero", label: "Nº NF", width: 110, get: (n) => (n.numeros_agrupados?.length ? n.numeros_agrupados.join(", ") : n.numero) },
   { key: "fornecedor", label: "Fornecedor", width: 180, get: (n) => n.fornecedor ?? "", options: true },
   { key: "cliente", label: "Cliente", width: 200, get: (n) => n.cliente ?? "", edit: { field: "cliente", type: "text" } },
@@ -132,8 +133,9 @@ function NotasPage() {
       const raw = localStorage.getItem(viewKey);
       if (raw) {
         const v = JSON.parse(raw) as View;
-        const existing = [...v.order.filter((k) => COL_MAP[k] && k !== "transportadora" && k !== "transporte"), ...COLS.map((c) => c.key).filter((k) => k !== "transportadora" && k !== "transporte" && !v.order.includes(k))];
-        const order = [...existing.slice(0, 1), "transportadora", "transporte", ...existing.slice(1)];
+        const pinned = ["transportadora", "transporte", "carga"];
+        const existing = [...v.order.filter((k) => COL_MAP[k] && !pinned.includes(k)), ...COLS.map((c) => c.key).filter((k) => !pinned.includes(k) && !v.order.includes(k))];
+        const order = [...existing.slice(0, 1), ...pinned, ...existing.slice(1)];
         setView({ order, hidden: v.hidden ?? [], widths: v.widths ?? {} });
       }
     } catch { /* ignore */ }

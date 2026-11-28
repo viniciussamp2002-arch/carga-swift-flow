@@ -9,6 +9,15 @@ export interface LoadInspection {
   bloqueios: string[];
   pode_excluir: boolean;
 }
+export function canEditOutboundLoad(load: { status: string; situacao: string }) {
+  return load.situacao === "ativa" && load.status !== "finalizada";
+}
+export function canRemoveOutboundNotes(load: { status: string; situacao: string }) {
+  return load.situacao === "ativa" && ["separacao", "carregamento"].includes(load.status);
+}
+export function canUndoOutboundLoad(load: { status: string; situacao: string }) {
+  return load.situacao !== "excluida" && ["separacao", "carregamento"].includes(load.status);
+}
 export function validateLoadAction(action: LoadAction, reason: string, inspection: LoadInspection) {
   if (!reason.trim()) throw new Error("Informe a justificativa");
   if (inspection.situacao === "excluida") throw new Error("Carga já excluída");

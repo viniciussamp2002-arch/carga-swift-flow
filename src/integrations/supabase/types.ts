@@ -2244,6 +2244,16 @@ export type Database = {
         Args: { _data: string; _ids: string[]; _obs: string }
         Returns: number
       }
+      editar_carga_saida: {
+        Args: {
+          _data: string
+          _id: string
+          _motorista: string
+          _obs: string
+          _veiculo: string
+        }
+        Returns: Json
+      }
       faturar_pedidos: {
         Args: {
           _completos: string[]
@@ -2301,6 +2311,10 @@ export type Database = {
       rejeitar_comprovante: {
         Args: { _id: string; _motivo: string }
         Returns: undefined
+      }
+      remover_notas_carga_saida: {
+        Args: { _carga: string; _motivo: string; _notas: string[] }
+        Returns: number
       }
       reservar_devolucao: {
         Args: { _dados?: Json; _id: string; _item: string; _quantidade: number }

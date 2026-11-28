@@ -302,6 +302,27 @@
       "when": 1795620160250,
       "tag": "0042_fix_pedidos_nome_ambiguo",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795866365717,
+      "tag": "0043_liberar_notas_ao_excluir_carga",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795866410367,
+      "tag": "0044_editar_carga_e_remover_notas",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795866589004,
+      "tag": "0045_impedir_reversao_de_carga_em_rota",
+      "breakpoints": true
     }
   ]
 }

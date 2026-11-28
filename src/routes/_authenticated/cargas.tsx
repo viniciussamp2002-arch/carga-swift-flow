@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { LoadLifecycleActions, LoadStateFilter } from "@/components/LoadLifecycle";
 import { LOAD_STATE_LABEL } from "@/lib/load-lifecycle";
+import { EditarCargaButton } from "@/components/OutboundLoadActions";
 
 export const Route = createFileRoute("/_authenticated/cargas")({
   head: () => pageHead("Montagem de Cargas", "Organização de notas para expedição e entrega."), component: CargasPage });
@@ -101,14 +102,15 @@ function CargasPage() {
                       <Link to="/cargas/$id" params={{ id: c.id }}>
                         <Button size="sm" variant="outline" className="h-7 text-xs">Abrir</Button>
                       </Link>
-                      <LoadLifecycleActions id={c.id} kind="saida" state={c.situacao} />
+                      <EditarCargaButton carga={c} />
+                      <LoadLifecycleActions id={c.id} kind="saida" state={c.situacao} status={c.status} />
                       {canWrite && c.situacao === "ativa" && c.status !== "finalizada" && (
                         <Select onValueChange={(v) => updStatus.mutate({ id: c.id, status: v, numero: c.numero })}>
                           <SelectTrigger className="h-7 text-xs w-32">
                             <SelectValue placeholder="Avançar..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(CARGA_STATUS_LABEL).map(([v, l]) => (
+                            {Object.entries(CARGA_STATUS_LABEL).filter(([v]) => c.status !== "em_rota" || v === "finalizada").map(([v, l]) => (
                               <SelectItem key={v} value={v}>{l}</SelectItem>
                             ))}
                           </SelectContent>

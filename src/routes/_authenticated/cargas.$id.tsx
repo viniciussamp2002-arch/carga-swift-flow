@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadLifecycleActions, LoadStateInfo } from "@/components/LoadLifecycle";
 import { ReceivingHistory } from "@/components/ReceivingDocuments";
+import { EditarCargaButton, RemoverNotaCargaButton } from "@/components/OutboundLoadActions";
 
 export const Route = createFileRoute("/_authenticated/cargas/$id")({
   head: () => pageHead("Detalhes da Carga", "Notas, motorista e veículo da carga de saída."), component: CargaDetail });
@@ -46,7 +47,7 @@ function CargaDetail() {
       <PageHeader
         title={`Carga #${carga.numero}`}
         subtitle={`Criada em ${fmtDateTime(carga.created_at)} • ${CARGA_STATUS_LABEL[carga.status]}`}
-        actions={<LoadLifecycleActions id={id} kind="saida" state={carga.situacao} />}
+        actions={<div className="flex gap-2"><EditarCargaButton carga={carga} /><LoadLifecycleActions id={id} kind="saida" state={carga.situacao} status={carga.status} /></div>}
       />
       <LoadStateInfo load={carga} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -74,11 +75,12 @@ function CargaDetail() {
                 <td className="text-right">{fmtKg(n.peso)}</td>
                 <td className="text-right">{n.volumes}</td>
                 <td><StatusBadge className={NOTA_STATUS_COLOR[n.status]}>{NOTA_STATUS_LABEL[n.status]}</StatusBadge></td>
-                <td>
+                <td><div className="flex flex-wrap gap-1.5">
                   <Link to="/entregas" search={{ carga: id }}>
                     <Button size="sm" variant="outline" className="h-7 text-xs">Entregas</Button>
                   </Link>
-                </td>
+                  <RemoverNotaCargaButton carga={carga} nota={n} />
+                </div></td>
               </tr>
             ))}
           </tbody>
