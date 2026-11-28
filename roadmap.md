@@ -88,3 +88,7 @@
 - [x] Depósito: coluna Carga com número da viagem, filtro em cascata, ordenação, Excel e impressão.
   - Validado como escritório: 20 testes passaram; edição da carga em rota #14 abriu com JOSIMAR e RSR2J71, exclusão em rota desabilitada, janela de remoção individual com motivo, edição e remoção temporárias no banco revertidas sem persistir testes. Bloqueios de reversão e retirada direta em rota confirmados. Build OK e navegação sem erros. Nada publicado.
 - [x] Ordem das colunas no Depósito: Transporte logo após Recebimento e Carga ao lado de Status; preferência salva no navegador migra sozinha.
+
+## Atualização 28/11/2026 — montar carga pelo menu Ações
+- [x] Depósito: menu Ações ganha "Montar carga" (criar carga nova ou adicionar a uma carga em separação/carregamento, com contagem de notas na opção) e "Retirar da carga" (devolve notas selecionadas ao Depósito com motivo).
+  - Validado como administrador com NF 13184: adicionada à Carga #17 (carga_id e status separacao confirmados no banco), depois retirada (carga_id nulo e status disponivel confirmados); menu bloqueia as duas ações quando a seleção não permite. 25 testes de load-lifecycle passaram, build OK. Nada publicado.
